@@ -1,0 +1,54 @@
+from pydantic import BaseModel, Field
+
+
+class ProductBase(BaseModel):
+  name: str
+  kcal: float = Field(ge=0)
+  reference_amount: int = Field(ge=0)
+  reference_unit: str
+  img_src: str
+  category: list[str]
+
+class ProductSummary(ProductBase):
+  id: int
+
+class ProductDetail(ProductBase):
+  id: int
+  fat: float | None = None
+  saturates: float | None = None
+  carbohydrates: float | None = None
+  sugars: float | None = None
+  protein: float | None = None
+  salt: float | None = None
+  fiber: float | None = None
+  ingredients: str | None = None
+  allergy_recommendations: str | None = None
+
+class ProductDetailUpdate(ProductDetail):
+  id: int | None = None
+  name: str | None = None
+  kcal: float | None = Field(default=None, ge=0)
+  reference_amount: int | None = None
+  reference_unit: str | None = None
+  img_src: str | None = None
+  category: list[str] | None = None
+  fat: float | None = None
+  saturates: float | None = None
+  carbohydrates: float | None = None
+  sugars: float | None = None
+  protein: float | None = None
+  salt: float | None = None
+  fiber: float | None = None
+  ingredients: str | None = None
+  allergy_recommendations: str | None = None
+
+class PaginationMeta(BaseModel):
+  page: int = Field(ge=1)
+  limit: int = Field(ge=1)
+  total: int = Field(ge=0)
+  total_pages: int  = Field(ge=0)
+
+class ProductListResponse(BaseModel):
+  pagination: PaginationMeta
+  data: list[ProductDetail | ProductSummary]
+
