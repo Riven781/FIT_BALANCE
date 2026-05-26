@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 
 class ProductBase(BaseModel):
   name: str
+  brand: str | None
   kcal: float = Field(ge=0)
   reference_amount: int = Field(ge=0)
   reference_unit: str
@@ -27,6 +28,7 @@ class ProductDetail(ProductBase):
 class ProductDetailUpdate(ProductDetail):
   id: int | None = None
   name: str | None = None
+  brand: str | None = None
   kcal: float | None = Field(default=None, ge=0)
   reference_amount: int | None = None
   reference_unit: str | None = None

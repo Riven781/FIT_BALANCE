@@ -2,10 +2,12 @@ from enum import Enum
 from os import name
 import re
 from unittest import result
-
+import aiofiles
+import asyncio
 from fastapi.encoders import jsonable_encoder
 from api.dependencies.product import check_ids
 from api.services.product import get_products
+from certifi import contents
 from pydantic import BaseModel, Field
 from fastapi import Body, Depends, FastAPI, HTTPException, Path, Query
 from typing import Annotated, Literal
@@ -49,17 +51,30 @@ async def read_products(pagination_filters : Annotated[PaginationFilters, Depend
     "data" : data[start_index : start_index + pagination_filters.limit]
   }
 
+modification_lock = asyncio.Lock()
 
 @app.patch('/api/v1/product/{product_id}', dependencies=[Depends(check_ids)])
 async def update_product(product_id: Annotated[int, Path(title='The id of the product to get')], product: ProductDetailUpdate):
-  stored_product_data = product_by_id.get(product_id)
-  if stored_product_data is None:
-    raise HTTPException(status_code=404, detail="Product not found")
-  stored_product_model = ProductDetail(**stored_product_data)
-  update_data = product.model_dump(exclude_unset=True)
-  updated_product = stored_product_model.model_copy(update=update_data)
+  async with modification_lock:
+    stored_product_data = product_by_id.get(product_id)
+    if stored_product_data is None:
+      raise HTTPException(status_code=404, detail="Product not found")
+    stored_product_model = ProductDetail(**stored_product_data)
+    update_data = product.model_dump(exclude_unset=True)
+    updated_product = stored_product_model.model_copy(update=update_data)
 
-  product_by_id[product_id].update(jsonable_encoder(updated_product)) 
+    product_by_id[product_id].update(jsonable_encoder(updated_product))
+
+    async with aiofiles.open('./api/products.json', "r+", encoding="utf-8") as products_file:
+      content = await products_file.read()
+      data = json.loads(content)
+      for i, product in enumerate(data):
+        if product['id'] == product_id:
+          data[i] = jsonable_encoder(updated_product)
+          await products_file.seek(0)
+          await products_file.write(json.dumps(data, ensure_ascii=False, indent=2))
+          await products_file.truncate()
+          return updated_product
 
   return updated_product
 
