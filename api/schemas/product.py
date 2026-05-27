@@ -1,5 +1,8 @@
 from pydantic import BaseModel, Field
 
+class ProductCategory(BaseModel):
+  id: int
+  name: str
 
 class ProductBase(BaseModel):
   name: str
@@ -8,7 +11,7 @@ class ProductBase(BaseModel):
   reference_amount: int = Field(ge=0)
   reference_unit: str
   img_src: str
-  category: list[str]
+  category: list[ProductCategory]
 
 class ProductSummary(ProductBase):
   id: int
@@ -33,7 +36,7 @@ class ProductDetailUpdate(ProductDetail):
   reference_amount: int | None = None
   reference_unit: str | None = None
   img_src: str | None = None
-  category: list[str] | None = None
+  category: list[ProductCategory] | None = None
   fat: float | None = None
   saturates: float | None = None
   carbohydrates: float | None = None

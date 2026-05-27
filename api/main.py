@@ -6,6 +6,7 @@ import aiofiles
 import asyncio
 from fastapi.encoders import jsonable_encoder
 from api.dependencies.product import check_ids
+from api.repository.aiosqlite.product import ProductRepository
 from api.services.product import get_products
 from certifi import contents
 from pydantic import BaseModel, Field
@@ -15,6 +16,7 @@ import json
 import math
 from .schemas.product import ProductDetail, ProductDetailUpdate, ProductListResponse, ProductSummary, ProductBase
 from .dependencies.filters import SortBy, ViewMode, NameMode, ProductsFilters, PaginationFilters
+import aiosqlite
 #python api\endpoints.py
 
 with open('./api/products.json', encoding='utf-8') as products_file:
@@ -31,10 +33,15 @@ app = FastAPI()
 async def root():
   return {"message" : "Hello World!"}
 
+DB_PATH = './api/database/fit-balance.db'
+
 
 @app.get("/api/v1/product/{product_id}")
-async def read_product(product_id : int) -> ProductDetail | None:
-  return product_by_id.get(product_id)
+async def read_product(product_id : int, product_repo: Annotated[ProductRepository, Depends()]) -> ProductDetail:
+  result = await product_repo.get(product_id)
+  if result is None:
+    raise HTTPException(status_code=404, detail='Not Found')
+  return result
 
 
 @app.get("/api/v1/products", response_model=ProductListResponse)
