@@ -12,14 +12,14 @@ class ProductsFilters:
       view_mode: ViewMode = ViewMode.SUMMARY,
       sort_by: SortBy = SortBy.ID,
       order: Literal["asc", "desc"] = "asc",
-      category: str | None = None
+      category_id: int | None = None
     ):
     self.name = name
     self.name_mode = name_mode
     self.view_mode = view_mode
     self.sort_by = sort_by
     self.order = order
-    self.category = category
+    self.category_id = category_id
 
 class PaginationFilters:
   def __init__(
