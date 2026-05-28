@@ -48,6 +48,9 @@ class ProductRepository():
       elif products_filters.name_mode == NameMode.CONTAINS:
         conditions.append('LOWER(prod.name) LIKE LOWER(?)')
         arguments.append(f'%{products_filters.name}%')
+      elif products_filters.name_mode == NameMode.STARTS_WITH:
+        conditions.append('LOWER(prod.name) LIKE LOWER(?)')
+        arguments.append(f'{products_filters.name}%')
 
     where_query = None
     if conditions:
