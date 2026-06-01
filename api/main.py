@@ -5,16 +5,17 @@ from unittest import result
 import aiofiles
 import asyncio
 from fastapi.encoders import jsonable_encoder
+from api.dependencies.database import get_product_repository, get_product_service
 from api.dependencies.product import check_ids
 from api.repository.aiosqlite.product import ProductRepository
-from api.services.product import get_products
+from api.services.product import ProductService, get_products
 from certifi import contents
 from pydantic import BaseModel, Field
 from fastapi import Body, Depends, FastAPI, HTTPException, Path, Query
 from typing import Annotated, Literal
 import json
 import math
-from .schemas.product import ProductDetail, ProductDetailUpdate, ProductListResponse, ProductSummary, ProductBase
+from .schemas.product import ProductCreate, ProductDetail, ProductDetailUpdate, ProductListResponse, ProductSummary, ProductBase
 from .dependencies.filters import SortBy, ViewMode, NameMode, ProductsFilters, PaginationFilters
 import aiosqlite
 #python api\endpoints.py
@@ -36,8 +37,8 @@ async def root():
 DB_PATH = './api/database/fit-balance.db'
 
 
-@app.get("/api/v1/product/{product_id}")
-async def read_product(product_id : int, product_repo: Annotated[ProductRepository, Depends()]) -> ProductDetail:
+@app.get("/api/v1/products/{product_id}")
+async def read_product(product_id : int, product_repo: Annotated[ProductRepository, Depends(get_product_repository)]) -> ProductDetail:
   result = await product_repo.get(product_id)
   if result is None:
     raise HTTPException(status_code=404, detail='Not Found')
@@ -45,7 +46,7 @@ async def read_product(product_id : int, product_repo: Annotated[ProductReposito
 
 
 @app.get("/api/v1/products", response_model=ProductListResponse)
-async def read_products(pagination_filters : Annotated[PaginationFilters, Depends()], products_filters: Annotated[ProductsFilters, Depends()], product_repo: Annotated[ProductRepository, Depends()]):
+async def read_products(pagination_filters : Annotated[PaginationFilters, Depends()], products_filters: Annotated[ProductsFilters, Depends()], product_repo: Annotated[ProductRepository, Depends(get_product_repository)]):
   data = await product_repo.get_all(products_filters, pagination_filters.page, pagination_filters.limit)
   total = await product_repo.get_total(products_filters)
 
@@ -60,10 +61,23 @@ async def read_products(pagination_filters : Annotated[PaginationFilters, Depend
     "data" : data
   }
 
+
+@app.post('/api/v1/products', response_model=ProductDetail)
+async def create_product(product : ProductCreate, product_service : Annotated[ProductService, Depends(get_product_service)]):
+  created_product = await product_service.create(product.model_dump())
+  return ProductDetail(**created_product)
+
+@app.delete('/api/v1/products/{product_id}')
+async def delete_product(product_id : int, product_service : Annotated[ProductService, Depends(get_product_service)]):
+  await product_service.delete(product_id)
+
+
+
 modification_lock = asyncio.Lock()
 
 @app.patch('/api/v1/product/{product_id}', dependencies=[Depends(check_ids)])
 async def update_product(product_id: Annotated[int, Path(title='The id of the product to get')], product: ProductDetailUpdate):
+  
   async with modification_lock:
     stored_product_data = product_by_id.get(product_id)
     if stored_product_data is None:

@@ -1,28 +1,13 @@
-from typing import Annotated
-
 import aiosqlite
-from fastapi import Depends
-
 from api.dependencies.filters import ProductsFilters
 from api.enums.product import NameMode, ViewMode
+from api.repository.aiosqlite.repository import DbRepository
 from api.schemas.product import ProductDetail, ProductSummary
 
 
-
-DB_PATH = './api/database/fit-balance.db'
-
-async def get_db():
-  db = await aiosqlite.connect(DB_PATH)
-  db.row_factory = aiosqlite.Row
-  await db.execute("PRAGMA foreign_keys = ON")
-  try:
-    yield db
-  finally:
-    await db.close()
-
-class ProductRepository():
-  def __init__(self, db : Annotated[aiosqlite.Connection, Depends(get_db)]):
-    self.db = db
+class ProductRepository(DbRepository):
+  def __init__(self, db : aiosqlite.Connection):
+    super().__init__(db)
 
   def _convert_category(self, result_dict):
     if result_dict['category_str'] is not None:
@@ -38,7 +23,7 @@ class ProductRepository():
     inner_query = ''
     arguments = []
     if products_filters.category_id is not None:
-      inner_query += ' JOIN ProductCategoryClosure prodcc ON prod.category_id = prodcc.subcategory_id '
+      inner_query +=' JOIN ProductCategoryClosure prodcc ON prod.category_id = prodcc.subcategory_id '
       conditions.append('prodcc.supercategory_id = ?') 
       arguments.append(products_filters.category_id)
     if products_filters.name is not None:
@@ -107,7 +92,16 @@ class ProductRepository():
         output_list.append(ProductDetail(**row_dict) if products_filters.view_mode == ViewMode.DETAIL else ProductSummary(**row_dict))
         
       return output_list
+  
+    
+  async def insert(self, colnames, vals):
+    return await super().insert('Product', colnames, vals)
 
+  async def select(self, filters_dict ={}):
+    return await super().select('Product', filters_dict)
+  
+  async def delete(self, id):
+    return await super().delete('Product', id)
     
   async def get(self, id):
     get_query = """

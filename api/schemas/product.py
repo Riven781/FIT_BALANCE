@@ -28,6 +28,25 @@ class ProductDetail(ProductBase):
   ingredients: str | None = None
   allergy_recommendations: str | None = None
 
+class ProductCreate(BaseModel):
+  model_config = {"extra" : "forbid"}
+  name: str
+  brand: str | None
+  kcal: float = Field(ge=0)
+  reference_amount: int = Field(ge=0)
+  reference_unit: str
+  img_src: str
+  category_id: int
+  fat: float | None = None
+  saturates: float | None = None
+  carbohydrates: float | None = None
+  sugars: float | None = None
+  protein: float | None = None
+  salt: float | None = None
+  fiber: float | None = None
+  ingredients: str | None = None
+  allergy_recommendations: str | None = None
+
 class ProductDetailUpdate(ProductDetail):
   id: int | None = None
   name: str | None = None
