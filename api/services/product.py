@@ -1,3 +1,5 @@
+from itertools import count
+from operator import ge
 from typing import Annotated
 
 from fastapi import Depends, HTTPException
@@ -32,8 +34,20 @@ class ProductService():
     except Exception:
       await self.product_repository.rollback()
       raise
-
-
+  
+  async def update(self, id, product_dict):
+    colnames = list(product_dict.keys())
+    vals = list(product_dict.values())
+    try:
+      count = await self.product_repository.update(id, colnames, vals)
+      if count == 0:
+        raise HTTPException(404)
+      product = await self.product_repository.get(id)
+      await self.product_repository.commit()
+      return product
+    except Exception:
+      await self.product_repository.rollback()
+      raise
 
 
 def name_filter(name_query, name, mode):

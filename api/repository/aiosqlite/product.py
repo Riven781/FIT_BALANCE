@@ -102,6 +102,9 @@ class ProductRepository(DbRepository):
   
   async def delete(self, id):
     return await super().delete('Product', id)
+  
+  async def update(self, id, colnames, vals):
+    return await super().update('Product', id, colnames, vals)
     
   async def get(self, id):
     get_query = """

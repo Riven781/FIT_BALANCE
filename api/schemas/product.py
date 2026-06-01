@@ -47,7 +47,8 @@ class ProductCreate(BaseModel):
   ingredients: str | None = None
   allergy_recommendations: str | None = None
 
-class ProductDetailUpdate(ProductDetail):
+
+class ProductUpdate(BaseModel):
   id: int | None = None
   name: str | None = None
   brand: str | None = None
@@ -65,6 +66,8 @@ class ProductDetailUpdate(ProductDetail):
   fiber: float | None = None
   ingredients: str | None = None
   allergy_recommendations: str | None = None
+  category_id: int | None = None
+
 
 class PaginationMeta(BaseModel):
   page: int = Field(ge=1)

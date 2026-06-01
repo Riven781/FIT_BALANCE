@@ -15,26 +15,13 @@ from fastapi import Body, Depends, FastAPI, HTTPException, Path, Query
 from typing import Annotated, Literal
 import json
 import math
-from .schemas.product import ProductCreate, ProductDetail, ProductDetailUpdate, ProductListResponse, ProductSummary, ProductBase
+from .schemas.product import ProductCreate, ProductDetail, ProductUpdate, ProductListResponse, ProductSummary, ProductBase
 from .dependencies.filters import SortBy, ViewMode, NameMode, ProductsFilters, PaginationFilters
 import aiosqlite
 #python api\endpoints.py
 
-with open('./api/products.json', encoding='utf-8') as products_file:
-  products = json.load(products_file)
-  product_by_id = {product['id'] : product for product in products}
-
-with open('./api/products_hierarchy_2.json', encoding='utf-8') as products_hierarchy_file:
-  products_hierarchy = json.load(products_hierarchy_file)
-
 
 app = FastAPI()
-
-@app.get("/api/v1/")
-async def root():
-  return {"message" : "Hello World!"}
-
-DB_PATH = './api/database/fit-balance.db'
 
 
 @app.get("/api/v1/products/{product_id}")
@@ -64,40 +51,35 @@ async def read_products(pagination_filters : Annotated[PaginationFilters, Depend
 
 @app.post('/api/v1/products', response_model=ProductDetail)
 async def create_product(product : ProductCreate, product_service : Annotated[ProductService, Depends(get_product_service)]):
-  created_product = await product_service.create(product.model_dump())
-  return ProductDetail(**created_product)
+  try:
+    product_created = await product_service.create(product.model_dump())
+    return ProductDetail(**product_created)
+  except aiosqlite.Error as e:
+    #print(e)
+    raise HTTPException(500, detail="Database error")
+  except HTTPException:
+    raise
+  except Exception as e:
+    #print(e)
+    raise HTTPException(500)
 
 @app.delete('/api/v1/products/{product_id}')
 async def delete_product(product_id : int, product_service : Annotated[ProductService, Depends(get_product_service)]):
   await product_service.delete(product_id)
 
+@app.patch('/api/v1/products/{product_id}', response_model=ProductDetail, dependencies=[Depends(check_ids)])
+async def update_product(product_id: int, product: ProductUpdate, product_service: Annotated[ProductService, Depends(get_product_service)]):
+  product_dict = product.model_dump(exclude_unset=True)
+  try:
+    product_updated = await product_service.update(product_id, product_dict)
+    return ProductDetail(**product_updated)
+  except aiosqlite.Error as e:
+    raise HTTPException(500, detail="Databse error")
+  except HTTPException:
+    raise
+  except Exception as e:
+    raise HTTPException(500)
 
 
-modification_lock = asyncio.Lock()
 
-@app.patch('/api/v1/product/{product_id}', dependencies=[Depends(check_ids)])
-async def update_product(product_id: Annotated[int, Path(title='The id of the product to get')], product: ProductDetailUpdate):
-  
-  async with modification_lock:
-    stored_product_data = product_by_id.get(product_id)
-    if stored_product_data is None:
-      raise HTTPException(status_code=404, detail="Product not found")
-    stored_product_model = ProductDetail(**stored_product_data)
-    update_data = product.model_dump(exclude_unset=True)
-    updated_product = stored_product_model.model_copy(update=update_data)
-
-    product_by_id[product_id].update(jsonable_encoder(updated_product))
-
-    async with aiofiles.open('./api/products.json', "r+", encoding="utf-8") as products_file:
-      content = await products_file.read()
-      data = json.loads(content)
-      for i, product in enumerate(data):
-        if product['id'] == product_id:
-          data[i] = jsonable_encoder(updated_product)
-          await products_file.seek(0)
-          await products_file.write(json.dumps(data, ensure_ascii=False, indent=2))
-          await products_file.truncate()
-          return updated_product
-
-  return updated_product
 
