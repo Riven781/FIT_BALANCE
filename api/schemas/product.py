@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 class ProductCategory(BaseModel):
   id: int
@@ -68,6 +68,11 @@ class ProductUpdate(BaseModel):
   allergy_recommendations: str | None = None
   category_id: int | None = None
 
+  @model_validator(mode="after")
+  def at_least_one_field(self):
+    if not self.model_fields_set:
+      raise ValueError("At least one field must be provided")
+    return self
 
 class PaginationMeta(BaseModel):
   page: int = Field(ge=1)
