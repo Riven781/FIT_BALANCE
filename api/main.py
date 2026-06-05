@@ -36,11 +36,13 @@ async def read_product(
 
 
 @app.get("/api/v1/products", response_model=ProductListResponse)
-async def read_products(pagination_filters : Annotated[PaginationFilters, Depends()], products_filters: Annotated[ProductsFilters, Depends()], product_repo: Annotated[ProductRepository, Depends(get_product_repository)]):
-  data = await product_repo.get_all(products_filters, pagination_filters.page, pagination_filters.limit)
-  total = await product_repo.get_total(products_filters)
-
+async def read_products(pagination_filters : Annotated[PaginationFilters, Depends()], products_filters: Annotated[ProductsFilters, Depends()], produce_service: Annotated[ProductService, Depends(get_product_service)], product_repo: Annotated[ProductRepository, Depends(get_product_repository)]):
+  total, data = await produce_service.get_all(products_filters, pagination_filters)
+  #data = await product_repo.get_by_filters(products_filters, pagination_filters.page, pagination_filters.limit)
+  #total = await product_repo.get_total(products_filters)
+  #total = 0
   #data = get_products(products_filters, product_by_id, products_hierarchy)
+  print(products_filters.name)
   return {
     "pagination" : {
       "page" : pagination_filters.page,

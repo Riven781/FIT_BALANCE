@@ -1,19 +1,52 @@
 from itertools import count
 from operator import ge
 from typing import Annotated
-
+import re
 from fastapi import Depends, HTTPException
 
-from api.dependencies.filters import ProductsFilters
+from api.dependencies.filters import PaginationFilters, ProductsFilters
 from api.enums import product
 from api.enums.product import NameMode, ViewMode
 from api.repository.aiosqlite.product import ProductRepository
 from api.schemas.product import ProductDetail, ProductSummary
 
+POLISH_CHARS = {
+    "ą": "a",
+    "ć": "c",
+    "ę": "e",
+    "ł": "l",
+    "ń": "n",
+    "ó": "o",
+    "ś": "s",
+    "ż": "z",
+    "ź": "z",
+    "Ą": "A",
+    "Ć": "C",
+    "Ę": "E",
+    "Ł": "L",
+    "Ń": "N",
+    "Ó": "O",
+    "Ś": "S",
+    "Ż": "Z",
+    "Ź": "Z",
+}
 
 class ProductService():
   def __init__(self, product_repository : ProductRepository):
     self.product_repository = product_repository
+
+  async def get_all(self, product_filters : ProductsFilters, pagination_filters: PaginationFilters):
+    if product_filters.name is not None:
+      names = product_filters.name.lower().translate(str.maketrans(POLISH_CHARS)).split()
+      print(names)
+    else:
+      names = None
+    products = await self.product_repository.get_by_filters(category_id=product_filters.category_id, names=names)
+    total  = await self.product_repository.get_total(category_id=product_filters.category_id, names=names)
+    return total, products
+
+
+
 
   async def create(self, product_dict):
     try:

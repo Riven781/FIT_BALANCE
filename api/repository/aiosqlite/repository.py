@@ -49,6 +49,8 @@ class DbRepository:
 			await cursor.close()
 	
 	async def update(self, table_name, id, colnames, vals):
+		if len(colnames) == 0:
+			return 0
 		q = f'UPDATE {table_name} SET '
 		q += ', '.join([c + ' = ?' for c in colnames])
 		q += ' WHERE id = ' + str(id)

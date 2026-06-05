@@ -1,6 +1,7 @@
+
 import aiosqlite
 from api.dependencies.filters import ProductsFilters
-from api.enums.product import NameMode, ViewMode
+from api.enums.product import NameMode, SortBy, ViewMode
 from api.repository.aiosqlite.repository import DbRepository
 from api.schemas.product import ProductDetail, ProductSummary
 
@@ -18,24 +19,22 @@ class ProductRepository(DbRepository):
     else:
       result_dict['category'] = []
 
-  def _translate_filters_to_query(self, products_filters : ProductsFilters):
+  def _translate_filters_to_query(self, category_id = None, names = None):
     conditions = []
     inner_query = ''
     arguments = []
-    if products_filters.category_id is not None:
+    if category_id is not None:
       inner_query +=' JOIN ProductCategoryClosure prodcc ON prod.category_id = prodcc.subcategory_id '
       conditions.append('prodcc.supercategory_id = ?') 
-      arguments.append(products_filters.category_id)
-    if products_filters.name is not None:
-      if products_filters.name_mode == NameMode.EXAC:
-        conditions.append('LOWER(prod.name) = LOWER(?)')
-        arguments.append(products_filters.name)
-      elif products_filters.name_mode == NameMode.CONTAINS:
-        conditions.append('LOWER(prod.name) LIKE LOWER(?)')
-        arguments.append(f'%{products_filters.name}%')
-      elif products_filters.name_mode == NameMode.STARTS_WITH:
-        conditions.append('LOWER(prod.name) LIKE LOWER(?)')
-        arguments.append(f'{products_filters.name}%')
+      arguments.append(category_id)
+    if names is not None:
+      print(names)
+      name_query = f"({' AND '.join(['(prod.name_search_standard LIKE ? OR prod.name_search_standard LIKE ?)' for _ in range(len(names))])})"
+      conditions.append(name_query)
+
+      for name in names:
+        arguments.append(f'% {name}%')
+        arguments.append(f'{name}%')
 
     where_query = None
     if conditions:
@@ -43,8 +42,8 @@ class ProductRepository(DbRepository):
     return inner_query, where_query, arguments
 
 
-  async def get_total(self, products_filters):
-    inner_query, where_query, arguments = self._translate_filters_to_query(products_filters)
+  async def get_total(self, category_id = None, names = None):
+    inner_query, where_query, arguments = self._translate_filters_to_query(category_id=category_id, names=names)
 
     total_query = f"""
       SELECT COUNT(*) AS total
@@ -55,13 +54,16 @@ class ProductRepository(DbRepository):
     async with self.db.execute(total_query, arguments) as cursor:
       total_row = await cursor.fetchone()
       return total_row['total']
+    
 
-  async def get_all(self, products_filters ,page=1, limit=20):
+  async def get_by_filters(self, category_id=None, names=None, sort_by=SortBy.KCAL, order="ASC", page=1, limit=20):
     offset = (page - 1) * limit
-    inner_query, where_query, arguments = self._translate_filters_to_query(products_filters)
+    inner_query, where_query, arguments = self._translate_filters_to_query(category_id, names)
+    print(where_query)
+    print(arguments)
 
-    get_all_query = f"""
-      SELECT prod.*, (
+    get_by_filters_query = f"""
+    SELECT prod.*, (
         SELECT GROUP_CONCAT(category_id, '|') || ':' || GROUP_CONCAT(category_name, '|') as category FROM (
           SELECT pc.id AS category_id, pc.name AS category_name 
             FROM ProductCategoryClosure AS pcc
@@ -73,26 +75,25 @@ class ProductRepository(DbRepository):
       FROM Product as prod
       {inner_query}
       {where_query if where_query is not None else " "}
-      ORDER BY {products_filters.sort_by.value} {products_filters.order}
+      ORDER BY {sort_by.value} {order}
       LIMIT ?
       OFFSET ?
     """
-    async with self.db.execute(get_all_query, (*arguments, limit, offset)) as cursor:
+    async with self.db.execute(get_by_filters_query, (*arguments, limit, offset)) as cursor:
       result = await cursor.fetchall()
       if result is None:
         return None
       
       output_list = []
 
-
       for row in result:
         row_dict = dict(row)
         self._convert_category(row_dict)
         
-        output_list.append(ProductDetail(**row_dict) if products_filters.view_mode == ViewMode.DETAIL else ProductSummary(**row_dict))
+        output_list.append(ProductDetail(**row_dict))
         
       return output_list
-  
+
     
   async def insert(self, colnames, vals):
     return await super().insert('Product', colnames, vals)

@@ -1,16 +1,18 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 class ProductCategory(BaseModel):
   id: int
   name: str
 
 class ProductBase(BaseModel):
+  model_config = ConfigDict(frozen=True)
+
   name: str
   brand: str | None
   kcal: float = Field(ge=0)
   reference_amount: int = Field(ge=0)
   reference_unit: str
-  img_src: str
+  img_src: str | None
   category: list[ProductCategory]
 
 class ProductSummary(ProductBase):
