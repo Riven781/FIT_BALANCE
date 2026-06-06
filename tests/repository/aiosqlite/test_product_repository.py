@@ -3,6 +3,7 @@ import pytest
 
 from api.enums.product import SortBy
 from api.repository.aiosqlite.product import ProductRepository
+from api.schemas.product import ProductBase, ProductCreate, ProductUpdate
 
 async def insert_categories_and_products(db):
   cursor = await db.executescript("""
@@ -47,8 +48,8 @@ async def insert_categories_and_products(db):
 
 async def insert_line(db):
   cursor = await db.execute("""
-    INSERT INTO Product (name, brand, kcal)
-    VALUES ("Karmel", "Auchan", 300);
+    INSERT INTO Product (name, brand, kcal, reference_unit, reference_amount)
+    VALUES ("Karmel", "Auchan", 300, "g", 100);
     """
   )
   await db.commit()
@@ -158,33 +159,38 @@ async def test_get_by_filters_category_mixed_parts(db):
 async def test_get_by_id(db):
   product_id = await insert_line(db)
   repo = ProductRepository(db)
-  product = await repo.get(product_id)
-  assert product['name'] == "Karmel" and product["brand"] == "Auchan" and product["kcal"] == 300
+  product = await repo.get_by_id(product_id)
+  assert product.name == "Karmel" and product.brand == "Auchan" and product.kcal == 300
 
 @pytest.mark.asyncio
 async def test_get_by_id_wrong_id(db):
   repo = ProductRepository(db)
-  product = await repo.get(100)
+  product = await repo.get_by_id(100)
   assert product is None
 
 
 @pytest.mark.asyncio
-async def test_add_product(db):
+async def test_insert_product(db):
   repo = ProductRepository(db)
-  await repo.insert(['name', 'brand', 'kcal'], ["Baton", "Auchan", 300])
+  product = ProductCreate(name="Baton", brand="Auchan", kcal=300, reference_unit='g', category_id=None)
+
+  await repo.insert(product)
   await repo.commit()
 
-  cursor = await db.execute("""SELECT name, brand, kcal FROM Product""")
+  cursor = await db.execute("""SELECT * FROM Product""")
 
   products = await cursor.fetchall()
   await cursor.close()
 
   assert len(products) == 1
 
-  product = products[0]
-  assert product["name"] == "Baton"
-  assert product["brand"] == "Auchan"
-  assert product["kcal"] == 300
+  result_product = products[0]
+
+  #print(ProductBase(**await repo.get_by_id(result_product['id'])))
+  assert result_product["name"] == "Baton"
+  assert result_product["brand"] == "Auchan"
+  assert result_product["kcal"] == 300
+  assert result_product["reference_amount"] == 100
 
 
 @pytest.mark.asyncio
@@ -211,7 +217,9 @@ async def test_delete_product_by_id_wrong_id(db):
 async def test_update_product_by_id(db):
   product_id = await insert_line(db)
   repo = ProductRepository(db)
-  await repo.update(product_id, ['name'], ['bakłażan'])
+  product_update = ProductUpdate(name='bakłażan')
+  
+  await repo.update(product_id, product_update)
   await repo.commit()
 
   cursor = await db.execute(""" 
@@ -232,7 +240,9 @@ async def test_update_product_by_id(db):
 async def test_update_product_by_id_empty_value(db):
   product_id = await insert_line(db)
   repo = ProductRepository(db)
-  await repo.update(product_id, [], [])
+
+  product_update = ProductUpdate()
+  await repo.update(product_id, product_update)
   await repo.commit()
 
   cursor = await db.execute(""" 

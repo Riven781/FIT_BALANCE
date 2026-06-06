@@ -3,12 +3,12 @@ import aiosqlite
 from api.dependencies.filters import ProductsFilters
 from api.enums.product import NameMode, SortBy, ViewMode
 from api.repository.aiosqlite.repository import DbRepository
-from api.schemas.product import ProductDetail, ProductSummary
+from api.schemas.product import ProductCreate, ProductDetail, ProductSummary, ProductUpdate
 
 
 class ProductRepository(DbRepository):
   def __init__(self, db : aiosqlite.Connection):
-    super().__init__(db)
+    super().__init__(db, 'Product')
 
   def _convert_category(self, result_dict):
     if result_dict['category_str'] is not None:
@@ -28,7 +28,6 @@ class ProductRepository(DbRepository):
       conditions.append('prodcc.supercategory_id = ?') 
       arguments.append(category_id)
     if names is not None:
-      print(names)
       name_query = f"({' AND '.join(['(prod.name_search_standard LIKE ? OR prod.name_search_standard LIKE ?)' for _ in range(len(names))])})"
       conditions.append(name_query)
 
@@ -59,8 +58,6 @@ class ProductRepository(DbRepository):
   async def get_by_filters(self, category_id=None, names=None, sort_by=SortBy.KCAL, order="ASC", page=1, limit=20):
     offset = (page - 1) * limit
     inner_query, where_query, arguments = self._translate_filters_to_query(category_id, names)
-    print(where_query)
-    print(arguments)
 
     get_by_filters_query = f"""
     SELECT prod.*, (
@@ -95,19 +92,7 @@ class ProductRepository(DbRepository):
       return output_list
 
     
-  async def insert(self, colnames, vals):
-    return await super().insert('Product', colnames, vals)
-
-  async def select(self, filters_dict ={}):
-    return await super().select('Product', filters_dict)
-  
-  async def delete(self, id):
-    return await super().delete('Product', id)
-  
-  async def update(self, id, colnames, vals):
-    return await super().update('Product', id, colnames, vals)
-    
-  async def get(self, id):
+  async def get_by_id(self, id):
     get_query = """
       SELECT prod.*, (
         SELECT  GROUP_CONCAT(category_id, '|') || ':' || GROUP_CONCAT(category_name, '|') as category FROM 
@@ -123,7 +108,8 @@ class ProductRepository(DbRepository):
         return None
       result_dict = dict(result)
       self._convert_category(result_dict)
+
   
-      return result_dict
+    return ProductDetail(**result_dict)
 
       

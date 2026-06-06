@@ -8,7 +8,7 @@ from api.dependencies.filters import PaginationFilters, ProductsFilters
 from api.enums import product
 from api.enums.product import NameMode, ViewMode
 from api.repository.aiosqlite.product import ProductRepository
-from api.schemas.product import ProductDetail, ProductSummary
+from api.schemas.product import ProductCreate, ProductDetail, ProductSummary
 
 POLISH_CHARS = {
     "ą": "a",
@@ -30,7 +30,7 @@ POLISH_CHARS = {
     "Ż": "Z",
     "Ź": "Z",
 }
-
+#todo filtracja według najlepszego dopasowania
 class ProductService():
   def __init__(self, product_repository : ProductRepository):
     self.product_repository = product_repository
@@ -38,22 +38,25 @@ class ProductService():
   async def get_all(self, product_filters : ProductsFilters, pagination_filters: PaginationFilters):
     if product_filters.name is not None:
       names = product_filters.name.lower().translate(str.maketrans(POLISH_CHARS)).split()
-      print(names)
     else:
       names = None
-    products = await self.product_repository.get_by_filters(category_id=product_filters.category_id, names=names)
-    total  = await self.product_repository.get_total(category_id=product_filters.category_id, names=names)
+    category_id = product_filters.category_id
+
+    products = await self.product_repository.get_by_filters(category_id=category_id, 
+                                                            names=names, sort_by=product_filters.sort_by, 
+                                                            order=product_filters.order, 
+                                                            page=pagination_filters.page, 
+                                                            limit=pagination_filters.limit)
+    
+    total  = await self.product_repository.get_total(category_id=category_id, names=names)
     return total, products
 
-
-
-
-  async def create(self, product_dict):
+  async def create(self, product: ProductCreate):
     try:
-      id_created = await self.product_repository.insert(list(product_dict.keys()), list(product_dict.values()))
-      product = await self.product_repository.get(id_created)
+      id_created = await self.product_repository.insert(product)
+      product_created = await self.product_repository.get_by_id(id_created)
       await self.product_repository.commit()
-      return product
+      return product_created
     except Exception:
       await self.product_repository.rollback()
       raise
@@ -68,43 +71,16 @@ class ProductService():
       await self.product_repository.rollback()
       raise
   
-  async def update(self, id, product_dict):
-    colnames = list(product_dict.keys())
-    vals = list(product_dict.values())
+  async def update(self, id, product):
     try:
-      count = await self.product_repository.update(id, colnames, vals)
+      count = await self.product_repository.update(id, product)
       if count == 0:
         raise HTTPException(404)
-      product = await self.product_repository.get(id)
+      product = await self.product_repository.get_by_id(id)
       await self.product_repository.commit()
       return product
-    except Exception:
+    except Exception as e:
+      print(e)
       await self.product_repository.rollback()
       raise
 
-
-def name_filter(name_query, name, mode):
-  if mode == NameMode.CONTAINS:
-    return name_query.lower() in name.lower()
-  if mode == NameMode.STARTS_WITH:
-    return name.lower().startswith(name_query.lower())
-  if mode == NameMode.EXAC:
-    return name == name_query
-
-
-def get_products(products_filters: ProductsFilters, product_by_id, products_hierarchy):
-  results = set(product_by_id)
-  if products_filters.category is not None:
-    matched_category = products_hierarchy.get(products_filters.category)
-    if matched_category is None:
-      return []
-    products_id = matched_category['products']
-    results = results.intersection(products_id)
-  if products_filters.name:
-    results = set(id for id in results if name_filter(products_filters.name, product_by_id[id]['name'], products_filters.name_mode))
-  
-  products_result = [ProductDetail(**product_by_id[id]) if products_filters.view_mode == ViewMode.DETAIL else ProductSummary(**product_by_id[id])  for id in results]
-
-  products_result = sorted(products_result, key=lambda product: getattr(product, products_filters.sort_by.value), reverse=True if products_filters.order == 'desc' else False)
-
-  return products_result

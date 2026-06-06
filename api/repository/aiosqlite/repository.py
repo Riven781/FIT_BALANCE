@@ -7,10 +7,11 @@ from api.database.db import get_db
 
 
 class DbRepository:
-	def __init__(self, db : aiosqlite.Connection):
+	def __init__(self, db : aiosqlite.Connection, name=''):
 		self.db = db
+		self.name = name
 
-	async def select(self, table_name, filters_dict={}, all=False):
+	async def _select(self, table_name, filters_dict={}, all=False):
 		query = f'SELECT * FROM {table_name} '
 		conditions = []
 		values = []
@@ -31,36 +32,43 @@ class DbRepository:
 			await cursor.close()
 		return rows
 	
-	async def delete(self, table_name, id):
-		q = f'DELETE FROM {table_name} WHERE id = ?'
-		cursor = await self.exec(q, [id])
+	async def delete(self, id):
+		q = f'DELETE FROM {self.name} WHERE id = ?'
+		cursor = await self._exec(q, [id])
 		try:
 			return cursor.rowcount
 		finally:
 			await cursor.close()
 
-	async def insert(self, table_name, colnames, vals):
-		q = f'INSERT INTO {table_name} (' + ', '.join(colnames) + ') VALUES ('
+	async def insert(self, obj):
+		fields_dict = obj.model_dump()
+		columns = fields_dict.keys()
+		vals = list(fields_dict.values())
+		print(vals)
+		q = f'INSERT INTO {self.name} (' + ', '.join(columns) + ') VALUES ('
 		q += ', '.join(['?' for v in vals]) + ')'
-		cursor = await self.exec(q, vals)
+		cursor = await self._exec(q, vals)
 		try:
 			return cursor.lastrowid
 		finally:
 			await cursor.close()
 	
-	async def update(self, table_name, id, colnames, vals):
-		if len(colnames) == 0:
+	async def update(self, id, obj):
+		fields_dict = obj.model_dump(exclude_unset=True)
+		columns = fields_dict.keys()
+		vals = list(fields_dict.values())
+		if len(columns) == 0:
 			return 0
-		q = f'UPDATE {table_name} SET '
-		q += ', '.join([c + ' = ?' for c in colnames])
+		q = f'UPDATE {self.name} SET '
+		q += ', '.join([c + ' = ?' for c in columns])
 		q += ' WHERE id = ' + str(id)
-		cursor = await self.exec(q, vals)
+		cursor = await self._exec(q, vals)
 		try:
 			return cursor.rowcount
 		finally:
 			await cursor.close()
 
-	async def exec(self, query, params=None):
+	async def _exec(self, query, params=None):
 		if params is None:
 			cursor = await self.db.execute(query)
 		else:

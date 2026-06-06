@@ -8,7 +8,7 @@ from fastapi.encoders import jsonable_encoder
 from api.dependencies.database import get_product_repository, get_product_service
 from api.dependencies.product import check_ids
 from api.repository.aiosqlite.product import ProductRepository
-from api.services.product import ProductService, get_products
+from api.services.product import ProductService
 from certifi import contents
 from pydantic import BaseModel, Field
 from fastapi import Body, Depends, FastAPI, HTTPException, Path, Query
@@ -29,20 +29,15 @@ async def read_product(
     product_id : int, 
     product_repo: Annotated[ProductRepository, Depends(get_product_repository)]
 ) -> ProductDetail:
-  result = await product_repo.get(product_id)
+  result = await product_repo.get_by_id(product_id)
   if result is None:
     raise HTTPException(status_code=404, detail='Not Found')
   return result
 
 
 @app.get("/api/v1/products", response_model=ProductListResponse)
-async def read_products(pagination_filters : Annotated[PaginationFilters, Depends()], products_filters: Annotated[ProductsFilters, Depends()], produce_service: Annotated[ProductService, Depends(get_product_service)], product_repo: Annotated[ProductRepository, Depends(get_product_repository)]):
-  total, data = await produce_service.get_all(products_filters, pagination_filters)
-  #data = await product_repo.get_by_filters(products_filters, pagination_filters.page, pagination_filters.limit)
-  #total = await product_repo.get_total(products_filters)
-  #total = 0
-  #data = get_products(products_filters, product_by_id, products_hierarchy)
-  print(products_filters.name)
+async def read_products(pagination_filters : Annotated[PaginationFilters, Depends()], products_filters: Annotated[ProductsFilters, Depends()], produce_service: Annotated[ProductService, Depends(get_product_service)]):
+  total, data = await produce_service.get_all(products_filters, pagination_filters) 
   return {
     "pagination" : {
       "page" : pagination_filters.page,
@@ -57,8 +52,8 @@ async def read_products(pagination_filters : Annotated[PaginationFilters, Depend
 @app.post('/api/v1/products', response_model=ProductDetail)
 async def create_product(product : ProductCreate, product_service : Annotated[ProductService, Depends(get_product_service)]):
   try:
-    product_created = await product_service.create(product.model_dump())
-    return ProductDetail(**product_created)
+    product_created = await product_service.create(product)
+    return product_created
   except aiosqlite.Error as e:
     #print(e)
     raise HTTPException(500, detail="Database error")
@@ -74,15 +69,15 @@ async def delete_product(product_id : int, product_service : Annotated[ProductSe
 
 @app.patch('/api/v1/products/{product_id}', response_model=ProductDetail, dependencies=[Depends(check_ids)])
 async def update_product(product_id: int, product: ProductUpdate, product_service: Annotated[ProductService, Depends(get_product_service)]):
-  product_dict = product.model_dump(exclude_unset=True)
   try:
-    product_updated = await product_service.update(product_id, product_dict)
-    return ProductDetail(**product_updated)
+    product_updated = await product_service.update(product_id, product)
+    return product_updated
   except aiosqlite.Error as e:
     raise HTTPException(500, detail="Databse error")
   except HTTPException:
     raise
   except Exception as e:
+    print(e)
     raise HTTPException(500)
 
 

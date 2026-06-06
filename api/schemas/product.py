@@ -35,10 +35,10 @@ class ProductCreate(BaseModel):
   name: str
   brand: str | None
   kcal: float = Field(ge=0)
-  reference_amount: int = Field(ge=0)
+  reference_amount: int = Field(ge=0, default=100)
   reference_unit: str
-  img_src: str
-  category_id: int
+  img_src: str | None = None
+  category_id: int | None
   fat: float | None = None
   saturates: float | None = None
   carbohydrates: float | None = None
@@ -58,7 +58,6 @@ class ProductUpdate(BaseModel):
   reference_amount: int | None = None
   reference_unit: str | None = None
   img_src: str | None = None
-  category: list[ProductCategory] | None = None
   fat: float | None = None
   saturates: float | None = None
   carbohydrates: float | None = None
@@ -69,12 +68,14 @@ class ProductUpdate(BaseModel):
   ingredients: str | None = None
   allergy_recommendations: str | None = None
   category_id: int | None = None
-
+  """
   @model_validator(mode="after")
   def at_least_one_field(self):
     if not self.model_fields_set:
       raise ValueError("At least one field must be provided")
     return self
+  """
+
 
 class PaginationMeta(BaseModel):
   page: int = Field(ge=1)
