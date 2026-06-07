@@ -2,6 +2,7 @@ import pytest
 
 from api.dependencies.filters import PaginationFilters, ProductsFilters
 from api.services.product import ProductService
+from httpx import delete
 from tests.schema import ProductTest
 
 @pytest.mark.asyncio
@@ -127,3 +128,72 @@ async def test_get_all_by_name_and_category(fake_product_repository): #it's like
   assert len(products) == 1
   assert total == 1
   assert products[0].id == 8
+
+
+@pytest.mark.asyncio
+async def test_create_one_product(fake_product_repository):
+  repo = fake_product_repository(
+    [])
+  product = ProductTest(id=80, name="Raw Dzik", brand="BB", kcal=300, category_id=10)
+  service = ProductService(repo)
+  product_created = await service.create(product)
+  assert product_created.id == 80
+  assert product_created.name_search_standard == 'raw dzik'
+
+
+@pytest.mark.asyncio
+async def test_create_empty_string_name(fake_product_repository):
+  repo = fake_product_repository(
+    [])
+  product = ProductTest(id=80, name="", brand="BB", kcal=300, category_id=10)
+  service = ProductService(repo)
+  product_created = await service.create(product)
+  assert product_created.id == 80
+  assert product_created.name_search_standard == ''
+
+@pytest.mark.asyncio
+async def test_update_one_product(fake_product_repository):
+  repo = fake_product_repository(
+    [ProductTest(id=80, name="Raw Dzik", brand="BB", kcal=300, category_id=10, name_search_standard='raw dzik')])
+  new_info_about_product = ProductTest(name="Żywiec zdrój")
+  service = ProductService(repo)
+  await service.update(80, new_info_about_product)
+  product = await service.get(80)
+  assert product.id == 80
+  assert product.name == "Żywiec zdrój"
+  assert product.name_search_standard == 'zywiec zdroj'
+  assert product.brand == "BB"
+
+
+@pytest.mark.asyncio #with error (i need to create better exception hierarchy)
+@pytest.mark.xfail
+async def test_update_wrong_id(fake_product_repository):
+  repo = fake_product_repository(
+    [ProductTest(id=80, name="Raw Dzik", brand="BB", kcal=300, category_id=10, name_search_standard='raw dzik')])
+  new_info_about_product = ProductTest(name="Żywiec zdrój")
+  service = ProductService(repo)
+  await service.update(100, new_info_about_product)
+  product = await service.get(80)
+  assert product.id == 80
+  assert product.name == "Raw Dzik"
+  
+
+@pytest.mark.asyncio
+async def test_delete_one_product(fake_product_repository):
+  repo = fake_product_repository(
+    [ProductTest(id=80, name="Raw Dzik", brand="BB", kcal=300, category_id=10, name_search_standard='raw dzik')])
+  service = ProductService(repo)
+  await service.delete(80)
+  product = await service.get(80)
+  assert product == None
+
+
+@pytest.mark.asyncio
+@pytest.mark.xfail
+async def test_delete_wrong_id(fake_product_repository):
+  repo = fake_product_repository(
+    [ProductTest(id=80, name="Raw Dzik", brand="BB", kcal=300, category_id=10, name_search_standard='raw dzik')])
+  service = ProductService(repo)
+  await service.delete(100)
+  product = await service.get(80)
+  assert product.id== 80

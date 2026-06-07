@@ -59,13 +59,15 @@ class ProductService():
     total  = await self.product_repository.get_total(category_id=category_id, names=names)
     return total, products
 
-  async def create(self, product: ProductCreate): #set name_serch standard
+  async def create(self, product: ProductCreate): 
+    product.name_search_standard = product.name.lower().translate(str.maketrans(POLISH_CHARS))
     try:
       id_created = await self.product_repository.insert(product)
       product_created = await self.product_repository.get_by_id(id_created)
       await self.product_repository.commit()
       return product_created
-    except Exception:
+    except Exception as e:
+      print(e)
       await self.product_repository.rollback()
       raise
 
@@ -80,6 +82,8 @@ class ProductService():
       raise
   
   async def update(self, id, product):
+    product.name_search_standard = product.name.lower().translate(str.maketrans(POLISH_CHARS))
+
     try:
       count = await self.product_repository.update(id, product)
       if count == 0:

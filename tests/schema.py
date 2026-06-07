@@ -1,11 +1,10 @@
-from dataclasses import dataclass
+from pydantic import BaseModel
 
 
-@dataclass
-class ProductTest:
-  id: int
-  name: str
-  kcal: float
+class ProductTest(BaseModel):
+  id: int | None = None
+  name: str | None = None
+  kcal: float |None = None
   brand: str | None = None
   reference_amount: int = 100
   reference_unit: str = 'g'

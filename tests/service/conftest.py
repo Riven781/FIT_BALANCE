@@ -19,11 +19,9 @@ async def fake_product_repository():
     def __init__(self, product_list):
       self.products = product_list
     async def get_by_id(self, id):
-
+      print(self.products)
+      print(id)
       return next((product for product in self.products if product.id == id), None)
-    
-
-
     
     async def get_by_filters(self, **filters):
       print(filters)
@@ -44,6 +42,33 @@ async def fake_product_repository():
     
     async def get_total(self, **filters):
       return len(await self.get_by_filters(**filters))
+    
+    async def insert(self, product):
+      self.products.append(product)
+      return product.id
+    
+    async def update(self, id, product):
+      updated_field =  product.model_dump(exclude_unset=True)
+      count = 0
+      for i, product in enumerate(self.products):
+        if id == product.id:
+          self.products[i] = product.model_copy(update=updated_field)
+          count += 1
+      print(count)
+      return count
+    
+    async def delete(self, id):
+      count = 0
+      for i, product in enumerate(self.products):
+        if id == product.id:
+          self.products.pop(i)
+          count += 1
+          break
+      return count
+
+      
+    async def commit(self):
+      pass
 
   return FakeProductRepository
 
