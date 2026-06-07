@@ -12,7 +12,7 @@ class ProductBase(BaseModel):
   kcal: float = Field(ge=0)
   reference_amount: int = Field(ge=0)
   reference_unit: str
-  img_src: str | None
+  img_src: str | None = None
   category: list[ProductCategory]
 
 class ProductSummary(ProductBase):
