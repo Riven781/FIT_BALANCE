@@ -27,9 +27,9 @@ app = FastAPI()
 @app.get("/api/v1/products/{product_id}")
 async def read_product(
     product_id : int, 
-    product_repo: Annotated[ProductRepository, Depends(get_product_repository)]
+    product_service: Annotated[ProductRepository, Depends(get_product_service)]
 ) -> ProductDetail:
-  result = await product_repo.get_by_id(product_id)
+  result = await product_service.get(product_id)
   if result is None:
     raise HTTPException(status_code=404, detail='Not Found')
   return result

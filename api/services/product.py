@@ -34,6 +34,9 @@ POLISH_CHARS = {
 class ProductService():
   def __init__(self, product_repository : ProductRepository):
     self.product_repository = product_repository
+  
+  async def get(self, product_id):
+    return await self.product_repository.get_by_id(product_id)
 
   async def get_all(self, product_filters : ProductsFilters, pagination_filters: PaginationFilters):
     if product_filters.name is not None:
@@ -42,11 +45,13 @@ class ProductService():
       names = None
     category_id = product_filters.category_id
 
-    products = await self.product_repository.get_by_filters(category_id=category_id, 
-                                                            names=names, sort_by=product_filters.sort_by, 
-                                                            order=product_filters.order, 
-                                                            page=pagination_filters.page, 
-                                                            limit=pagination_filters.limit)
+    products = await self.product_repository.get_by_filters(
+      category_id=category_id, 
+      names=names, sort_by=product_filters.sort_by, 
+      order=product_filters.order, 
+      page=pagination_filters.page, 
+      limit=pagination_filters.limit
+    )
     
     total  = await self.product_repository.get_total(category_id=category_id, names=names)
     return total, products
