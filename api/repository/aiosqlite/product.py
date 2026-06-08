@@ -2,6 +2,7 @@
 import aiosqlite
 from api.dependencies.filters import ProductsFilters
 from api.enums.product import NameMode, SortBy, ViewMode
+from api.repository.aiosqlite.errors_mapper import map_errors
 from api.repository.aiosqlite.repository import DbRepository
 from api.schemas.product import ProductCreate, ProductDetail, ProductSummary, ProductUpdate
 
@@ -50,9 +51,13 @@ class ProductRepository(DbRepository):
       {inner_query}
       {where_query if where_query is not None else " "}
     """
-    async with self.db.execute(total_query, arguments) as cursor:
-      total_row = await cursor.fetchone()
-      return total_row['total']
+    try:
+      async with self.db.execute(total_query, arguments) as cursor:
+        total_row = await cursor.fetchone()
+    except Exception as e:
+      raise map_errors(e) from e
+    
+    return total_row['total']
     
 
   async def get_by_filters(self, category_id=None, names=None, sort_by=SortBy.KCAL, order="ASC", page=1, limit=20):
@@ -76,20 +81,23 @@ class ProductRepository(DbRepository):
       LIMIT ?
       OFFSET ?
     """
-    async with self.db.execute(get_by_filters_query, (*arguments, limit, offset)) as cursor:
-      result = await cursor.fetchall()
-      if result is None:
-        return None
-      
-      output_list = []
+    try:
+      async with self.db.execute(get_by_filters_query, (*arguments, limit, offset)) as cursor:
+        result = await cursor.fetchall()
+    except Exception as e:
+      raise map_errors(e) from e
+    
+    if result is None:
+      return None  
+    output_list = []
 
-      for row in result:
-        row_dict = dict(row)
-        self._convert_category(row_dict)
+    for row in result:
+      row_dict = dict(row)
+      self._convert_category(row_dict)
         
-        output_list.append(ProductDetail(**row_dict))
+      output_list.append(ProductDetail(**row_dict))
         
-      return output_list
+    return output_list
 
     
   async def get_by_id(self, id):
@@ -102,12 +110,16 @@ class ProductRepository(DbRepository):
             ORDER BY pcc.depth DESC)
       ) AS category_str FROM Product as prod WHERE id = ?
     """
-    async with self.db.execute(get_query, (id,)) as cursor:
-      result = await cursor.fetchone()
-      if result is None:
-        return None
-      result_dict = dict(result)
-      self._convert_category(result_dict)
+    try:
+      async with self.db.execute(get_query, (id,)) as cursor:
+        result = await cursor.fetchone()
+    except Exception as e:
+      raise map_errors(e) from e
+    
+    if result is None:
+      return None
+    result_dict = dict(result)
+    self._convert_category(result_dict)
 
   
     return ProductDetail(**result_dict)

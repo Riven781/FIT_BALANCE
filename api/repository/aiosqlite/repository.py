@@ -4,6 +4,7 @@ import aiosqlite
 from fastapi import Depends
 
 from api.database.db import get_db
+from api.repository.aiosqlite.errors_mapper import map_errors
 
 
 class DbRepository:
@@ -11,7 +12,9 @@ class DbRepository:
 		self.db = db
 		self.name = name
 
-	async def _select(self, table_name, filters_dict={}, all=False):
+	async def _select(self, table_name, filters_dict=None, all=False):
+		if filters_dict is None:
+			filters_dict = {}
 		query = f'SELECT * FROM {table_name} '
 		conditions = []
 		values = []
@@ -23,22 +26,29 @@ class DbRepository:
 		if len(conditions) > 0:
 			query += 'WHERE '
 			query += ' and '.join(conditions) + ';'
-
-		async with self.db.execute(query, values) as cursor:
-			if all == True:
-				rows = await cursor.fetchall()
-			else:
-				rows = await cursor.fetchone()
-			await cursor.close()
+		try:
+			async with self.db.execute(query, values) as cursor:
+				if all == True:
+					rows = await cursor.fetchall()
+				else:
+					rows = await cursor.fetchone()
+		except Exception as e:
+			raise map_errors(e) from e
+		
+				
 		return rows
 	
 	async def delete(self, id):
 		q = f'DELETE FROM {self.name} WHERE id = ?'
-		cursor = await self._exec(q, [id])
+		cursor = None
 		try:
+			cursor = await self._exec(q, [id])
 			return cursor.rowcount
+		except Exception as e:
+			raise map_errors(e) from e
 		finally:
-			await cursor.close()
+			if cursor is not None:
+				await cursor.close()
 
 	async def insert(self, obj):
 		fields_dict = obj.model_dump()
@@ -47,11 +57,15 @@ class DbRepository:
 		print(vals)
 		q = f'INSERT INTO {self.name} (' + ', '.join(columns) + ') VALUES ('
 		q += ', '.join(['?' for v in vals]) + ')'
-		cursor = await self._exec(q, vals)
+		cursor = None
 		try:
+			cursor = await self._exec(q, vals)
 			return cursor.lastrowid
+		except Exception as e:
+			raise map_errors(e) from e
 		finally:
-			await cursor.close()
+			if cursor is not None:
+				await cursor.close()
 	
 	async def update(self, id, obj):
 		fields_dict = obj.model_dump(exclude_unset=True)
@@ -62,11 +76,15 @@ class DbRepository:
 		q = f'UPDATE {self.name} SET '
 		q += ', '.join([c + ' = ?' for c in columns])
 		q += ' WHERE id = ' + str(id)
-		cursor = await self._exec(q, vals)
+		cursor = None
 		try:
+			cursor = await self._exec(q, vals)
 			return cursor.rowcount
+		except Exception as e:
+			raise map_errors(e) from e
 		finally:
-			await cursor.close()
+			if cursor is not None:
+				await cursor.close()
 
 	async def _exec(self, query, params=None):
 		if params is None:
