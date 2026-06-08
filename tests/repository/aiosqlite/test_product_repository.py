@@ -3,7 +3,9 @@ import pytest
 
 from api.enums.product import SortBy
 from api.repository.aiosqlite.product import ProductRepository
+from api.repository.errors.errors import ForeignKeyViolationError, NotNullViolationError, RepositoryError, UniqueViolationError
 from api.schemas.product import ProductBase, ProductCreate, ProductUpdate
+from tests.schema import ProductTest
 
 async def insert_categories_and_products(db):
   cursor = await db.executescript("""
@@ -211,7 +213,8 @@ async def test_delete_product_by_id(db):
 @pytest.mark.asyncio
 async def test_delete_product_by_id_wrong_id(db):
   repo = ProductRepository(db)
-  await repo.delete(100)
+  count = await repo.delete(100)
+  assert count == 0
 
 @pytest.mark.asyncio
 async def test_update_product_by_id(db):
@@ -257,3 +260,36 @@ async def test_update_product_by_id_empty_value(db):
   assert product['name'] == 'Karmel'
   assert product['brand'] == 'Auchan'
   assert product['kcal'] == 300
+
+@pytest.mark.asyncio
+async def test_update_product_tht_does_not_exist(db):
+  repo = ProductRepository(db)
+  product = ProductCreate(name="Baton", brand="Auchan", kcal=300, reference_unit='g', category_id=10)
+
+  count = await repo.update(10, product)
+  assert count == 0  
+
+@pytest.mark.asyncio
+async def test_insert_product_category_does_not_exist(db):
+  repo = ProductRepository(db)
+  product = ProductCreate(name="Baton", brand="Auchan", kcal=300, reference_unit='g', category_id=10)
+  with pytest.raises(ForeignKeyViolationError):
+    await repo.insert(product)
+
+@pytest.mark.asyncio
+async def test_insert_product_product_with_this_id_exist(db):
+  product_id = await insert_line(db)
+  repo = ProductRepository(db)
+  product = ProductTest(id= product_id, name="Baton", brand="Auchan", kcal=300, reference_unit='g', category_id=10)
+  with pytest.raises(UniqueViolationError):
+    await repo.insert(product)
+
+@pytest.mark.asyncio
+async def test_insert_empty_product(db):
+  repo = ProductRepository(db)
+  product = ProductTest()
+  with pytest.raises(NotNullViolationError):
+    await repo.insert(product)
+
+
+
