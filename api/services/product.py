@@ -40,10 +40,10 @@ class ProductService():
 
   async def get_all(self, product_filters : ProductsFilters, pagination_filters: PaginationFilters):
     if product_filters.name is not None:
-      if re.fullmatch(r'\s*', product_filters.name): #option for future: return 0, []
-        names = None
-      else:
-        names = product_filters.name.lower().translate(str.maketrans(POLISH_CHARS)).split()
+      if re.fullmatch(r'\s*', product_filters.name):
+        return 0, []
+      
+      names = product_filters.name.lower().translate(str.maketrans(POLISH_CHARS)).split()
     else:
       names = None
     category_id = product_filters.category_id
