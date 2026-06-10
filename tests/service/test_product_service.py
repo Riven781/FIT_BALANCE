@@ -1,6 +1,7 @@
 import pytest
 
 from api.dependencies.filters import PaginationFilters, ProductsFilters
+from api.services.errors.errors import ProductNotFoundError
 from api.services.product import ProductService
 from httpx import delete
 from tests.schema import ProductTest
@@ -17,8 +18,8 @@ async def test_get_correct_id(fake_product_repository):
 async def test_get_wrong_id(fake_product_repository):
   repo = fake_product_repository([ProductTest(id=8, name="Raw Energy Baton kakaowy Bombus", brand="BB", kcal=300)])
   service = ProductService(repo)
-  product = await service.get(10)
-  assert product is None
+  with pytest.raises(ProductNotFoundError):
+    product = await service.get(10)
 
 @pytest.mark.asyncio
 async def test_get_all_without_arguments(fake_product_repository):
@@ -166,13 +167,13 @@ async def test_update_one_product(fake_product_repository):
 
 
 @pytest.mark.asyncio #with error (i need to create better exception hierarchy)
-@pytest.mark.xfail
 async def test_update_wrong_id(fake_product_repository):
   repo = fake_product_repository(
     [ProductTest(id=80, name="Raw Dzik", brand="BB", kcal=300, category_id=10, name_search_standard='raw dzik')])
   new_info_about_product = ProductTest(name="Żywiec zdrój")
   service = ProductService(repo)
-  await service.update(100, new_info_about_product)
+  with pytest.raises(ProductNotFoundError):
+    await service.update(100, new_info_about_product)
   product = await service.get(80)
   assert product.id == 80
   assert product.name == "Raw Dzik"
@@ -184,16 +185,15 @@ async def test_delete_one_product(fake_product_repository):
     [ProductTest(id=80, name="Raw Dzik", brand="BB", kcal=300, category_id=10, name_search_standard='raw dzik')])
   service = ProductService(repo)
   await service.delete(80)
-  product = await service.get(80)
-  assert product == None
+  with pytest.raises(ProductNotFoundError):
+    product = await service.get(80)
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail
 async def test_delete_wrong_id(fake_product_repository):
   repo = fake_product_repository(
     [ProductTest(id=80, name="Raw Dzik", brand="BB", kcal=300, category_id=10, name_search_standard='raw dzik')])
   service = ProductService(repo)
-  await service.delete(100)
-  product = await service.get(80)
-  assert product.id== 80
+  with pytest.raises(ProductNotFoundError):
+    await service.delete(100)
+  
