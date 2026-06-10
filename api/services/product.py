@@ -8,7 +8,9 @@ from api.dependencies.filters import PaginationFilters, ProductsFilters
 from api.enums import product
 from api.enums.product import NameMode, ViewMode
 from api.repository.aiosqlite.product import ProductRepository
+from api.repository.errors.errors import CheckViolationError, ForeignKeyViolationError, NotNullViolationError, RepositoryError, UniqueViolationError
 from api.schemas.product import ProductCreate, ProductDetail, ProductSummary
+from api.services.errors.errors import  CannotDeleteProductError, InvalidProductCategoryId, InvalidProductDataError, ProductNotFoundError
 
 POLISH_CHARS = {
     "ą": "a",
@@ -32,17 +34,30 @@ POLISH_CHARS = {
 }
 #todo filtracja według najlepszego dopasowania
 class ProductService():
-  def __init__(self, product_repository : ProductRepository):
+  def __init__(self, product_repository : ProductRepository) -> ProductDetail:
     self.product_repository = product_repository
   
-  async def get(self, product_id):
-    return await self.product_repository.get_by_id(product_id)
+  async def get(self, product_id: int):
+    """
+    Return product details by product ID.
+    Raises:
+      ProductNotFoundError: If the product does not exist.
+    """
+    product = await self.product_repository.get_by_id(product_id)
+    if product is None:
+      raise ProductNotFoundError()
+    return product
 
-  async def get_all(self, product_filters : ProductsFilters, pagination_filters: PaginationFilters):
+  async def get_all(self, product_filters : ProductsFilters, pagination_filters: PaginationFilters) -> list[ProductDetail]:
+    """
+    Return the total count of found products and a list of product details
+    that match the pagination restrictions.
+
+    Return 0 and an empty list if no products match the filters.
+    """
     if product_filters.name is not None:
       if re.fullmatch(r'\s*', product_filters.name):
         return 0, []
-      
       names = product_filters.name.lower().translate(str.maketrans(POLISH_CHARS)).split()
     else:
       names = None
@@ -58,6 +73,15 @@ class ProductService():
     
     total  = await self.product_repository.get_total(category_id=category_id, names=names)
     return total, products
+  
+  async def _handle_repository_data_error(self, e):
+    await self.product_repository.rollback()
+    if isinstance(e, ForeignKeyViolationError):
+      raise InvalidProductCategoryId("Product category id is invalid") from e
+    if isinstance(e, (NotNullViolationError, CheckViolationError, UniqueViolationError)):
+      raise InvalidProductDataError("Product data are invalid") from e
+    raise e
+    
 
   async def create(self, product: ProductCreate): 
     product.name_search_standard = product.name.lower().translate(str.maketrans(POLISH_CHARS))
@@ -66,33 +90,29 @@ class ProductService():
       product_created = await self.product_repository.get_by_id(id_created)
       await self.product_repository.commit()
       return product_created
-    except Exception as e:
-      print(e)
-      await self.product_repository.rollback()
-      raise
+    except RepositoryError as e:
+      self._handle_repository_data_error(e)
 
   async def delete(self, id):
     try:
       count = await self.product_repository.delete(id)
       if count == 0:
-        raise HTTPException(404, 'Not Found')
+        raise ProductNotFoundError()
       await self.product_repository.commit()
-    except Exception:
+    except RepositoryError as e:
       await self.product_repository.rollback()
-      raise
+      raise CannotDeleteProductError() from e #or doesnt except (just return 500, because it's server problem that it is not deleted)
   
   async def update(self, id, product):
     product.name_search_standard = product.name.lower().translate(str.maketrans(POLISH_CHARS))
-
     try:
       count = await self.product_repository.update(id, product)
       if count == 0:
-        raise HTTPException(404)
+        raise ProductNotFoundError()
       product = await self.product_repository.get_by_id(id)
       await self.product_repository.commit()
       return product
-    except Exception as e:
-      print(e)
-      await self.product_repository.rollback()
-      raise
+    except RepositoryError as e:
+      self._handle_repository_data_error(e)
+
 
