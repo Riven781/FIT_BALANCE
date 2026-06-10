@@ -24,6 +24,8 @@ class NotNullViolationError(RepositoryIntegrityError):
 class CheckViolationError(RepositoryIntegrityError):
   pass
 
+class TypeViolationError(RepositoryIntegrityError):
+  pass
 
 class RepositoryUnavailableError(RepositoryError):
   pass
