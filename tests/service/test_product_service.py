@@ -165,6 +165,18 @@ async def test_update_one_product(fake_product_repository):
   assert product.name_search_standard == 'zywiec zdroj'
   assert product.brand == "BB"
 
+@pytest.mark.asyncio
+async def test_update_one_product_with_null_field(fake_product_repository):
+  repo = fake_product_repository(
+    [ProductTest(id=80, name="Raw Dzik", brand="BB", kcal=300, category_id=10, name_search_standard='raw dzik', fat=10)])
+  new_info_about_product = ProductTest(fat=None)
+  service = ProductService(repo)
+  await service.update(80, new_info_about_product)
+  product = await service.get(80)
+  assert product.id == 80
+  assert product.name == "Raw Dzik"
+  assert product.fat == None
+  assert product.brand == "BB"
 
 @pytest.mark.asyncio #with error (i need to create better exception hierarchy)
 async def test_update_wrong_id(fake_product_repository):

@@ -38,7 +38,7 @@ class ProductCreate(BaseModel):
   reference_amount: int = Field(ge=0, default=100)
   reference_unit: str
   img_src: str | None = None
-  category_id: int | None
+  category_id: int | None = None
   fat: float | None = None
   saturates: float | None = None
   carbohydrates: float | None = None
@@ -49,6 +49,26 @@ class ProductCreate(BaseModel):
   ingredients: str | None = None
   allergy_recommendations: str | None = None
   #name_search_standard: str | None = None
+
+class ProductModel(BaseModel):
+  id: int | None = None
+  name: str | None = None
+  brand: str | None = None
+  kcal: float | None = Field(default=None, ge=0)
+  reference_amount: int | None = None
+  reference_unit: str | None = None
+  img_src: str | None = None
+  fat: float | None = None
+  saturates: float | None = None
+  carbohydrates: float | None = None
+  sugars: float | None = None
+  protein: float | None = None
+  salt: float | None = None
+  fiber: float | None = None
+  ingredients: str | None = None
+  allergy_recommendations: str | None = None
+  category_id: int | None = None
+  name_search_standard: str | None = None
 
 class ProductUpdate(BaseModel):
   id: int | None = None

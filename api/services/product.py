@@ -9,7 +9,7 @@ from api.enums import product
 from api.enums.product import NameMode, ViewMode
 from api.repository.aiosqlite.product import ProductRepository
 from api.repository.errors.errors import CheckViolationError, ForeignKeyViolationError, NotNullViolationError, RepositoryError, UniqueViolationError
-from api.schemas.product import ProductCreate, ProductDetail, ProductSummary
+from api.schemas.product import ProductCreate, ProductDetail, ProductModel, ProductSummary, ProductUpdate
 from api.services.errors.errors import  InvalidProductCategoryId, InvalidProductDataError, ProductNotFoundError
 
 POLISH_CHARS = {
@@ -84,9 +84,11 @@ class ProductService():
     
 
   async def create(self, product: ProductCreate): 
-    product.name_search_standard = product.name.lower().translate(str.maketrans(POLISH_CHARS))
+    product_dict = product.model_dump()
+    product_dict['name_search_standard'] = product.name.lower().translate(str.maketrans(POLISH_CHARS))
+    product_model = ProductModel(**product_dict)
     try:
-      id_created = await self.product_repository.insert(product)
+      id_created = await self.product_repository.insert(product_model)
       product_created = await self.product_repository.get_by_id(id_created)
       await self.product_repository.commit()
       return product_created
@@ -103,10 +105,13 @@ class ProductService():
       await self.product_repository.rollback()
       raise  e 
   
-  async def update(self, id, product):
-    product.name_search_standard = product.name.lower().translate(str.maketrans(POLISH_CHARS))
+  async def update(self, id, product: ProductUpdate):
+    product_dict = product.model_dump(exclude_unset=True)
+    if product.name is not None:
+      product_dict['name_search_standard'] = product.name.lower().translate(str.maketrans(POLISH_CHARS))
+    product_model = ProductModel(**product_dict)
     try:
-      count = await self.product_repository.update(id, product)
+      count = await self.product_repository.update(id, product_model)
       if count == 0:
         raise ProductNotFoundError()
       product = await self.product_repository.get_by_id(id)
