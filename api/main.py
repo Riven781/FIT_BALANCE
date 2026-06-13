@@ -55,13 +55,13 @@ async def read_products(pagination_filters : Annotated[PaginationFilters, Depend
   }
 
 
-@app.post('/api/v1/products', response_model=ProductDetail)
+@app.post('/api/v1/products', response_model=ProductDetail, status_code=201)
 async def create_product(product : ProductCreate, product_service : Annotated[ProductService, Depends(get_product_service)]):
   product_created = await product_service.create(product)
   return product_created
 
 
-@app.delete('/api/v1/products/{product_id}')
+@app.delete('/api/v1/products/{product_id}', status_code=204)
 async def delete_product(product_id : int, product_service : Annotated[ProductService, Depends(get_product_service)]):
   await product_service.delete(product_id)
 
