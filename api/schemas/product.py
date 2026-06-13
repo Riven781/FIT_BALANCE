@@ -48,7 +48,7 @@ class ProductCreate(BaseModel):
   fiber: float | None = None
   ingredients: str | None = None
   allergy_recommendations: str | None = None
-  name_search_standard: str | None = None
+  #name_search_standard: str | None = None
 
 class ProductUpdate(BaseModel):
   id: int | None = None
@@ -68,7 +68,7 @@ class ProductUpdate(BaseModel):
   ingredients: str | None = None
   allergy_recommendations: str | None = None
   category_id: int | None = None
-  name_search_standard: str | None = None
+  #name_search_standard: str | None = None
   """
   @model_validator(mode="after")
   def at_least_one_field(self):
