@@ -10,7 +10,7 @@ from api.enums.product import NameMode, ViewMode
 from api.repository.aiosqlite.product import ProductRepository
 from api.repository.errors.errors import CheckViolationError, ForeignKeyViolationError, NotNullViolationError, RepositoryError, UniqueViolationError
 from api.schemas.product import ProductCreate, ProductDetail, ProductSummary
-from api.services.errors.errors import  CannotDeleteProductError, InvalidProductCategoryId, InvalidProductDataError, ProductNotFoundError
+from api.services.errors.errors import  InvalidProductCategoryId, InvalidProductDataError, ProductNotFoundError
 
 POLISH_CHARS = {
     "ą": "a",
@@ -101,7 +101,7 @@ class ProductService():
       await self.product_repository.commit()
     except RepositoryError as e:
       await self.product_repository.rollback()
-      raise CannotDeleteProductError() from e #or doesnt except (just return 500, because it's server problem that it is not deleted)
+      raise  e 
   
   async def update(self, id, product):
     product.name_search_standard = product.name.lower().translate(str.maketrans(POLISH_CHARS))

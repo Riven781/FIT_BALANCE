@@ -6,10 +6,7 @@ class ServiceError(Exception):
 class ProductNotFoundError(ServiceError):
   pass
 
-class ProductAlreadyExistError(ServiceError):
-  pass
-  
-class CannotDeleteProductError(ServiceError):
+class ProductAlreadyExistsError(ServiceError):
   pass
 
 class InvalidProductDataError(ServiceError):
