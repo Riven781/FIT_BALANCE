@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from enum import Enum
 from os import name
 import re
@@ -5,6 +6,7 @@ from unittest import result
 import aiofiles
 import asyncio
 from fastapi.encoders import jsonable_encoder
+from api.database.db import init_db, reset_db
 from api.dependencies.database import get_product_repository, get_product_service
 from api.dependencies.product import check_ids
 from api.error_handlers import invalid_product_category_id_handler, invalid_product_data_handler, product_already_exists_handler, product_not_found_handler, repository_error_handler
@@ -18,13 +20,22 @@ from fastapi import Body, Depends, FastAPI, HTTPException, Path, Query
 from typing import Annotated, Literal
 import json
 import math
+
+from config import MODE
 from .schemas.product import ProductCreate, ProductDetail, ProductUpdate, ProductListResponse, ProductSummary, ProductBase
 from .dependencies.filters import SortBy, ViewMode, NameMode, ProductsFilters, PaginationFilters
 import aiosqlite
 #python api\endpoints.py
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+  if MODE == 'TEST':
+    await reset_db()
+  else:
+    await init_db()
+  yield
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 app.add_exception_handler(RepositoryError, repository_error_handler)
 app.add_exception_handler(ProductNotFoundError, product_not_found_handler)
