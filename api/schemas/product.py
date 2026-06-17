@@ -71,6 +71,7 @@ class ProductModel(BaseModel):
   name_search_standard: str | None = None
 
 class ProductUpdate(BaseModel):
+  model_config = {"extra" : "forbid"}
   id: int | None = None
   name: str | None = None
   brand: str | None = None

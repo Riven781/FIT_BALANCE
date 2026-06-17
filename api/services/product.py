@@ -93,7 +93,7 @@ class ProductService():
       await self.product_repository.commit()
       return product_created
     except RepositoryError as e:
-      self._handle_repository_data_error(e)
+      await self._handle_repository_data_error(e)
 
   async def delete(self, id):
     try:
@@ -118,6 +118,6 @@ class ProductService():
       await self.product_repository.commit()
       return product
     except RepositoryError as e:
-      self._handle_repository_data_error(e)
+      await self._handle_repository_data_error(e)
 
 

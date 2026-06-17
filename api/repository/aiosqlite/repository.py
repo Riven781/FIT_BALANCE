@@ -54,7 +54,7 @@ class DbRepository:
 		fields_dict = obj.model_dump()
 		columns = fields_dict.keys()
 		vals = list(fields_dict.values())
-		print(vals)
+		#print(vals)
 		q = f'INSERT INTO {self.name} (' + ', '.join(columns) + ') VALUES ('
 		q += ', '.join(['?' for v in vals]) + ')'
 		cursor = None
