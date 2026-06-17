@@ -1,1 +1,6 @@
-fastapi
+fastapi[standard]
+requests
+aiosqlite
+uvicorn
+python-dotenv
+aiofiles
