@@ -107,6 +107,8 @@ class ProductService():
   
   async def update(self, id, product: ProductUpdate):
     product_dict = product.model_dump(exclude_unset=True)
+    if product.id is not None and product.id != id:
+      raise InvalidProductDataError()
     if product.name is not None:
       product_dict['name_search_standard'] = product.name.lower().translate(str.maketrans(POLISH_CHARS))
     product_model = ProductModel(**product_dict)

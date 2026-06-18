@@ -76,7 +76,7 @@ async def create_product(product : ProductCreate, product_service : Annotated[Pr
 async def delete_product(product_id : int, product_service : Annotated[ProductService, Depends(get_product_service)]):
   await product_service.delete(product_id)
 
-@app.patch('/api/v1/products/{product_id}', response_model=ProductDetail, dependencies=[Depends(check_ids)])
+@app.patch('/api/v1/products/{product_id}', response_model=ProductDetail)
 async def update_product(product_id: int, product: ProductUpdate, product_service: Annotated[ProductService, Depends(get_product_service)]):
   product_updated = await product_service.update(product_id, product)
   return product_updated

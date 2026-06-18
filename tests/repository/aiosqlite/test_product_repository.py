@@ -244,7 +244,7 @@ async def test_update_product_by_id_empty_value(db):
   product_id = await insert_line(db)
   repo = ProductRepository(db)
 
-  product_update = ProductUpdate()
+  product_update = ProductTest()
   await repo.update(product_id, product_update)
   await repo.commit()
 

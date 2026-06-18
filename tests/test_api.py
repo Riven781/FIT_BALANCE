@@ -38,6 +38,13 @@ def test_created_product_returns_404_not_existing_category():
   r = requests.post(f'{url}/api/v1/products', json=data)
   assert r.status_code == 404
 
+def test_created_product_returns_422_with_id():
+  url = config.get_api_url()
+  data = {'id':4, 'name' : 'szarlotka', 'brand' : 'auchan', 'kcal':'200', 'reference_unit':'g'}
+  r = requests.post(f'{url}/api/v1/products', json=data)
+  assert r.status_code == 422
+  
+
 def insert_product():
   url = config.get_api_url()
   data = {'name' : 'szarlotka', 'brand' : 'auchan', 'kcal':'200', 'reference_unit':'g'}
@@ -69,15 +76,37 @@ def test_update_product_returns_422_additional_field():
   r = requests.patch(f'{url}/api/v1/products/{id}', json=data)
   assert r.status_code == 422
 
-def test_update_product_returns_400_null_name(): #422 better?
+def test_update_product_returns_422_null_name():
   id = insert_product()
   url = config.get_api_url()
   data = {'name' : None}
   r = requests.patch(f'{url}/api/v1/products/{id}', json=data)
-  assert r.status_code == 400
+  assert r.status_code == 422
 
-def test_update_product_returns_404_not_existing_product(): #422 better?
+def test_update_product_returns_404_not_existing_product():
   url = config.get_api_url()
-  data = {'name' : None}
+  data = {'name' : 'jogurt'}
   r = requests.patch(f'{url}/api/v1/products/1000', json=data)
   assert r.status_code == 404
+
+def test_update_product_returns_200_correct_id_in_body():
+  id = insert_product()
+  url = config.get_api_url()
+  data = {'id' : f'{id}','name' : 'jogurt'}
+  r = requests.patch(f'{url}/api/v1/products/{id}', json=data)
+  assert r.status_code == 200
+
+def test_update_product_returns_400_wrong_id_in_body():
+  id = insert_product()
+  url = config.get_api_url()
+  data = {'id' : f'{id + 1}','name' : 'jogurt'}
+  r = requests.patch(f'{url}/api/v1/products/{id}', json=data)
+  assert r.status_code == 400
+  assert r.json()['message'] == 'Bad Request'
+
+def test_update_product_returns_422_empty_body():
+  id = insert_product()
+  url = config.get_api_url()
+  data = {}
+  r = requests.patch(f'{url}/api/v1/products/{id}', json=data)
+  assert r.status_code == 422
