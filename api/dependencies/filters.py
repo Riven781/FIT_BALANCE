@@ -8,15 +8,15 @@ class ProductsFilters:
   def __init__(
       self,
       name: str | None = None,
-      name_mode: NameMode = NameMode.CONTAINS,
-      view_mode: ViewMode = ViewMode.SUMMARY,
+      #name_mode: NameMode = NameMode.CONTAINS,
+      #view_mode: ViewMode = ViewMode.SUMMARY,
       sort_by: SortBy = SortBy.ID,
       order: Literal["asc", "desc"] = "asc",
       category_id: int | None = None
     ):
     self.name = name
-    self.name_mode = name_mode
-    self.view_mode = view_mode
+    #self.name_mode = name_mode
+    #self.view_mode = view_mode
     self.sort_by = sort_by
     self.order = order
     self.category_id = category_id
