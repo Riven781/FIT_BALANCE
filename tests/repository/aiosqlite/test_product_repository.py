@@ -10,11 +10,11 @@ from tests.schema import ProductTest, ProductTestStrKcal
 async def insert_categories_and_products(db):
   cursor = await db.executescript("""
     INSERT INTO ProductCategory VALUES
-      (1, "Produkty"),
-      (2, "Roślinne"),
-      (3, "Zwierzęce"),
-      (4, "Schab"),
-      (5, "Boczek");
+      (1, "Produkty", NULL),
+      (2, "Roślinne", 1),
+      (3, "Zwierzęce", 1),
+      (4, "Schab", 3),
+      (5, "Boczek", 3);
                             
     INSERT INTO ProductCategoryClosure VALUES
       (1, 1, 0),
