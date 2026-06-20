@@ -2,9 +2,9 @@ from dataclasses import field
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-class ProductCategory(BaseModel):
-  id: int
-  name: str
+from api.schemas.product_category import ProductCategory
+
+
 
 class ProductBase(BaseModel):
   model_config = ConfigDict(frozen=True)
