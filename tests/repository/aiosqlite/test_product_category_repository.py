@@ -1,6 +1,9 @@
+
+from aiosqlite import cursor
 import pytest
 
 from api.repository.aiosqlite.product_category import ProductCategoryRepository
+from api.schemas.product_category import ProductCategoryCreate
 
 async def insert_categories(db):
   cursor = await db.executescript("""
@@ -158,3 +161,201 @@ async def test_get_all_tree_many_trees_with_depth_2(db):
           {'id': 4, 'name': 'Schab', 'subcategories': []}, {'id': 5, 'name': 'Boczek', 'subcategories': []}
         ]
       }
+
+@pytest.mark.asyncio
+async def test_insert_leaf_as_parent(db):
+  await insert_categories(db)
+  repo = ProductCategoryRepository(db)
+  product_category_data = ProductCategoryCreate(name= 'Zielony Groszek', supercategory_id= 7)
+  await repo.insert(product_category_data)
+  async with db.execute("SELECT * FROM ProductCategoryClosure WHERE subcategory_id=?", (8,)) as cursor:
+    closure = await cursor.fetchall()
+  closure_dict = [dict(c) for c in closure]
+
+  assert len(closure) == 4
+  assert {'supercategory_id': 8, 'subcategory_id': 8, 'depth': 0} in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 8, 'depth': 3} in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 8, 'depth': 2} in closure_dict
+  assert {'supercategory_id': 7, 'subcategory_id': 8, 'depth': 1} in closure_dict
+
+  async with db.execute("SELECT * FROM ProductCategory WHERE id=?", (8,)) as cursor:
+    closure = await cursor.fetchall()
+  assert len(closure) == 1
+  product_category = closure[0]
+  assert product_category['parent_id'] == 7
+  assert product_category['name'] == 'Zielony Groszek'
+
+@pytest.mark.asyncio
+async def test_insert_internal_node_as_parent(db):
+  await insert_categories(db)
+  repo = ProductCategoryRepository(db)
+  product_category_data = ProductCategoryCreate(name= 'Jabłko', supercategory_id= 2)
+  await repo.insert(product_category_data)
+  async with db.execute("SELECT * FROM ProductCategoryClosure WHERE subcategory_id=?", (8,)) as cursor:
+    closure = await cursor.fetchall()
+  closure_dict = [dict(c) for c in closure]
+
+  assert len(closure) == 3
+  assert {'supercategory_id': 8, 'subcategory_id': 8, 'depth': 0} in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 8, 'depth': 2} in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 8, 'depth': 1} in closure_dict
+
+  async with db.execute("SELECT * FROM ProductCategory WHERE id=?", (8,)) as cursor:
+    closure = await cursor.fetchall()
+  assert len(closure) == 1
+  product_category = closure[0]
+  assert product_category['parent_id'] == 2
+  assert product_category['name'] == 'Jabłko'
+
+
+@pytest.mark.asyncio
+async def test_insert_internal_root_as_parent(db):
+  await insert_categories(db)
+  repo = ProductCategoryRepository(db)
+  product_category_data = ProductCategoryCreate(name= 'Mieszane', supercategory_id=1)
+  await repo.insert(product_category_data)
+  async with db.execute("SELECT * FROM ProductCategoryClosure WHERE subcategory_id=?", (8,)) as cursor:
+    closure = await cursor.fetchall()
+  closure_dict = [dict(c) for c in closure]
+
+  assert len(closure) == 2
+  assert {'supercategory_id': 8, 'subcategory_id': 8, 'depth': 0} in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 8, 'depth': 1} in closure_dict
+
+  async with db.execute("SELECT * FROM ProductCategory WHERE id=?", (8,)) as cursor:
+    closure = await cursor.fetchall()
+  assert len(closure) == 1
+  product_category = closure[0]
+  assert product_category['parent_id'] == 1
+  assert product_category['name'] == 'Mieszane'
+
+@pytest.mark.asyncio
+async def test_insert_without_parent(db):
+  await insert_categories(db)
+  repo = ProductCategoryRepository(db)
+  product_category_data = ProductCategoryCreate(name= 'Produkty Archiwalne', supercategory_id=None)
+  await repo.insert(product_category_data)
+  async with db.execute("SELECT * FROM ProductCategoryClosure WHERE subcategory_id=?", (8,)) as cursor:
+    closure = await cursor.fetchall()
+  closure_dict = [dict(c) for c in closure]
+
+  assert len(closure) == 1
+  assert {'supercategory_id': 8, 'subcategory_id': 8, 'depth': 0} in closure_dict
+
+  async with db.execute("SELECT * FROM ProductCategory WHERE id=?", (8,)) as cursor:
+    closure = await cursor.fetchall()
+  assert len(closure) == 1
+  product_category = closure[0]
+  assert product_category['parent_id'] is None
+  assert product_category['name'] == 'Produkty Archiwalne'
+
+@pytest.mark.asyncio
+async def test_insert_internal_node_as_parent_with_one_child(db):
+  await insert_categories(db)
+  repo = ProductCategoryRepository(db)
+  product_category_data = ProductCategoryCreate(name= 'Zielone', supercategory_id= 2, subcategories_id=[7])
+  await repo.insert(product_category_data)
+  async with db.execute("SELECT * FROM ProductCategoryClosure") as cursor:
+    closure = await cursor.fetchall()
+  closure_dict = [dict(c) for c in closure]
+
+  assert {'supercategory_id': 8, 'subcategory_id': 8, 'depth': 0} in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 8, 'depth': 2} in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 8, 'depth': 1} in closure_dict
+
+  assert {'supercategory_id': 8, 'subcategory_id': 7, 'depth': 1} in closure_dict
+
+  assert {'supercategory_id': 1, 'subcategory_id': 7, 'depth': 3} in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 7, 'depth': 2} in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 6, 'depth': 2} in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 6, 'depth': 1} in closure_dict
+
+  async with db.execute("SELECT * FROM ProductCategory WHERE id=?", (8,)) as cursor:
+    category_list = await cursor.fetchall()
+  assert len(category_list) == 1
+  product_category = category_list[0]
+  assert product_category['parent_id'] == 2
+  assert product_category['name'] == 'Zielone'
+
+  async with db.execute("SELECT * FROM ProductCategory ") as cursor:
+    category_list = await cursor.fetchall()
+  category_dict = [dict(c) for c in category_list]
+
+  #print(category_dict)
+  assert {'id':7, "name": "Groszek", "parent_id": 8} in category_dict
+  assert {'id':6, "name": "Tofu", "parent_id": 2} in category_dict
+
+
+
+@pytest.mark.asyncio
+async def test_insert_internal_node_as_parent_with_two_children(db):
+  await insert_categories(db)
+  repo = ProductCategoryRepository(db)
+  product_category_data = ProductCategoryCreate(name= 'Zielone', supercategory_id= 2, subcategories_id=[7,6])
+  await repo.insert(product_category_data)
+  async with db.execute("SELECT * FROM ProductCategoryClosure") as cursor:
+    closure = await cursor.fetchall()
+  closure_dict = [dict(c) for c in closure]
+
+  assert {'supercategory_id': 8, 'subcategory_id': 8, 'depth': 0} in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 8, 'depth': 2} in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 8, 'depth': 1} in closure_dict
+
+  assert {'supercategory_id': 8, 'subcategory_id': 7, 'depth': 1} in closure_dict
+
+  assert {'supercategory_id': 1, 'subcategory_id': 7, 'depth': 3} in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 7, 'depth': 2} in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 6, 'depth': 3} in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 6, 'depth': 2} in closure_dict
+
+  async with db.execute("SELECT * FROM ProductCategory WHERE id=?", (8,)) as cursor:
+    category_list = await cursor.fetchall()
+  assert len(category_list) == 1
+  product_category = category_list[0]
+  assert product_category['parent_id'] == 2
+  assert product_category['name'] == 'Zielone'
+
+  async with db.execute("SELECT * FROM ProductCategory ") as cursor:
+    category_list = await cursor.fetchall()
+  category_dict = [dict(c) for c in category_list]
+
+  #print(category_dict)
+  assert {'id':7, "name": "Groszek", "parent_id": 8} in category_dict
+  assert {'id':6, "name": "Tofu", "parent_id": 8} in category_dict
+
+
+@pytest.mark.asyncio
+async def test_insert_internal_node_as_parent_adopt_all_child_subcategories(db):
+  await insert_categories(db)
+  repo = ProductCategoryRepository(db)
+  product_category_data = ProductCategoryCreate(name= 'Zielone', supercategory_id= 2, should_adopt_all_subcategories=True)
+  await repo.insert(product_category_data)
+  async with db.execute("SELECT * FROM ProductCategoryClosure") as cursor:
+    closure = await cursor.fetchall()
+  closure_dict = [dict(c) for c in closure]
+
+  assert {'supercategory_id': 8, 'subcategory_id': 8, 'depth': 0} in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 8, 'depth': 2} in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 8, 'depth': 1} in closure_dict
+
+  assert {'supercategory_id': 8, 'subcategory_id': 7, 'depth': 1} in closure_dict
+
+  assert {'supercategory_id': 1, 'subcategory_id': 7, 'depth': 3} in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 7, 'depth': 2} in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 6, 'depth': 3} in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 6, 'depth': 2} in closure_dict
+
+  async with db.execute("SELECT * FROM ProductCategory WHERE id=?", (8,)) as cursor:
+    category_list = await cursor.fetchall()
+  assert len(category_list) == 1
+  product_category = category_list[0]
+  assert product_category['parent_id'] == 2
+  assert product_category['name'] == 'Zielone'
+
+  async with db.execute("SELECT * FROM ProductCategory ") as cursor:
+    category_list = await cursor.fetchall()
+  category_dict = [dict(c) for c in category_list]
+
+  #print(category_dict)
+  assert {'id':7, "name": "Groszek", "parent_id": 8} in category_dict
+  assert {'id':6, "name": "Tofu", "parent_id": 8} in category_dict
