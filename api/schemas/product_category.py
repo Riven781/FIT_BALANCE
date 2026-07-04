@@ -6,10 +6,13 @@ class ProductCategory(BaseModel):
   name: str
 
 
+
 class ProductCategoryCreate(BaseModel):
   name: str
   supercategory_id: int | None
-  subcategory_id: int | None
+  subcategories_id: list[int] | None = None
+  should_adopt_all_subcategories: bool = False
+  
 
 class ProductCategoryUpdate(BaseModel):
   model_config = ConfigDict(extra='forbid')
