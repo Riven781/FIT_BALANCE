@@ -359,3 +359,52 @@ async def test_insert_internal_node_as_parent_adopt_all_child_subcategories(db):
   #print(category_dict)
   assert {'id':7, "name": "Groszek", "parent_id": 8} in category_dict
   assert {'id':6, "name": "Tofu", "parent_id": 8} in category_dict
+
+@pytest.mark.asyncio
+async def test_insert_empty_db(db):
+  repo = ProductCategoryRepository(db)
+  product_category_data = ProductCategoryCreate(name= 'Produkt', supercategory_id=None)
+  await repo.insert(product_category_data)
+  async with db.execute("SELECT * FROM ProductCategoryClosure") as cursor:
+    closure = await cursor.fetchall()
+  closure_dict = [dict(c) for c in closure]
+
+  assert len(closure_dict) == 1
+  assert {'supercategory_id': 1, 'subcategory_id': 1, 'depth': 0} in closure_dict
+
+  async with db.execute("SELECT * FROM ProductCategory WHERE id=?", (1,)) as cursor:
+    category_list = await cursor.fetchall()
+  assert len(category_list) == 1
+  product_category = category_list[0]
+  assert product_category['name'] == 'Produkt'
+
+
+@pytest.mark.asyncio
+async def test_insert_one_category_has_two_parents(db):
+  await insert_categories(db)
+  repo = ProductCategoryRepository(db)
+  product_category_data = ProductCategoryCreate(name='Roślinnopodobne', supercategory_id=1, subcategories_id=[6])
+  await repo.insert(product_category_data)
+  async with db.execute("SELECT * FROM ProductCategoryClosure") as cursor:
+    closure = await cursor.fetchall()
+  closure_dict = [dict(c) for c in closure]
+
+  assert {'supercategory_id': 8, 'subcategory_id': 8, 'depth': 0} in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 8, 'depth': 1} in closure_dict
+  assert {'supercategory_id': 8, 'subcategory_id': 6, 'depth': 1} in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 6, 'depth': 1} in closure_dict
+
+  async with db.execute("SELECT * FROM ProductCategory") as cursor:
+    category_list = await cursor.fetchall()
+
+  async with db.execute("SELECT * FROM ProductCategory WHERE id=?", (8,)) as cursor:
+    category_list = await cursor.fetchall()
+  assert len(category_list) == 1
+  product_category = category_list[0]
+
+  assert product_category['name'] == 'Roślinnopodobne'
+  """
+  It works but ProductCategory has only one parent_id, so it is inconsistence
+  TODO: change it
+  """
+
