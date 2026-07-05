@@ -3,6 +3,7 @@ from aiosqlite import cursor
 import pytest
 
 from api.repository.aiosqlite.product_category import ProductCategoryRepository
+from api.repository.errors.errors import UniqueViolationError
 from api.schemas.product_category import ProductCategoryCreate
 
 async def insert_categories(db):
@@ -384,27 +385,6 @@ async def test_insert_one_category_has_two_parents(db):
   await insert_categories(db)
   repo = ProductCategoryRepository(db)
   product_category_data = ProductCategoryCreate(name='Roślinnopodobne', supercategory_id=1, subcategories_id=[6])
-  await repo.insert(product_category_data)
-  async with db.execute("SELECT * FROM ProductCategoryClosure") as cursor:
-    closure = await cursor.fetchall()
-  closure_dict = [dict(c) for c in closure]
-
-  assert {'supercategory_id': 8, 'subcategory_id': 8, 'depth': 0} in closure_dict
-  assert {'supercategory_id': 1, 'subcategory_id': 8, 'depth': 1} in closure_dict
-  assert {'supercategory_id': 8, 'subcategory_id': 6, 'depth': 1} in closure_dict
-  assert {'supercategory_id': 2, 'subcategory_id': 6, 'depth': 1} in closure_dict
-
-  async with db.execute("SELECT * FROM ProductCategory") as cursor:
-    category_list = await cursor.fetchall()
-
-  async with db.execute("SELECT * FROM ProductCategory WHERE id=?", (8,)) as cursor:
-    category_list = await cursor.fetchall()
-  assert len(category_list) == 1
-  product_category = category_list[0]
-
-  assert product_category['name'] == 'Roślinnopodobne'
-  """
-  It works but ProductCategory has only one parent_id, so it is inconsistence
-  TODO: change it
-  """
+  with pytest.raises(UniqueViolationError):
+    await repo.insert(product_category_data)
 

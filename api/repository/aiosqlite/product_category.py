@@ -83,12 +83,13 @@ class ProductCategoryRepository(DbRepository):
       ) 
     """
     try:
+      
       cursor = await self.db.execute(insert_product_category_query, (product_category.name, product_category.supercategory_id))
       product_category_id = cursor.lastrowid
       await self.db.execute(insert_product_category_closure_query, (product_category_id, product_category_id))
       await self._insert_links(product_category_id, product_category)
       if product_category.subcategories_id or product_category.should_adopt_all_subcategories:
-        await self._update_links(product_category_id)
+        #await self._update_links(product_category_id)
         await self.db.execute(update_product_category_query, (product_category_id, product_category_id))
     except Exception as e:
       raise map_errors(e) from e
@@ -114,12 +115,11 @@ class ProductCategoryRepository(DbRepository):
   async def _insert_links_to_all_descendants(self, product_category_id, product_category: ProductCategoryCreate):
     insert_links_to_all_descendants_query = """
       INSERT INTO ProductCategoryClosure (supercategory_id, subcategory_id, depth)
-      SELECT ?, subcategory_id, depth FROM ProductCategoryClosure
+      SELECT ?, subcategory_id, depth - 1 FROM ProductCategoryClosure
       WHERE supercategory_id = ? AND subcategory_id != ? AND depth != 0
     """
     await self.db.execute(insert_links_to_all_descendants_query, (product_category_id, product_category.supercategory_id, product_category_id))
   
-  #TODO update parent_id!
 
   async def _update_links(self, product_category_id):
     update_links_query = """
@@ -131,15 +131,58 @@ class ProductCategoryRepository(DbRepository):
         SELECT supercategory_id FROM ProductCategoryClosure WHERE subcategory_id = ? AND depth != 0
       )
     """
-    
     await self.db.execute(update_links_query, (product_category_id, product_category_id))
+
+  async def _update_links_to_specific_descendants(self, product_category: ProductCategoryCreate):
+    conditions_list = ['supercategory_id = ?' for _ in product_category.subcategories_id]
+    condition = ' OR '.join(conditions_list)
     
+    update_links_query = f"""
+      UPDATE ProductCategoryClosure
+      SET depth = depth + 1
+      WHERE subcategory_id IN (
+        SELECT subcategory_id FROM ProductCategoryClosure WHERE {condition}
+      ) AND supercategory_id IN (
+        SELECT supercategory_id FROM ProductCategoryClosure WHERE subcategory_id = ?
+      );
+    """
+    await self.db.execute(update_links_query, (*product_category.subcategories_id, product_category.supercategory_id))
+    
+
+  async def _update_links_to_all_descendants(self, product_category_id, product_category: ProductCategoryCreate):
+    
+    update_links_query = """
+      UPDATE ProductCategoryClosure
+      SET depth = depth + 1
+      WHERE subcategory_id IN (
+        SELECT subcategory_id FROM ProductCategoryClosure WHERE supercategory_id = ? AND supercategory_id != subcategory_id
+      ) AND supercategory_id IN (
+        SELECT supercategory_id FROM ProductCategoryClosure WHERE subcategory_id = ? 
+      ) AND subcategory_id != ?;
+    """
+    await self.db.execute(update_links_query, (product_category.supercategory_id, product_category.supercategory_id, product_category_id))
 
   async def _insert_links(self, product_category_id, product_category: ProductCategoryCreate):
     await self._insert_links_to_ancestors(product_category_id, product_category)
     if product_category.should_adopt_all_subcategories:
+      cursor = await self.db.execute("SELECT * FROM ProductCategoryClosure")
+      closure = await cursor.fetchall()
+      print([dict(c) for c in closure])
+      await self._update_links_to_all_descendants(product_category_id, product_category)
+      cursor = await self.db.execute("SELECT * FROM ProductCategoryClosure")
+      closure = await cursor.fetchall()
+      print([dict(c) for c in closure])
+      
       await self._insert_links_to_all_descendants(product_category_id, product_category)
+      cursor = await self.db.execute("SELECT * FROM ProductCategoryClosure")
+      closure = await cursor.fetchall()
+      print([dict(c) for c in closure])
     elif product_category.subcategories_id is not None:
+
+      
+      await self._update_links_to_specific_descendants(product_category)
+
+
       await self._insert_links_to_specific_descendants(product_category_id, product_category)
 
 
