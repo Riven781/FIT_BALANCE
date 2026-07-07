@@ -388,3 +388,119 @@ async def test_insert_one_category_has_two_parents(db):
   with pytest.raises(UniqueViolationError):
     await repo.insert(product_category_data)
 
+
+@pytest.mark.asyncio
+async def test_delete_leaf_category_with_subcategories_option(db):
+  await insert_categories(db)
+  repo = ProductCategoryRepository(db)
+  count = await repo.delete(7, with_subcategories=True)
+  assert count == 1
+  async with db.execute("SELECT * FROM ProductCategoryClosure") as cursor:
+    closure = await cursor.fetchall()
+  closure_dict = [dict(c) for c in closure]
+  assert {'supercategory_id': 7, 'subcategory_id': 7, 'depth': 0} not in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 7, 'depth': 2} not in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 7, 'depth': 1} not in closure_dict
+
+
+@pytest.mark.asyncio
+async def test_delete_internal_category_with_subcategories_option(db):
+  await insert_categories(db)
+  repo = ProductCategoryRepository(db)
+  count = await repo.delete(2, with_subcategories=True)
+  assert count == 3
+  async with db.execute("SELECT * FROM ProductCategoryClosure") as cursor:
+    closure = await cursor.fetchall()
+  closure_dict = [dict(c) for c in closure]
+  assert {'supercategory_id': 2, 'subcategory_id': 2, 'depth': 0} not in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 2, 'depth': 1} not in closure_dict
+  assert {'supercategory_id': 6, 'subcategory_id': 6, 'depth': 0} not in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 6, 'depth': 2} not in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 6, 'depth': 1} not in closure_dict
+  assert {'supercategory_id': 7, 'subcategory_id': 7, 'depth': 0} not in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 7, 'depth': 2} not in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 7, 'depth': 1} not in closure_dict
+
+@pytest.mark.asyncio
+async def test_delete_root_category_with_subcategories_option(db):
+  await insert_categories(db)
+  repo = ProductCategoryRepository(db)
+  count = await repo.delete(1, with_subcategories=True)
+  assert count == 7
+  async with db.execute("SELECT * FROM ProductCategoryClosure") as cursor:
+    closure = await cursor.fetchall()
+  closure_dict = [dict(c) for c in closure]
+  assert len(closure_dict) == 0
+
+
+@pytest.mark.asyncio
+async def test_delete_leaf_category(db):
+  await insert_categories(db)
+  repo = ProductCategoryRepository(db)
+  count = await repo.delete(7)
+  assert count == 1
+  async with db.execute("SELECT * FROM ProductCategoryClosure") as cursor:
+    closure = await cursor.fetchall()
+  closure_dict = [dict(c) for c in closure]
+  assert {'supercategory_id': 7, 'subcategory_id': 7, 'depth': 0} not in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 7, 'depth': 2} not in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 7, 'depth': 1} not in closure_dict
+
+@pytest.mark.asyncio
+async def test_delete_internal_category(db):
+  await insert_categories(db)
+  repo = ProductCategoryRepository(db)
+  count = await repo.delete(2)
+  assert count == 1
+  async with db.execute("SELECT * FROM ProductCategoryClosure") as cursor:
+    closure = await cursor.fetchall()
+  closure_dict = [dict(c) for c in closure]
+  print(closure_dict)
+  assert {'supercategory_id': 2, 'subcategory_id': 2, 'depth': 0} not in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 2, 'depth': 1} not in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 6, 'depth': 1} not in closure_dict
+  assert {'supercategory_id': 2, 'subcategory_id': 7, 'depth': 1} not in closure_dict
+
+  assert {'supercategory_id': 6, 'subcategory_id': 6, 'depth': 0} in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 6, 'depth': 1} in closure_dict
+  assert {'supercategory_id': 7, 'subcategory_id': 7, 'depth': 0} in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 7, 'depth': 1} in closure_dict
+
+  async with db.execute("SELECT * FROM ProductCategory") as cursor:
+    categories = await cursor.fetchall()
+  categories_dict = [dict(c) for c in categories]
+  assert {'id' : 2, 'name' : "Roślinne", 'parent_id': 1} not in categories_dict
+
+  assert {'id' : 3, 'name' : "Zwierzęce", 'parent_id': 1} in categories_dict
+  assert {'id' : 4, 'name' : "Schab", 'parent_id': 3} in categories_dict
+  
+  assert {'id' : 6, 'name' : "Tofu", 'parent_id': 1} in categories_dict
+  assert {'id' : 7, 'name' : "Groszek", 'parent_id': 1} in categories_dict
+
+
+
+@pytest.mark.asyncio
+async def test_delete_root_category(db):
+  await insert_categories(db)
+  repo = ProductCategoryRepository(db)
+  count = await repo.delete(1)
+  assert count == 1
+  async with db.execute("SELECT * FROM ProductCategoryClosure") as cursor:
+    closure = await cursor.fetchall()
+  closure_dict = [dict(c) for c in closure]
+  assert len(closure_dict) == 10
+  assert {'supercategory_id': 1, 'subcategory_id': 1, 'depth': 0} not in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 2, 'depth': 1} not in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 3, 'depth': 1} not in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 4, 'depth': 2} not in closure_dict
+  assert {'supercategory_id': 1, 'subcategory_id': 5, 'depth': 2} not in closure_dict
+
+  async with db.execute("SELECT * FROM ProductCategory") as cursor:
+    categories = await cursor.fetchall()
+  categories_dict = [dict(c) for c in categories]
+  assert {'id' : 1, 'name' : "Produkty", 'parent_id': None} not in categories_dict
+
+  assert {'id' : 2, 'name' : "Roślinne", 'parent_id': None} in categories_dict
+  assert {'id' : 3, 'name' : "Zwierzęce", 'parent_id': None} in categories_dict
+  assert {'id' : 4, 'name' : "Schab", 'parent_id': 3} in categories_dict
+
