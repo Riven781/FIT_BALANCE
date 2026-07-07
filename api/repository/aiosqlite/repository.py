@@ -38,7 +38,7 @@ class DbRepository:
 				
 		return rows
 	
-	async def delete(self, id):
+	async def delete(self, id, **filters):
 		q = f'DELETE FROM {self.name} WHERE id = ?'
 		cursor = None
 		try:

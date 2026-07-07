@@ -83,17 +83,84 @@ class ProductCategoryRepository(DbRepository):
       ) 
     """
     try:
-      
       cursor = await self.db.execute(insert_product_category_query, (product_category.name, product_category.supercategory_id))
       product_category_id = cursor.lastrowid
       await self.db.execute(insert_product_category_closure_query, (product_category_id, product_category_id))
       await self._insert_links(product_category_id, product_category)
       if product_category.subcategories_id or product_category.should_adopt_all_subcategories:
-        #await self._update_links(product_category_id)
         await self.db.execute(update_product_category_query, (product_category_id, product_category_id))
     except Exception as e:
       raise map_errors(e) from e
     
+  async def delete(self, product_category_id, **filters):
+    with_subcategories = filters.get('with_subcategories')
+    delete_with_subcategories_query = """
+      DELETE FROM ProductCategory
+      WHERE id IN (
+        SELECT subcategory_id FROM ProductCategoryClosure 
+        WHERE supercategory_id = ?
+      )
+    """
+    update_links_query = """
+      UPDATE ProductCategoryClosure
+      SET depth = depth - 1
+      WHERE subcategory_id IN (
+        SELECT subcategory_id FROM ProductCategoryClosure
+        JOIN ProductCategory ON supercategory_id = id
+        WHERE parent_id = ? 
+      ) 
+      AND 
+      supercategory_id IN (
+        SELECT supercategory_id FROM ProductCategoryClosure
+        WHERE subcategory_id = ? AND subcategory_id != supercategory_id
+      ) 
+    """
+    delete_links_query = """
+      DELETE FROM ProductCategoryClosure
+      WHERE supercategory_id = ? 
+    """
+    update_parents = """
+      UPDATE ProductCategory
+      SET parent_id = (
+        SELECT parent_id FROM ProductCategory
+        WHERE id = ?
+      )
+      WHERE parent_id = ?
+    """
+    delete_category = """
+      DELETE FROM ProductCategory
+      WHERE id = ?
+    """
+    cursor = None
+    if with_subcategories:
+      try:
+        cursor = await self.db.execute(delete_with_subcategories_query, (product_category_id,))
+        return cursor.rowcount
+      except Exception as e:
+        raise map_errors(e) from e
+      finally:
+        if cursor is not None:
+          await cursor.close()
+    else:
+      try:
+        
+        cursor = await self.db.execute(delete_links_query, (product_category_id,))
+
+        cursor = await self.db.execute(update_links_query, (product_category_id, product_category_id))
+        cursor = await self.db.execute(update_parents, (product_category_id, product_category_id))
+
+        cursor = await self.db.execute(delete_category, (product_category_id,))
+
+
+        return cursor.rowcount
+      except Exception as e:
+        raise map_errors(e) from e
+      finally:
+        if cursor is not None:
+          await cursor.close()
+
+
+
   async def _insert_links_to_ancestors(self, product_category_id, product_category: ProductCategoryCreate):
     insert_to_parent_links_query = """
       INSERT INTO ProductCategoryClosure (supercategory_id, subcategory_id, depth)
@@ -184,5 +251,7 @@ class ProductCategoryRepository(DbRepository):
 
 
       await self._insert_links_to_specific_descendants(product_category_id, product_category)
+
+
 
 

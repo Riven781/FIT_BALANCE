@@ -29,3 +29,10 @@ class PaginationFilters:
     ):
     self.page = page
     self.limit  = limit
+
+class ProductCategoryDeleteFilters:
+  def __init__(
+      self,
+      with_subcategories: bool = False):
+    self.with_subcategories = with_subcategories
+    
