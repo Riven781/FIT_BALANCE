@@ -11,14 +11,14 @@ class ProductCategoryCreate(BaseModel):
   name: str
   supercategory_id: int | None
   subcategories_id: list[int] | None = None
-  should_adopt_all_subcategories: bool = False
-  
+
+ 
 
 class ProductCategoryUpdate(BaseModel):
   model_config = ConfigDict(extra='forbid')
   name: str | None
   supercategory_id: int | None
-  subcategory_id: int | None
+  subcategories_id: list[int] | None
 
   @model_validator(mode='after')
   def not_null_name(self):

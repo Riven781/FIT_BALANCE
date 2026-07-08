@@ -329,8 +329,8 @@ async def test_insert_internal_node_as_parent_with_two_children(db):
 async def test_insert_internal_node_as_parent_adopt_all_child_subcategories(db):
   await insert_categories(db)
   repo = ProductCategoryRepository(db)
-  product_category_data = ProductCategoryCreate(name= 'Zielone', supercategory_id= 2, should_adopt_all_subcategories=True)
-  await repo.insert(product_category_data)
+  product_category_data = ProductCategoryCreate(name= 'Zielone', supercategory_id= 2)
+  await repo.insert(product_category_data, adopt_subcategories=True)
   async with db.execute("SELECT * FROM ProductCategoryClosure") as cursor:
     closure = await cursor.fetchall()
   closure_dict = [dict(c) for c in closure]

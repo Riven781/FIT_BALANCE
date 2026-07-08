@@ -50,7 +50,7 @@ class DbRepository:
 			if cursor is not None:
 				await cursor.close()
 
-	async def insert(self, obj):
+	async def insert(self, obj, **filters):
 		fields_dict = obj.model_dump()
 		columns = fields_dict.keys()
 		vals = list(fields_dict.values())
@@ -67,7 +67,7 @@ class DbRepository:
 			if cursor is not None:
 				await cursor.close()
 	
-	async def update(self, id, obj):
+	async def update(self, id, obj, **filters):
 		fields_dict = obj.model_dump(exclude_unset=True)
 		columns = fields_dict.keys()
 		vals = list(fields_dict.values())
