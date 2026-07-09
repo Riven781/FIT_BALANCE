@@ -158,8 +158,7 @@ class ProductCategoryRepository(DbRepository):
         if cursor is not None:
           await cursor.close()
     
-  async def update(self, product_category_id, product_category: ProductCategoryUpdate):
-    return await super().update(id, product_category)
+
 
 
 
@@ -208,28 +207,40 @@ class ProductCategoryRepository(DbRepository):
     
     update_links_query = f"""
       UPDATE ProductCategoryClosure
-      SET depth = depth + 1
+      SET depth = depth + 1000000
       WHERE subcategory_id IN (
         SELECT subcategory_id FROM ProductCategoryClosure WHERE {condition}
       ) AND supercategory_id IN (
         SELECT supercategory_id FROM ProductCategoryClosure WHERE subcategory_id = ?
       );
     """
+    normalize_depth = """
+      UPDATE ProductCategoryClosure
+      SET depth = depth - 999999
+      WHERE depth >= 1000000;
+    """
     await self.db.execute(update_links_query, (*product_category.subcategories_id, product_category.supercategory_id))
-    
+    await self.db.execute(normalize_depth)
+
 
   async def _update_links_to_all_descendants(self, product_category_id, product_category: ProductCategoryCreate):
     
     update_links_query = """
       UPDATE ProductCategoryClosure
-      SET depth = depth + 1
+      SET depth = depth + 1000000
       WHERE subcategory_id IN (
         SELECT subcategory_id FROM ProductCategoryClosure WHERE supercategory_id = ? AND supercategory_id != subcategory_id
       ) AND supercategory_id IN (
         SELECT supercategory_id FROM ProductCategoryClosure WHERE subcategory_id = ? 
       ) AND subcategory_id != ?;
     """
+    normalize_depth = """
+      UPDATE ProductCategoryClosure
+      SET depth = depth - 999999
+      WHERE depth >= 1000000;
+    """
     await self.db.execute(update_links_query, (product_category.supercategory_id, product_category.supercategory_id, product_category_id))
+    await self.db.execute(normalize_depth)
 
   async def _insert_links(self, product_category_id, product_category: ProductCategoryCreate, adopt_subcategories=False):
     await self._insert_links_to_ancestors(product_category_id, product_category)
