@@ -1,3 +1,4 @@
+from ast import arg
 from typing import Annotated
 
 import aiosqlite
@@ -39,10 +40,19 @@ class DbRepository:
 		return rows
 	
 	async def delete(self, id, **filters):
-		q = f'DELETE FROM {self.name} WHERE id = ?'
+		q = f'DELETE FROM {self.name} WHERE '
+		if type(id) is list:
+			if not id:
+				return 0
+			conditions = [' id  = ? ' for _ in id]
+			q += ' OR '.join(conditions)
+			args = id
+		else:
+			q += 'id = ?'
+			args = [id]
 		cursor = None
 		try:
-			cursor = await self._exec(q, [id])
+			cursor = await self._exec(q, args)
 			return cursor.rowcount
 		except Exception as e:
 			raise map_errors(e) from e
@@ -50,17 +60,41 @@ class DbRepository:
 			if cursor is not None:
 				await cursor.close()
 
-	async def insert(self, obj, **filters):
-		fields_dict = obj.model_dump()
-		columns = fields_dict.keys()
-		vals = list(fields_dict.values())
+	async def insert(self, obj, **options):
+		return_obj = options.get('return_obj')
+		if type(obj) is list:
+			if not obj:
+				return None
+			obj_list = [o.model_dump() for o in obj]
+			columns = obj_list[0].keys()
+			question_marks = [['?'] * len(obj) for obj in obj_list]
+			insert_rows = ['(' + ','.join(row) + ')' for row in question_marks]
+			value_fields = ','.join(insert_rows)
+			vals = [value for obj in obj_list for value in obj.values()]
+		else:
+			fields_dict = obj.model_dump()
+			columns = fields_dict.keys()
+			question_marks = ', '.join(['?' for _ in columns])
+			value_fields = '(' + question_marks + ')'
+			vals = list(fields_dict.values())
 		#print(vals)
-		q = f'INSERT INTO {self.name} (' + ', '.join(columns) + ') VALUES ('
-		q += ', '.join(['?' for v in vals]) + ')'
+		q = f'INSERT INTO {self.name} (' + ', '.join(columns) + ') VALUES '
+		q +=  value_fields
+		q += f" RETURNING id, {','.join(columns)}" if return_obj else "RETURNING id"
+		print(q)
 		cursor = None
 		try:
 			cursor = await self._exec(q, vals)
-			return cursor.lastrowid
+			if type(obj) is list:
+				if return_obj:
+					return [dict(row) for row in await cursor.fetchall()]
+				else:
+					return [row[0] for row in await cursor.fetchall()]
+			else:
+				if return_obj:
+					obj_to_return = await cursor.fetchone()
+					return dict(obj_to_return)
+				return cursor.lastrowid
 		except Exception as e:
 			raise map_errors(e) from e
 		finally:
