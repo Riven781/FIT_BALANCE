@@ -2,7 +2,7 @@ from dataclasses import field
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from api.schemas.product_category import ProductCategory
+from api.schemas.product_category import ProductCategory, ProductCategoryView
 
 
 
@@ -15,7 +15,7 @@ class ProductBase(BaseModel):
   reference_amount: int = Field(ge=0)
   reference_unit: str
   img_src: str | None = None
-  category: list[ProductCategory]
+  category: list[ProductCategoryView]
 
 class ProductSummary(ProductBase):
   id: int

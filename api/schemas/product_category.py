@@ -4,21 +4,23 @@ from pydantic import BaseModel, ConfigDict, model_validator
 class ProductCategory(BaseModel):
   id: int
   name: str
+  parent_id: int | None
 
-
+class ProductCategoryView(BaseModel):
+  id: int
+  name: str
 
 class ProductCategoryCreate(BaseModel):
+  model_config = ConfigDict(extra='ignore')
   name: str
-  supercategory_id: int | None
-  subcategories_id: list[int] | None = None
+  parent_id: int | None
 
  
 
 class ProductCategoryUpdate(BaseModel):
-  model_config = ConfigDict(extra='forbid')
-  name: str | None
-  supercategory_id: int | None
-  subcategories_id: list[int] | None
+  model_config = ConfigDict(extra='ignore')
+  name: str | None = None
+  parent_id: int | None = None
 
   @model_validator(mode='after')
   def not_null_name(self):
@@ -26,6 +28,7 @@ class ProductCategoryUpdate(BaseModel):
       raise ValueError('body cannot be empty')
     if 'name' in self.model_fields_set and getattr(self, 'name') is None:
       raise ValueError('name cannot be null')
+    return self
 
 
 
