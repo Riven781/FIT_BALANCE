@@ -102,17 +102,28 @@ class DbRepository:
 				await cursor.close()
 	
 	async def update(self, id, obj, **filters):
-		fields_dict = obj.model_dump(exclude_unset=True)
-		columns = fields_dict.keys()
-		vals = list(fields_dict.values())
+		if type(obj) is list and type(id) is list:
+			if not obj:
+				return 0
+			obj_list = [o.model_dump() for o in obj]
+			columns = obj_list[0].keys()
+			vals = [(*obj.values(), i) for i, obj in zip(id, obj_list)]
+		else:
+			fields_dict = obj.model_dump(exclude_unset=True)
+			columns = fields_dict.keys()
+			vals = list(fields_dict.values())
+			vals.append(id)
 		if len(columns) == 0:
 			return 0
 		q = f'UPDATE {self.name} SET '
 		q += ', '.join([c + ' = ?' for c in columns])
-		q += ' WHERE id = ' + str(id)
+		q += ' WHERE id = ?'
 		cursor = None
 		try:
-			cursor = await self._exec(q, vals)
+			if type(obj) is list and type(id) is list:
+				cursor = await self._exec(q, vals, many=True)
+			else:
+				cursor = await self._exec(q, vals)
 			return cursor.rowcount
 		except Exception as e:
 			raise map_errors(e) from e
@@ -120,11 +131,15 @@ class DbRepository:
 			if cursor is not None:
 				await cursor.close()
 
-	async def _exec(self, query, params=None):
+	async def _exec(self, query, params=None, many=False):
 		if params is None:
 			cursor = await self.db.execute(query)
 		else:
-			cursor = await self.db.execute(query, params)
+			if many:
+				print('oo')
+				cursor = await self.db.executemany(query, params)
+			else:
+				cursor = await self.db.execute(query, params)
 		return cursor
 
 	

@@ -220,3 +220,27 @@ async def test_update_category_rename_and_change_parent(db):
   assert len(categories) == 9
   assert {'id': 2, 'name': 'Roślinne', 'parent_id': 1} not in categories
   assert {'id': 2, 'name': 'Roślinnopodobne', 'parent_id': 5} in categories
+
+@pytest.mark.asyncio
+async def test_update_two_categories_rename_and_change_parent(db):
+  await insert_categories(db)
+  repo = ProductCategoryRepository(db)
+  count = await repo.update([2, 3], [ProductCategoryUpdate(name='Roślinnopodobne', parent_id=5), ProductCategoryUpdate(name='Zwierzęcopodobne', parent_id=6)])
+  assert count == 2
+  categories = await repo.get_all()
+  assert len(categories) == 9
+  assert {'id': 2, 'name': 'Roślinne', 'parent_id': 1} not in categories
+  assert {'id': 2, 'name': 'Roślinnopodobne', 'parent_id': 5} in categories
+  assert {'id' : 3, 'name': 'Zwierzęce', 'parent_id' : 1} not in categories
+  assert {'id' : 3, 'name': 'Zwierzęcopodobne', 'parent_id' : 6} in categories
+
+@pytest.mark.asyncio
+async def test_update_one_category_rename_and_change_parent_using_list_arg(db):
+  await insert_categories(db)
+  repo = ProductCategoryRepository(db)
+  count = await repo.update([2], [ProductCategoryUpdate(name='Roślinnopodobne', parent_id=5)])
+  assert count == 1
+  categories = await repo.get_all()
+  assert len(categories) == 9
+  assert {'id': 2, 'name': 'Roślinne', 'parent_id': 1} not in categories
+  assert {'id': 2, 'name': 'Roślinnopodobne', 'parent_id': 5} in categories
