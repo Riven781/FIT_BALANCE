@@ -4,7 +4,7 @@ import pytest
 import aiosqlite
 import pytest_asyncio
 
-from api.database.create_db import product_table_query, product_category_table_query, product_category_closure_query
+from shared.database.create_db import product_table_query, product_category_table_query, product_category_closure_query
 
 @pytest_asyncio.fixture
 async def db():

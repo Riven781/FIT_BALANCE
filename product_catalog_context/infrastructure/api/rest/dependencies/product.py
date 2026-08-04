@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import HTTPException, Path
 
-from api.schemas.product import ProductUpdate
+from product_catalog_context.infrastructure.api.rest.schemas.product import ProductUpdate
 
 
 def check_ids(product_id : Annotated[int, Path()], product: ProductUpdate):

@@ -1,6 +1,6 @@
 import aiosqlite
 
-from api.repository.errors.errors import CheckViolationError, ForeignKeyViolationError, NotNullViolationError, RepositoryError, RepositoryIntegrityError, RepositoryProgrammingError, RepositoryUnavailableError, TypeViolationError, UniqueViolationError, UnknownRepositoryError
+from product_catalog_context.infrastructure.aiosqlite_repository.errors.errors import CheckViolationError, ForeignKeyViolationError, NotNullViolationError, RepositoryError, RepositoryIntegrityError, RepositoryProgrammingError, RepositoryUnavailableError, TypeViolationError, UniqueViolationError, UnknownRepositoryError
 
 def map_errors(e):
   if isinstance(e, aiosqlite.Error):

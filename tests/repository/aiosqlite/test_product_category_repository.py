@@ -1,8 +1,8 @@
 import pytest
 
-from api.repository.aiosqlite.product_category import ProductCategoryRepository
-from api.repository.errors.errors import ForeignKeyViolationError
-from api.schemas.product_category import ProductCategoryCreate, ProductCategoryUpdate
+from product_catalog_context.infrastructure.aiosqlite_repository.product_category import ProductCategoryRepository
+from product_catalog_context.infrastructure.aiosqlite_repository.errors.errors import ForeignKeyViolationError
+from product_catalog_context.infrastructure.api.rest.schemas.product_category import ProductCategoryCreate, ProductCategoryUpdate
 
 async def insert_categories(db):
   cursor = await db.execute("""

@@ -2,7 +2,7 @@ from dataclasses import field
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from api.schemas.product_category import ProductCategory, ProductCategoryView
+from product_catalog_context.infrastructure.api.rest.schemas.product_category import ProductCategory, ProductCategoryView
 
 
 

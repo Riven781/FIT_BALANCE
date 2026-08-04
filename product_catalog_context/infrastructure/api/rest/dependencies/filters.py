@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Literal
 from fastapi import Query
 
-from api.enums.product import NameMode, SortBy, ViewMode
+from product_catalog_context.domain.enums.product_searching import NameMode, SortBy
 
 class ProductsFilters:
   def __init__(

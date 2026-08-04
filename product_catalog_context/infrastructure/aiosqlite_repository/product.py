@@ -1,10 +1,10 @@
 
 import aiosqlite
-from api.dependencies.filters import ProductsFilters
-from api.enums.product import NameMode, SortBy, ViewMode
-from api.repository.aiosqlite.errors_mapper import map_errors
-from api.repository.aiosqlite.repository import DbRepository
-from api.schemas.product import ProductCreate, ProductDetail, ProductSummary, ProductUpdate
+from product_catalog_context.infrastructure.api.rest.dependencies.filters import ProductsFilters
+from product_catalog_context.domain.enums.product_searching import NameMode, SortBy
+from product_catalog_context.infrastructure.aiosqlite_repository.errors_mapper import map_errors
+from product_catalog_context.infrastructure.aiosqlite_repository.repository import DbRepository
+from product_catalog_context.infrastructure.api.rest.schemas.product import ProductCreate, ProductDetail, ProductSummary, ProductUpdate
 
 
 class ProductRepository(DbRepository):

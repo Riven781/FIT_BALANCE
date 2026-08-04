@@ -11,6 +11,8 @@ class NameMode(str, Enum):
   STARTS_WITH = "starts_with"
   EXAC = 'exac'
 
+"""
 class ViewMode(str, Enum):
   SUMMARY = 'summary'
   DETAIL = "detail"
+"""

@@ -1,6 +1,6 @@
 import aiosqlite
 from config import DB_PATH
-from api.database.create_db import product_table_query, product_category_table_query, product_category_closure_query
+from shared.database.create_db import product_table_query, product_category_table_query, product_category_closure_query
 
 
 

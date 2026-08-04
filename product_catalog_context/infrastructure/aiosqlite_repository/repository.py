@@ -4,8 +4,8 @@ from typing import Annotated
 import aiosqlite
 from fastapi import Depends
 
-from api.database.db import get_db
-from api.repository.aiosqlite.errors_mapper import map_errors
+from shared.database.db import get_db
+from product_catalog_context.infrastructure.aiosqlite_repository.errors_mapper import map_errors
 
 
 class DbRepository:

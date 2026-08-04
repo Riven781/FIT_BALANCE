@@ -1,8 +1,8 @@
 import aiosqlite
 from httpx import delete
-from api.repository.aiosqlite.errors_mapper import map_errors
-from api.repository.aiosqlite.repository import DbRepository
-from api.schemas.product_category import ProductCategoryCreate, ProductCategoryHierarchy, ProductCategoryUpdate
+from product_catalog_context.infrastructure.aiosqlite_repository.errors_mapper import map_errors
+from product_catalog_context.infrastructure.aiosqlite_repository.repository import DbRepository
+from product_catalog_context.infrastructure.api.rest.schemas.product_category import ProductCategoryCreate, ProductCategoryHierarchy, ProductCategoryUpdate
 
 class ProductCategoryRepository(DbRepository):
   def __init__(self, db, name='ProductCategory'):

@@ -1,6 +1,6 @@
-from api.repository.aiosqlite.errors_mapper import map_errors
-from api.repository.aiosqlite.repository import DbRepository
-from api.schemas.product_category import ProductCategoryHierarchy
+from product_catalog_context.infrastructure.aiosqlite_repository.errors_mapper import map_errors
+from product_catalog_context.infrastructure.aiosqlite_repository.repository import DbRepository
+from product_catalog_context.infrastructure.api.rest.schemas.product_category import ProductCategoryHierarchy
 
 
 class ProductCategoryHierarchyRepository(DbRepository):

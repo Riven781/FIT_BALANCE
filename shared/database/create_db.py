@@ -1,7 +1,7 @@
 import sqlite3
 import json
 
-conn = sqlite3.connect('./api/database/fit-balance.db')
+conn = sqlite3.connect('./shared/database/fit-balance.db')
 
 cursor = conn.cursor()
 cursor.execute("PRAGMA foreign_keys = ON")
@@ -24,16 +24,20 @@ product_table_query = """
     reference_amount INTEGER,
     reference_unit TEXT,
     img_src TEXT,
+    name_search_standard TEXT DEFAULT '',
     category_id INTEGER,
     FOREIGN KEY (category_id) REFERENCES ProductCategory(id)
       ON DELETE SET NULL
-  );
+  ) STRICT;
 """
 
 product_category_table_query = """
   CREATE TABLE IF NOT EXISTS ProductCategory(
     id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL
+    name TEXT NOT NULL,
+    parent_id INTEGER,
+    FOREIGN KEY (parent_id) REFERENCES ProductCategory(id)
+      ON DELETE SET NULL
   );
 """
 
@@ -43,12 +47,14 @@ product_category_closure_query = """
     subcategory_id INTEGER,
     depth INTEGER NOT NULL,
 
-    PRIMARY KEY (supercategory_id, subcategory_id)
+    PRIMARY KEY (supercategory_id, subcategory_id),
 
     FOREIGN KEY (supercategory_id) REFERENCES ProductCategory(id)
       ON DELETE CASCADE,
     FOREIGN KEY (subcategory_id) REFERENCES ProductCategory(id)
-      ON DELETE CASCADE
+      ON DELETE CASCADE,
+
+    UNIQUE (subcategory_id, depth)
   );
 """
 
@@ -107,6 +113,7 @@ cursor.execute(
 
 for row in cursor.fetchall():
   print(row)
+
 
 
 

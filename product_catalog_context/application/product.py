@@ -4,13 +4,12 @@ from typing import Annotated
 import re
 from fastapi import Depends, HTTPException
 
-from api.dependencies.filters import PaginationFilters, ProductsFilters
-from api.enums import product
-from api.enums.product import NameMode, ViewMode
-from api.repository.aiosqlite.product import ProductRepository
-from api.repository.errors.errors import CheckViolationError, ForeignKeyViolationError, NotNullViolationError, RepositoryError, UniqueViolationError
-from api.schemas.product import ProductCreate, ProductDetail, ProductModel, ProductSummary, ProductUpdate
-from api.services.errors.errors import  InvalidProductCategoryId, InvalidProductDataError, ProductNotFoundError
+from product_catalog_context.infrastructure.api.rest.dependencies.filters import PaginationFilters, ProductsFilters
+from product_catalog_context.domain.enums import product_searching
+from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
+from product_catalog_context.infrastructure.aiosqlite_repository.errors.errors import CheckViolationError, ForeignKeyViolationError, NotNullViolationError, RepositoryError, UniqueViolationError
+from product_catalog_context.infrastructure.api.rest.schemas.product import ProductCreate, ProductDetail, ProductModel, ProductSummary, ProductUpdate
+from product_catalog_context.application.errors.errors import  InvalidProductCategoryId, InvalidProductDataError, ProductNotFoundError
 
 POLISH_CHARS = {
     "ą": "a",
@@ -48,7 +47,7 @@ class ProductService():
       raise ProductNotFoundError()
     return product
 
-  async def get_all(self, product_filters : ProductsFilters, pagination_filters: PaginationFilters) -> list[ProductDetail]:
+  async def get_all(self, product_filters : ProductsFilters, pagination_filters: PaginationFilters) -> tuple[int, list[ProductDetail]]:
     """
     Return the total count of found products and a list of product details
     that match the pagination restrictions.

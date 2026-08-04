@@ -2,10 +2,7 @@
 from aiosqlite import cursor
 import pytest
 
-from api.repository.aiosqlite.product_category import ProductCategoryRepository
-from api.repository.aiosqlite.product_category_hierarchy import ProductCategoryHierarchyRepository
-from api.repository.errors.errors import UniqueViolationError
-from api.schemas.product_category import ProductCategoryCreate, ProductCategoryUpdate
+from product_catalog_context.infrastructure.aiosqlite_repository.product_category_hierarchy import ProductCategoryHierarchyRepository
 
 async def insert_categories(db):
   cursor = await db.executescript("""

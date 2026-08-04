@@ -1,10 +1,10 @@
 
 import pytest
 
-from api.enums.product import SortBy
-from api.repository.aiosqlite.product import ProductRepository
-from api.repository.errors.errors import ForeignKeyViolationError, NotNullViolationError, RepositoryError, RepositoryIntegrityError, TypeViolationError, UniqueViolationError
-from api.schemas.product import ProductBase, ProductCreate, ProductUpdate
+from product_catalog_context.domain.enums.product_searching import SortBy
+from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
+from product_catalog_context.infrastructure.aiosqlite_repository.errors.errors import ForeignKeyViolationError, NotNullViolationError,  RepositoryIntegrityError, TypeViolationError, UniqueViolationError
+from product_catalog_context.infrastructure.api.rest.schemas.product import ProductBase, ProductCreate, ProductUpdate
 from tests.schema import ProductTest, ProductTestStrKcal
 
 async def insert_categories_and_products(db):

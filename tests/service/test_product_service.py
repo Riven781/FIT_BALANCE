@@ -1,8 +1,8 @@
 import pytest
 
-from api.dependencies.filters import PaginationFilters, ProductsFilters
-from api.services.errors.errors import ProductNotFoundError
-from api.services.product import ProductService
+from product_catalog_context.infrastructure.api.rest.dependencies.filters import PaginationFilters, ProductsFilters
+from product_catalog_context.application.errors.errors import ProductNotFoundError
+from product_catalog_context.application.product import ProductService
 from httpx import delete
 from tests.schema import ProductTest
 
