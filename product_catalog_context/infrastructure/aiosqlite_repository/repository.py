@@ -9,9 +9,10 @@ from product_catalog_context.infrastructure.aiosqlite_repository.errors_mapper i
 
 
 class DbRepository:
-	def __init__(self, db : aiosqlite.Connection, name=''):
+	def __init__(self, db : aiosqlite.Connection, name='', mapper=None):
 		self.db = db
 		self.name = name
+		self.mapper=mapper
 
 	async def _select(self, table_name, filters_dict=None, all=False):
 		if filters_dict is None:
@@ -65,14 +66,20 @@ class DbRepository:
 		if type(obj) is list:
 			if not obj:
 				return None
-			obj_list = [o.model_dump() for o in obj]
+			if self.mapper is not None:
+				obj_list = [self.mapper.to_storage_dict(o) for o in obj]
+			else:
+				obj_list = [o.model_dump() for o in obj]
 			columns = obj_list[0].keys()
 			question_marks = [['?'] * len(obj) for obj in obj_list]
 			insert_rows = ['(' + ','.join(row) + ')' for row in question_marks]
 			value_fields = ','.join(insert_rows)
 			vals = [value for obj in obj_list for value in obj.values()]
 		else:
-			fields_dict = obj.model_dump()
+			if self.mapper is not None:
+				fields_dict = self.mapper.to_storage_dict(obj)
+			else:
+				fields_dict = obj.model_dump()
 			columns = fields_dict.keys()
 			question_marks = ', '.join(['?' for _ in columns])
 			value_fields = '(' + question_marks + ')'
@@ -105,11 +112,17 @@ class DbRepository:
 		if type(obj) is list and type(id) is list:
 			if not obj:
 				return 0
-			obj_list = [o.model_dump() for o in obj]
+			if self.mapper is not None:
+				obj_list = [self.mapper.to_storage_dict(o) for o in obj]
+			else:
+				obj_list = [o.model_dump() for o in obj]
 			columns = obj_list[0].keys()
 			vals = [(*obj.values(), i) for i, obj in zip(id, obj_list)]
 		else:
-			fields_dict = obj.model_dump(exclude_unset=True)
+			if self.mapper is not None:
+				fields_dict = self.mapper.to_storage_dict(obj)
+			else:
+				fields_dict = obj.model_dump(exclude_unset=True)
 			columns = fields_dict.keys()
 			vals = list(fields_dict.values())
 			vals.append(id)

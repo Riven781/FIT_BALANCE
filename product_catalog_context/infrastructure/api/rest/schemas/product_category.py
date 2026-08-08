@@ -1,5 +1,8 @@
 from pydantic import BaseModel, ConfigDict, model_validator
 
+class ProductCategoryItem(BaseModel):
+  id: int
+  name: str
 
 class ProductCategory(BaseModel):
   id: int

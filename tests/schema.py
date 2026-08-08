@@ -4,6 +4,7 @@ from pydantic import BaseModel
 class ProductTest(BaseModel):
   id: int | None = None
   name: str | None = None
+  brand_name: str | None = None
   kcal: float |None = None
   brand: str | None = None
   reference_amount: int = 100

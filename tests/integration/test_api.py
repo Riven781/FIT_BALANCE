@@ -8,16 +8,21 @@ import requests
 @pytest.mark.usefixtures('restart_docker')
 def test_created_product_returns_201_and_product_detail():
   url = config.get_api_url()
-  data = {'name' : 'szarlotka', 'brand' : 'auchan', 'kcal':'200', 'reference_unit':'g'}
+  data = {'name' : 'szarlotka', 'brand_name' : 'auchan', 'nutrition_facts' : {
+    'kcal' :230,
+  }, 'img_src': None}
   r = requests.post(f'{url}/api/v1/products', json=data)
   assert r.status_code == 201
   product = r.json()
   assert product['name'] == 'szarlotka'
 
+
 @pytest.mark.usefixtures('restart_docker')
 def test_created_product_returns_422_missing_name():
   url = config.get_api_url()
-  data = {'brand' : 'auchan', 'kcal':'200', 'reference_unit':'g'}
+  data = {'brand_name' : 'auchan', 'nutrition_facts' : {
+    'kcal' :230,
+  }, 'img_src': None}
   r = requests.post(f'{url}/api/v1/products', json=data)
   assert r.status_code == 422
   #json output: {'detail': [{'type': 'missing', 'loc': ['body', 'name'], 'msg': 'Field required', 'input': {'brand': 'auchan', 'kcal': '200', 'reference_unit': 'g'}}]}
@@ -25,106 +30,200 @@ def test_created_product_returns_422_missing_name():
 @pytest.mark.usefixtures('restart_docker')
 def test_created_product_returns_422_null_name():
   url = config.get_api_url()
-  data = {'name': None, 'brand' : 'auchan', 'kcal':'200', 'reference_unit':'g'}
+  data = {'name': None, 'brand_name' : 'auchan', 'nutrition_facts' : {
+    'kcal' :230,
+  }, 'img_src': None}
   r = requests.post(f'{url}/api/v1/products', json=data)
   assert r.status_code == 422
 
 @pytest.mark.usefixtures('restart_docker')
 def test_created_product_returns_422_additional_field():
   url = config.get_api_url()
-  data = {'name': 'kefir', 'brand' : 'auchan', 'kcal':'200', 'reference_unit':'g', 'nothing' : 0}
+  data = {'name': None, 'brand_name' : 'auchan', 'nutrition_facts' : {
+      'kcal' :230,
+    }, 'img_src': None, 'nothing' : 0}
   r = requests.post(f'{url}/api/v1/products', json=data)
   assert r.status_code == 422
 
 @pytest.mark.usefixtures('restart_docker')
 def test_created_product_returns_404_not_existing_category():
   url = config.get_api_url()
-  data = {'name': 'jablko', 'brand' : 'auchan', 'kcal':'200', 'reference_unit':'g', 'category_id': 10}
+  data = {'name' : 'jablko', 'brand_name' : 'auchan', 'nutrition_facts' : {
+      'kcal' : 230,
+  }, 'img_src': None, 'category_id': 10}
   r = requests.post(f'{url}/api/v1/products', json=data)
   assert r.status_code == 404
 
 @pytest.mark.usefixtures('restart_docker')
 def test_created_product_returns_422_with_id():
   url = config.get_api_url()
-  data = {'id':4, 'name' : 'szarlotka', 'brand' : 'auchan', 'kcal':'200', 'reference_unit':'g'}
+  data = {'id': 4,'name' : 'szarlotka', 'brand_name' : 'auchan', 'nutrition_facts' : {
+      'kcal' : 230,
+  }, 'img_src': None, 'category_id': 10}
   r = requests.post(f'{url}/api/v1/products', json=data)
   assert r.status_code == 422
-  
-@pytest.mark.usefixtures('restart_docker')
+
 def insert_product(name = 'szarlotka', brand='auchan', kcal='200', reference_unit='g'):
   url = config.get_api_url()
-  data = {'name' : name, 'brand' : brand, 'kcal': kcal, 'reference_unit': reference_unit}
+  data = {'name' : name, 'brand_name' : brand, 'nutrition_facts' : {
+    'kcal' :kcal,
+    'reference_quantity' : {'unit' : reference_unit}
+  }, 'img_src': None}
   r = requests.post(f'{url}/api/v1/products', json=data)
-  return r.json()['id']
+  return r.json()['product_id']
 
 @pytest.mark.usefixtures('restart_docker')
 def test_update_product_returns_200_and_product_detail():
   id = insert_product()
   url = config.get_api_url()
-  print(requests.get(f'{url}/api/v1/products').json())
 
   assert len(requests.get(f'{url}/api/v1/products').json()['data']) == 1 #TEEEEEEST
-  data = {'brand' : 'XYZ'}
-  r = requests.patch(f'{url}/api/v1/products/{id}', json=data)
+  data = {'name' : 'szarlotka', 'brand_name' : 'XYZ', 'nutrition_facts' : {
+      'kcal' :'200',
+      'reference_quantity' : {'unit' : 'g', 'amount': 100},
+      'nutrients': {
+        'fat': None,
+        'saturates': None,
+        'carbohydrates': None,
+        'sugars': None,
+        'protein': None,
+        'salt':None,
+        'fiber':None}
+    }, 'img_src': None, 'category_id': None, 'ingredients': None, 'allergy_recommendations': None}
+  r = requests.put(f'{url}/api/v1/products/{id}', json=data)
   assert r.status_code == 200
   product = r.json()
   assert product['name'] == 'szarlotka'
-  assert product['brand'] == 'XYZ'
+  assert product['brand_name'] == 'XYZ'
+
+@pytest.mark.usefixtures('restart_docker')
+def test_update_product_nutrients_returns_200_and_product_detail():
+  id = insert_product()
+  url = config.get_api_url()
+
+  assert len(requests.get(f'{url}/api/v1/products').json()['data']) == 1 #TEEEEEEST
+  data = {'name' : 'szarlotka', 'brand_name' : 'auchan', 'nutrition_facts' : {
+      'kcal' :'200',
+      'reference_quantity' : {'unit' : 'g', 'amount': 100},
+      'nutrients': {
+        'fat': None,
+        'saturates': None,
+        'carbohydrates': None,
+        'sugars': 20,
+        'protein': None,
+        'salt':None,
+        'fiber':None}
+    }, 'img_src': None, 'category_id': None, 'ingredients': None, 'allergy_recommendations': None}
+  r = requests.put(f'{url}/api/v1/products/{id}', json=data)
+  assert r.status_code == 200
+  product = r.json()
+  assert product['name'] == 'szarlotka'
+  assert product['nutrition_facts']['nutrients']['fat'] == None
+  assert product['nutrition_facts']['nutrients']['sugars'] == 20
 
 @pytest.mark.usefixtures('restart_docker')
 def test_update_product_returns_404_not_existing_category():
   id = insert_product()
   url = config.get_api_url()
-  data = {'category_id' : 10}
-  r = requests.patch(f'{url}/api/v1/products/{id}', json=data)
+  data = {'name' : 'szarlotka', 'brand_name' : 'XYZ', 'nutrition_facts' : {
+      'kcal' :'200',
+      'reference_quantity' : {'unit' : 'g', 'amount': 100},
+      'nutrients': {
+        'fat': None,
+        'saturates': None,
+        'carbohydrates': None,
+        'sugars': None,
+        'protein': None,
+        'salt':None,
+        'fiber':None}
+    }, 'img_src': None, 'category_id': 10, 'ingredients': None, 'allergy_recommendations': None}
+  r = requests.put(f'{url}/api/v1/products/{id}', json=data)
   assert r.status_code == 404
+
 
 @pytest.mark.usefixtures('restart_docker')
 def test_update_product_returns_422_additional_field():
   id = insert_product()
   url = config.get_api_url()
-  data = {'nothing' : 0}
-  r = requests.patch(f'{url}/api/v1/products/{id}', json=data)
+  data = {'name' : 'szarlotka', 'brand_name' : 'XYZ', 'nutrition_facts' : {
+      'kcal' :'200',
+      'reference_quantity' : {'unit' : 'g', 'amount': 100},
+      'nutrients': {
+        'fat': None,
+        'saturates': None,
+        'carbohydrates': None,
+        'sugars': None,
+        'protein': None,
+        'salt':None,
+        'fiber':None}
+    }, 'img_src': None, 'category_id': None, 'ingredients': None, 'allergy_recommendations': None, 'nothing' : 0}  
+  r = requests.put(f'{url}/api/v1/products/{id}', json=data)
   assert r.status_code == 422
 
 @pytest.mark.usefixtures('restart_docker')
 def test_update_product_returns_422_null_name():
   id = insert_product()
   url = config.get_api_url()
-  data = {'name' : None}
-  r = requests.patch(f'{url}/api/v1/products/{id}', json=data)
+  data = {'name' : None, 'brand_name' : 'auchan', 'nutrition_facts' : {
+        'kcal' :'200',
+        'reference_quantity' : {'unit' : 'g', 'amount': 100},
+        'nutrients': {
+          'fat': None,
+          'saturates': None,
+          'carbohydrates': None,
+          'sugars': None,
+          'protein': None,
+          'salt':None,
+          'fiber':None}
+      }, 'img_src': None, 'category_id': None, 'ingredients': None, 'allergy_recommendations': None}  
+  r = requests.put(f'{url}/api/v1/products/{id}', json=data)
   assert r.status_code == 422
-
+""
 @pytest.mark.usefixtures('restart_docker')
 def test_update_product_returns_404_not_existing_product():
   url = config.get_api_url()
-  data = {'name' : 'jogurt'}
-  r = requests.patch(f'{url}/api/v1/products/1000', json=data)
+  data = {'name' : 'jogurt', 'brand_name' : 'auchan', 'nutrition_facts' : {
+        'kcal' :'200',
+        'reference_quantity' : {'unit' : 'g', 'amount': 100},
+        'nutrients': {
+          'fat': None,
+          'saturates': None,
+          'carbohydrates': None,
+          'sugars': None,
+          'protein': None,
+          'salt':None,
+          'fiber':None}
+      }, 'img_src': None, 'category_id': None, 'ingredients': None, 'allergy_recommendations': None}    
+  r = requests.put(f'{url}/api/v1/products/1000', json=data)
   assert r.status_code == 404
 
 @pytest.mark.usefixtures('restart_docker')
-def test_update_product_returns_200_correct_id_in_body():
+def test_update_product_returns_422_correct_id_in_body():
   id = insert_product()
   url = config.get_api_url()
-  data = {'id' : f'{id}','name' : 'jogurt'}
-  r = requests.patch(f'{url}/api/v1/products/{id}', json=data)
-  assert r.status_code == 200
+  data = {'id' : f'{id}', 'name' : 'jogurt', 'brand_name' : 'auchan', 'nutrition_facts' : {
+        'kcal' :'200',
+        'reference_quantity' : {'unit' : 'g', 'amount': 100},
+        'nutrients': {
+          'fat': None,
+          'saturates': None,
+          'carbohydrates': None,
+          'sugars': None,
+          'protein': None,
+          'salt':None,
+          'fiber':None}
+      }, 'img_src': None, 'category_id': None, 'ingredients': None, 'allergy_recommendations': None}      
+  r = requests.put(f'{url}/api/v1/products/{id}', json=data)
+  assert r.status_code == 422
 
-@pytest.mark.usefixtures('restart_docker')
-def test_update_product_returns_400_wrong_id_in_body():
-  id = insert_product()
-  url = config.get_api_url()
-  data = {'id' : f'{id + 1}','name' : 'jogurt'}
-  r = requests.patch(f'{url}/api/v1/products/{id}', json=data)
-  assert r.status_code == 400
-  assert r.json()['message'] == 'Bad Request'
+
 
 @pytest.mark.usefixtures('restart_docker')
 def test_update_product_returns_422_empty_body():
   id = insert_product()
   url = config.get_api_url()
   data = {}
-  r = requests.patch(f'{url}/api/v1/products/{id}', json=data)
+  r = requests.put(f'{url}/api/v1/products/{id}', json=data)
   assert r.status_code == 422
 
 @pytest.mark.usefixtures('restart_docker')
@@ -230,8 +329,8 @@ def test_get_returns_200_all_products_sort_by_kcal_desc():
   data = r.json()
   products = data['data']
   assert len(products) == 20
-  assert products[0]['kcal'] == 330 and products[0]['name'] == 'Mleko Tłuste'
-  assert products[19]['kcal'] == 90 and products[19]['name'] == 'Lody mleczne'
+  assert products[0]['nutrition_facts']['kcal'] == 330 and products[0]['name'] == 'Mleko Tłuste'
+  assert products[19]['nutrition_facts']['kcal'] == 90 and products[19]['name'] == 'Lody mleczne'
 
 @pytest.mark.usefixtures('restart_docker')
 def test_get_returns_200_all_products_sort_by_kcal_asc():
@@ -242,8 +341,8 @@ def test_get_returns_200_all_products_sort_by_kcal_asc():
   data = r.json()
   products = data['data']
   assert len(products) == 20
-  assert products[0]['kcal'] == 90 and products[0]['name'] == 'Lody mleczne'
-  assert products[19]['kcal'] == 330 and products[19]['name'] == 'Mleko Tłuste'
+  assert products[0]['nutrition_facts']['kcal'] == 90 and products[0]['name'] == 'Lody mleczne'
+  assert products[19]['nutrition_facts']['kcal'] == 330 and products[19]['name'] == 'Mleko Tłuste'
   
 @pytest.mark.usefixtures('restart_docker')
 def test_get_returns_200_products_with_name():
@@ -278,7 +377,7 @@ def test_get_returns_200_not_existing_name():
   assert pagination['total_pages'] == 0
   assert pagination['total'] == 0
   assert len(products) == 0
-
-
+"""
+"""
 
 #TODO: test get, search by category

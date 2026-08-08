@@ -1,3 +1,4 @@
+from product_catalog_context.infrastructure.aiosqlite_queries.product import ProductQueries
 from product_catalog_context.infrastructure.aiosqlite_repository.product_category import ProductCategoryRepository
 from product_catalog_context.infrastructure.aiosqlite_repository.product_category_hierarchy import ProductCategoryHierarchyRepository
 from product_catalog_context.infrastructure.api.rest.schemas.product_category import ProductCategory, ProductCategoryCreate, ProductCategoryHierarchy, ProductCategoryUpdate
@@ -8,7 +9,7 @@ class ProductCategoryService():
   def __init__(
       self,
       product_category_repository : ProductCategoryRepository,
-      product_category_hierarchy_repository : ProductCategoryHierarchyRepository
+      product_category_hierarchy_repository : ProductCategoryHierarchyRepository,
   ):
     self.product_category_repository = product_category_repository
     self.product_category_hierarchy_repository = product_category_hierarchy_repository

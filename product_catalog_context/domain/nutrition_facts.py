@@ -2,13 +2,13 @@ from dataclasses import dataclass, fields, replace
 
 @dataclass(frozen=True)
 class Nutrients:
-  fat: float | None
-  saturates: float | None
-  carbohydrates: float| None
-  sugars: float | None
-  protein: float | None
-  salt: float | None
-  fiber: float | None
+  fat: float | None = None
+  saturates: float | None = None
+  carbohydrates: float| None = None
+  sugars: float | None = None
+  protein: float | None = None
+  salt: float | None = None
+  fiber: float | None = None
 
   def __post_init__(self):
     for field in fields(self):

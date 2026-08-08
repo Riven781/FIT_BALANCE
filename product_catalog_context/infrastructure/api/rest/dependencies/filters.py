@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Literal
 from fastapi import Query
 
+from product_catalog_context.application.command.product import PaginationFiltersCommand, ProductsFiltersCommand
 from product_catalog_context.domain.enums.product_searching import NameMode, SortBy
 
 class ProductsFilters:
@@ -21,6 +22,14 @@ class ProductsFilters:
     self.order = order
     self.category_id = category_id
 
+  def to_command(self):
+    return ProductsFiltersCommand(
+      name=self.name,
+      sort_by=self.sort_by,
+      order=self.order,
+      category_id=self.category_id
+    )
+
 class PaginationFilters:
   def __init__(
       self,
@@ -29,6 +38,11 @@ class PaginationFilters:
     ):
     self.page = page
     self.limit  = limit
+  def to_command(self):
+    return PaginationFiltersCommand(
+      page=self.page,
+      limit=self.limit
+    )
 
 class ProductCategoryDeleteOptions:
   def __init__(
