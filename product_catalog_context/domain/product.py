@@ -9,8 +9,7 @@ class Product:
   PROTECTED_FIELDS = {'product_id', 'name', 'name_search_standard'}
 
   def __init__(self, name, brand_name, nutrition_facts:NutritionFacts, category_id, product_id=None, img_src: str=None, ingredients=None, allergy_recommendations=None, name_search_standard=None):
-    self._id = product_id
-    self.product_id = product_id
+    self._product_id = product_id
     self.rename(name)
     self.change_brand_name(brand_name)
     self.change_nutrients(nutrition_facts)
@@ -20,8 +19,8 @@ class Product:
     self.category_id = category_id
 
   @property
-  def id(self):
-    return self._id
+  def product_id(self):
+    return self._product_id
   
   @property
   def name(self) -> str:

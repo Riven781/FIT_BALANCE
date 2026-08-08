@@ -39,7 +39,7 @@ async def test_update_wrong_id(fake_product_repository):
     await service.update(100, new_info_about_product)
 
   product = await service.get(80)
-  assert product.id == 80
+  assert product.product_id == 80
   assert product.name == "Raw Dzik"
 
 @pytest.mark.asyncio
@@ -59,7 +59,7 @@ async def test_update_one_product(fake_product_repository):
   await service.update(80, new_info_about_product)
 
   product = await service.get(80)
-  assert product.id == 80
+  assert product.product_id == 80
   assert product.name == "Żywiec zdrój"
   assert product.name_search_standard == 'zywiec zdroj'
   assert product.brand_name == "BB"
@@ -67,7 +67,6 @@ async def test_update_one_product(fake_product_repository):
 @pytest.mark.asyncio
 async def test_update_one_product_with_null_field(fake_product_repository):
   nutrition_facts = NutritionFacts(reference_quantity=ReferenceQuantity(amount=100, unit='g'), kcal=300, nutrients=Nutrients(fat=100))
-
   repo = fake_product_repository(
     [Product(
       product_id=80, 
@@ -82,7 +81,7 @@ async def test_update_one_product_with_null_field(fake_product_repository):
   service = ProductManagementService(repo)
   await service.update(80, new_info_about_product)
   product = await service.get(80)
-  assert product.id == 80
+  assert product.product_id == 80
   assert product.name == "Raw Dzik"
   assert product.nutrition_facts.nutrients.fat == None
   assert product.brand_name == "BB"

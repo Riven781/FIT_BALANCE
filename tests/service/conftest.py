@@ -14,17 +14,17 @@ async def fake_product_repository():
     def __init__(self, product_list):
       self.products = product_list
     async def get_by_id(self, id):
-      return next((product for product in self.products if product.id == id), None)
+      return next((product for product in self.products if product.product_id == id), None)
     
     
     async def insert(self, product):
       self.products.append(product)
-      return product.id
+      return product.product_id
     
     async def update(self, id, updated_product : Product):
       count = 0
       for i, product in enumerate(self.products):
-        if id == product.id:
+        if id == product.product_id:
           self.products[i] = updated_product
           count += 1
       return count
@@ -32,7 +32,7 @@ async def fake_product_repository():
     async def delete(self, id):
       count = 0
       for i, product in enumerate(self.products):
-        if id == product.id:
+        if id == product.product_id:
           self.products.pop(i)
           count += 1
           break
@@ -53,7 +53,7 @@ async def fake_product_queries():
 
 
     async def get_detail_by_id(self, id):
-      return next((product for product in self.products if product.id == id), None)
+      return next((product for product in self.products if product.product_id == id), None)
 
     async def get_detail_by_filters(self, **filters):
       results = list(self.products)

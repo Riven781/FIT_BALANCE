@@ -100,8 +100,8 @@ async def test_get_by_filters_category_asc(db):
   query = ProductQueries(db)
   products = await query.get_detail_by_filters(category_id=4)
   assert len(products) == 3
-  assert products[0].id == 2
-  assert products[2].id == 3
+  assert products[0].product_id == 2
+  assert products[2].product_id == 3
 
 @pytest.mark.asyncio
 async def test_get_by_filters_category_desc(db):
@@ -109,8 +109,8 @@ async def test_get_by_filters_category_desc(db):
   query = ProductQueries(db)
   products = await query.get_detail_by_filters(category_id=4, order="DESC")
   assert len(products) == 3
-  assert products[0].id == 3
-  assert products[2].id == 2
+  assert products[0].product_id == 3
+  assert products[2].product_id == 2
 
 @pytest.mark.asyncio
 async def test_get_by_filters_category_middle_category(db):
@@ -140,7 +140,7 @@ async def test_get_by_filters_category_mixed_parts(db):
   products = await query.get_detail_by_filters(names=["bombus", "ener", "raw"])
   assert len(products) == 1
   product = products[0]
-  assert product.id == 8
+  assert product.product_id == 8
 
 async def insert_line(db):
   cursor = await db.execute("""

@@ -10,7 +10,7 @@ async def test_get_correct_id(fake_product_queries):
   queries = fake_product_queries([Product(product_id=8, name="Raw Energy Baton kakaowy Bombus", brand_name="BB", nutrition_facts=None, category_id=10)])
   service = ProductQueryService(queries)
   product = await service.get(8)
-  assert product.id == 8
+  assert product.product_id == 8
 
 @pytest.mark.asyncio
 async def test_get_wrong_id(fake_product_queries):
@@ -43,7 +43,7 @@ async def test_get_all_by_category_correct_category_id(fake_product_queries):
   total, products = await service.get_all(product_filters=product_filters, pagination_filters=pagination_filters)
   assert len(products) == 1
   assert total == 1
-  assert products[0].id == 8
+  assert products[0].product_id == 8
 
 @pytest.mark.asyncio
 async def test_get_all_by_category_wrong_category_id(fake_product_queries):
@@ -70,7 +70,7 @@ async def test_get_all_by_name_correct_name(fake_product_queries):
   total, products = await service.get_all(product_filters=product_filters, pagination_filters=pagination_filters)
   assert len(products) == 1
   assert total == 1
-  assert products[0].id == 8
+  assert products[0].product_id == 8
 
 @pytest.mark.asyncio
 async def test_get_all_by_name_correct_name_two_words(fake_product_queries):
@@ -84,7 +84,7 @@ async def test_get_all_by_name_correct_name_two_words(fake_product_queries):
   total, products = await service.get_all(product_filters=product_filters, pagination_filters=pagination_filters)
   assert len(products) == 1
   assert total == 1
-  assert products[0].id == 8
+  assert products[0].product_id == 8
 
 
 @pytest.mark.asyncio
@@ -127,4 +127,4 @@ async def test_get_all_by_name_and_category(fake_product_queries):
   total, products = await service.get_all(product_filters=product_filters, pagination_filters=pagination_filters)
   assert len(products) == 1
   assert total == 1
-  assert products[0].id == 8
+  assert products[0].product_id == 8

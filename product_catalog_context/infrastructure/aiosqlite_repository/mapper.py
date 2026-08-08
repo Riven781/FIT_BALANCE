@@ -10,8 +10,8 @@ class ProductMapper:
   def to_storage_dict(product: Product):
     print(product.nutrition_facts)
     out_dict = {}
-    if product.id is not None:
-      out_dict['id'] = product.id
+    if product.product_id is not None:
+      out_dict['id'] = product.product_id
     out_dict['name'] = product.name
     out_dict['brand'] = product.brand_name
     out_dict['category_id'] = product.category_id
