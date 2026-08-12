@@ -13,7 +13,10 @@ class ProductQueries:
     inner_query = ''
     arguments = []
     if category_id is not None:
-      inner_query +=' JOIN ProductCategoryClosure prodcc ON prod.category_id = prodcc.subcategory_id '
+      inner_query += """
+        JOIN ProductCategoryAssignment assignment ON assignment.product_id = prod.id
+        JOIN ProductCategoryClosure prodcc ON assignment.node_id = prodcc.subcategory_id
+      """
       conditions.append('prodcc.supercategory_id = ?') 
       arguments.append(category_id)
     if names is not None:
@@ -62,10 +65,11 @@ class ProductQueries:
     get_by_filters_query = f"""
     SELECT prod.*, (
         SELECT GROUP_CONCAT(category_id, '|') || ':' || GROUP_CONCAT(category_name, '|') as category FROM (
-          SELECT pc.id AS category_id, pc.name AS category_name 
+          SELECT node.id AS category_id, node.name AS category_name 
             FROM ProductCategoryClosure AS pcc
-            JOIN ProductCategory AS pc ON pc.id = pcc.supercategory_id
-            WHERE pcc.subcategory_id = prod.category_id
+            JOIN ProductCategoryAssignment assignment ON assignment.node_id = pcc.subcategory_id
+            JOIN ProductCategoryNode AS node ON node.id = pcc.supercategory_id
+            WHERE assignment.product_id = prod.id
             ORDER BY pcc.depth DESC
         )
       ) AS category_str 
@@ -80,6 +84,7 @@ class ProductQueries:
       async with self.db.execute(get_by_filters_query, (*arguments, limit, offset)) as cursor:
         result = await cursor.fetchall()
     except Exception as e:
+      print(e)
       raise map_errors(e) from e
     
     if result is None:
@@ -98,9 +103,10 @@ class ProductQueries:
     get_query = """
       SELECT prod.*, (
         SELECT  GROUP_CONCAT(category_id, '|') || ':' || GROUP_CONCAT(category_name, '|') as category FROM 
-          (SELECT pc.id AS category_id, pc.name AS category_name FROM ProductCategoryClosure as pcc
-            JOIN ProductCategory as pc ON pc.id = pcc.supercategory_id
-            WHERE pcc.subcategory_id = prod.category_id
+          (SELECT node.id AS category_id, node.name AS category_name FROM ProductCategoryClosure as pcc
+            JOIN ProductCategoryAssignment assignment ON assignment.node_id = pcc.subcategory_id
+            JOIN ProductCategoryNode AS node ON node.id = pcc.supercategory_id
+            WHERE assignment.product_id = prod.id
             ORDER BY pcc.depth DESC)
       ) AS category_str FROM Product as prod WHERE id = ?
     """

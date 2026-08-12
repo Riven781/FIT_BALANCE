@@ -10,12 +10,15 @@ from product_catalog_context.domain.nutrition_facts import NutritionFacts, Nutri
 
 async def insert_categories_and_products(db):
   cursor = await db.executescript("""
-    INSERT INTO ProductCategory VALUES
-      (1, "Produkty", NULL),
-      (2, "Roślinne", 1),
-      (3, "Zwierzęce", 1),
-      (4, "Schab", 3),
-      (5, "Boczek", 3);
+    INSERT INTO ProductCategoryHierarchy (id, status) VALUES
+      (1, "ACTIVE");
+
+    INSERT INTO ProductCategoryNode VALUES
+      (1, "Produkty", NULL, 1),
+      (2, "Roślinne", 1, 1),
+      (3, "Zwierzęce", 1, 1),
+      (4, "Schab", 3, 1),
+      (5, "Boczek", 3, 1);
                             
     INSERT INTO ProductCategoryClosure VALUES
       (1, 1, 0),
@@ -30,18 +33,28 @@ async def insert_categories_and_products(db):
       (4, 4, 0),
       (5, 5, 0);
     
-    INSERT INTO Product (id, name, brand, kcal, reference_amount, reference_unit, name_search_standard, category_id)
+    INSERT INTO Product (id, name, brand_name, kcal, reference_amount, reference_unit, name_search_standard)
     VALUES 
-    (1, "Schab Drogi", "Auchan", 300, 100, "g","schab drogi", 4),
-    (2, "Schab Tani", "Rambert", 250, 100, "g", "schab tani", 4),
-    (3, "Schab Średni", "XYZ", 400, 100, "g", "schab sredni", 4),
+    (1, "Schab Drogi", "Auchan", 300, 100, "g","schab drogi"),
+    (2, "Schab Tani", "Rambert", 250, 100, "g", "schab tani"),
+    (3, "Schab Średni", "XYZ", 400, 100, "g", "schab sredni"),
 
-    (4, "Tofu", "XYZ", 300, 100, "g", "tofu", 2),
-    (5, "Groszek", "ABC", 100, 100, "g", "groszek", 2),
+    (4, "Tofu", "XYZ", 300, 100, "g", "tofu"),
+    (5, "Groszek", "ABC", 100, 100, "g", "groszek"),
                                                               
-    (6, "Boczek Kaszubski", "WWW", 500, 100, "g", "boczek kaszubski", 5),
-    (7, "Boczek Cielęcy", "YYY", 400, 100, "g", "boczek cielecy", 5),
-    (8, "Raw Energy Baton kakaowy Bombus", "BB", 300, 100, "g", "raw energy baton kakaowy bombus", 2);
+    (6, "Boczek Kaszubski", "WWW", 500, 100, "g", "boczek kaszubski"),
+    (7, "Boczek Cielęcy", "YYY", 400, 100, "g", "boczek cielecy"),
+    (8, "Raw Energy Baton kakaowy Bombus", "BB", 300, 100, "g", "raw energy baton kakaowy bombus");
+
+    INSERT INTO ProductCategoryAssignment (product_id, node_id) VALUES
+    (1, 4),
+    (2, 4),
+    (3, 4),
+    (4, 2),
+    (5, 2),
+    (6, 5),
+    (7, 5),
+    (8, 2);
   """)
 
   await db.commit()
@@ -51,7 +64,7 @@ async def insert_categories_and_products(db):
 
 async def insert_line(db):
   cursor = await db.execute("""
-    INSERT INTO Product (name, brand, kcal, reference_unit, reference_amount)
+    INSERT INTO Product (name, brand_name, kcal, reference_unit, reference_amount)
     VALUES ("Karmel", "Auchan", 300, "g", 100);
     """
   )
@@ -81,8 +94,7 @@ async def test_get_by_id_wrong_id(db):
 async def test_insert_product(db):
   repo = ProductRepository(db)
   
-  product = Product(name="Baton", brand_name="Auchan", category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
-
+  product = Product(name="Baton", brand_name="Auchan", planned_category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
   await repo.insert(product)
   await repo.commit()
 
@@ -97,7 +109,7 @@ async def test_insert_product(db):
 
   #print(ProductBase(**await repo.get_by_id(result_product['id'])))
   assert result_product["name"] == "Baton"
-  assert result_product["brand"] == "Auchan"
+  assert result_product["brand_name"] == "Auchan"
   assert result_product["kcal"] == 300
   assert result_product["reference_amount"] == 100
 
@@ -127,14 +139,14 @@ async def test_delete_product_by_id_wrong_id(db):
 async def test_update_product_by_id(db):
   product_id = await insert_line(db)
   repo = ProductRepository(db)
-  product_update = Product(name="bakłażan", brand_name="Auchan", category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
+  product_update = Product(name="bakłażan", brand_name="Auchan", current_category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
 
   
   await repo.update(product_id, product_update)
   await repo.commit()
 
   cursor = await db.execute(""" 
-    SELECT name, brand, kcal FROM Product WHERE id  = ?
+    SELECT name, brand_name, kcal FROM Product WHERE id  = ?
   """, (product_id,))
 
   products = await cursor.fetchall()
@@ -143,21 +155,21 @@ async def test_update_product_by_id(db):
   assert len(products) == 1
   product = products[0]
   assert product['name'] == 'bakłażan'
-  assert product['brand'] == 'Auchan'
+  assert product['brand_name'] == 'Auchan'
   assert product['kcal'] == 300
 
 
 @pytest.mark.asyncio
 async def test_update_product_tht_does_not_exist(db):
   repo = ProductRepository(db)
-  product = Product(name="Baton", brand_name="Auchan", category_id=10, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
+  product = Product(name="Baton", brand_name="Auchan", current_category_id=10, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
   count = await repo.update(10, product)
   assert count == 0
 
 @pytest.mark.asyncio
 async def test_insert_product_category_does_not_exist(db):
   repo = ProductRepository(db)
-  product = Product(name="Baton", brand_name="Auchan", category_id=10, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
+  product = Product(name="Baton", brand_name="Auchan", current_category_id=10, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
   with pytest.raises(ForeignKeyViolationError):
     await repo.insert(product)
 
@@ -165,7 +177,7 @@ async def test_insert_product_category_does_not_exist(db):
 async def test_insert_product_with_existing_id(db):
   product_id = await insert_line(db)
   repo = ProductRepository(db)
-  product = Product(product_id=product_id, name="Baton", brand_name="Auchan", category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
+  product = Product(product_id=product_id, name="Baton", brand_name="Auchan", current_category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
 
   with pytest.raises(UniqueViolationError):
     await repo.insert(product)
@@ -184,7 +196,7 @@ async def test_insert_empty_product(db):
 @pytest.mark.asyncio
 async def test_insert_product_with_string_kcal_type(db):
   repo = ProductRepository(db)
-  product = Product(name="Baton", brand_name="Auchan", category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal="tak", nutrients=Nutrients()))
+  product = Product(name="Baton", brand_name="Auchan", current_category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal="tak", nutrients=Nutrients()))
 
   with pytest.raises(TypeViolationError):
     await repo.insert(product)
@@ -192,10 +204,11 @@ async def test_insert_product_with_string_kcal_type(db):
 @pytest.mark.asyncio
 async def test_update_product_category_does_not_exist(db):
   repo = ProductRepository(db)
-  product = Product(product_id=1, name="Baton", brand_name="Auchan", category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
+  product = Product(product_id=1, name="Baton", brand_name="Auchan", current_category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
   product_id = await repo.insert(product)
+  print(product_id)
   with pytest.raises(ForeignKeyViolationError):
-    await repo.update(product_id, Product(product_id=1, name="Baton", brand_name="Auchan", category_id=20, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients())))
+    await repo.update(product_id, Product(product_id=1, name="Baton", brand_name="Auchan", current_category_id=20, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients())))
 """
 @pytest.mark.asyncio
 async def test_update_empty_product(db):
@@ -210,8 +223,8 @@ async def test_update_empty_product(db):
 @pytest.mark.asyncio
 async def test_update_product_with_string_kcal_type(db):
   repo = ProductRepository(db)
-  product = Product(name="Baton", brand_name="Auchan", category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
+  product = Product(name="Baton", brand_name="Auchan", current_category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
 
   product_id = await repo.insert(product)
   with pytest.raises(TypeViolationError):
-    await repo.update(product_id, Product(name="Baton", brand_name="Auchan", category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal="tak", nutrients=Nutrients())))
+    await repo.update(product_id, Product(name="Baton", brand_name="Auchan", current_category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal="tak", nutrients=Nutrients())))

@@ -3,7 +3,7 @@ from dataclasses import field
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from product_catalog_context.application.command.product import ProductCommand
-from product_catalog_context.infrastructure.api.rest.schemas.product_category import ProductCategory, ProductCategoryItem, ProductCategoryView
+from product_catalog_context.infrastructure.api.rest.schemas.product_category import ProductCategory, ProductCategoryItem
 from product_catalog_context.domain.nutrition_facts import NutritionFacts as domain_NutritionFacts, ReferenceQuantity as domain_ReferenceQuantity, Nutrients as domain_Nutrients
 
 class PartialNutrients(BaseModel):
@@ -33,7 +33,8 @@ class ProductPostRequest(BaseModel):
   brand_name: str
   nutrition_facts: DefaultNutritionFacts
   img_src: str | None
-  category_id: int | None = None
+  current_category_id: int | None = None
+  planned_category_id: int | None = None
   ingredients: str | None = None
   allergy_recommendations : str | None = None
 
@@ -50,7 +51,8 @@ class ProductPostRequest(BaseModel):
       brand_name=self.brand_name,
       nutrition_facts=nutrition_facts,
       img_src=self.img_src,
-      category_id=self.category_id,
+      current_category_id=self.current_category_id,
+      planned_category_id=self.planned_category_id,
       ingredients=self.ingredients,
       allergy_recommendations=self.allergy_recommendations
     )  
@@ -83,7 +85,8 @@ class ProductResponse(BaseModel):
   brand_name: str
   nutrition_facts: NutritionFacts
   img_src: str | None
-  category_id: int | None
+  current_category_id: int | None
+  planned_category_id: int | None
 
 class ProductPutRequest(BaseModel):
   model_config = ConfigDict(frozen=True, extra='forbid')
@@ -91,9 +94,10 @@ class ProductPutRequest(BaseModel):
   brand_name: str
   nutrition_facts: NutritionFacts
   img_src: str | None
-  category_id: int | None
   ingredients: str | None
   allergy_recommendations : str | None
+  current_category_id: int | None
+  planned_category_id: int | None
 
   def to_command(self):
     reference_quantity = domain_ReferenceQuantity(
@@ -108,7 +112,8 @@ class ProductPutRequest(BaseModel):
       brand_name=self.brand_name,
       nutrition_facts=nutrition_facts,
       img_src=self.img_src,
-      category_id=self.category_id,
+      current_category_id=self.current_category_id,
+      planned_category_id=self.planned_category_id,
       ingredients=self.ingredients,
       allergy_recommendations=self.allergy_recommendations
     )  

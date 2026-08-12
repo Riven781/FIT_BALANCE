@@ -19,9 +19,9 @@ from product_catalog_context.application.errors.errors import  InvalidProductCat
 
 
 class ProductManagementService():
-  def __init__(self, product_repository : ProductRepository):
+  def __init__(self, product_repository : ProductRepository, product_category_hierarchy=None):
     self.product_repository = product_repository
-    #self.product_query_service = product_query_service
+    self.product_category_hierarchy = product_category_hierarchy
   
   async def _handle_repository_data_error(self, e):
     await self.product_repository.rollback()
@@ -37,12 +37,15 @@ class ProductManagementService():
       name=product_command.name,
       brand_name=product_command.brand_name,
       nutrition_facts=product_command.nutrition_facts,
-      category_id=product_command.category_id,
+      current_category_id=product_command.current_category_id,
       ingredients=product_command.ingredients,
       allergy_recommendations=product_command.allergy_recommendations
     )
     try:
+      
       id_created = await self.product_repository.insert(product)
+      
+
       product_created = await self.product_repository.get_by_id(id_created)
       await self.product_repository.commit()
       return product_created
@@ -86,5 +89,21 @@ class ProductManagementService():
     except RepositoryError as e:
       self._handle_repository_data_error(e)
     return product
-    
+
+  async def assign_alternative_category(self, product_id, alternative_category_id):
+    hierarchy = self.product_category_hierarchy.get_planned_for_deploy()
+    if hierarchy is None:
+      raise ValueError()
+
+    if not hierarchy.is_product_category_in_hierarchy(alternative_category_id):
+      raise ValueError()
+
+    product = await self.product_repository.get_by_id(product_id)
+
+    if product is None:
+      raise ProductNotFoundError()
+
+    product.assign_alternative_category(alternative_category_id)
+
+    await self.product_repository.update(product)
 

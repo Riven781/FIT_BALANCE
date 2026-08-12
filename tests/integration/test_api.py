@@ -14,6 +14,7 @@ def test_created_product_returns_201_and_product_detail():
   r = requests.post(f'{url}/api/v1/products', json=data)
   assert r.status_code == 201
   product = r.json()
+  print(product)
   assert product['name'] == 'szarlotka'
 
 
@@ -50,16 +51,18 @@ def test_created_product_returns_404_not_existing_category():
   url = config.get_api_url()
   data = {'name' : 'jablko', 'brand_name' : 'auchan', 'nutrition_facts' : {
       'kcal' : 230,
-  }, 'img_src': None, 'category_id': 10}
+  }, 'img_src': None, 'current_category_id': 10}
   r = requests.post(f'{url}/api/v1/products', json=data)
+  print(r.json())
   assert r.status_code == 404
+
 
 @pytest.mark.usefixtures('restart_docker')
 def test_created_product_returns_422_with_id():
   url = config.get_api_url()
   data = {'id': 4,'name' : 'szarlotka', 'brand_name' : 'auchan', 'nutrition_facts' : {
       'kcal' : 230,
-  }, 'img_src': None, 'category_id': 10}
+  }, 'img_src': None, 'current_category_id': 10}
   r = requests.post(f'{url}/api/v1/products', json=data)
   assert r.status_code == 422
 
@@ -76,7 +79,6 @@ def insert_product(name = 'szarlotka', brand='auchan', kcal='200', reference_uni
 def test_update_product_returns_200_and_product_detail():
   id = insert_product()
   url = config.get_api_url()
-
   assert len(requests.get(f'{url}/api/v1/products').json()['data']) == 1 #TEEEEEEST
   data = {'name' : 'szarlotka', 'brand_name' : 'XYZ', 'nutrition_facts' : {
       'kcal' :'200',
@@ -89,8 +91,9 @@ def test_update_product_returns_200_and_product_detail():
         'protein': None,
         'salt':None,
         'fiber':None}
-    }, 'img_src': None, 'category_id': None, 'ingredients': None, 'allergy_recommendations': None}
+    }, 'img_src': None, 'current_category_id': None, 'planned_category_id': None, 'ingredients': None, 'allergy_recommendations': None}
   r = requests.put(f'{url}/api/v1/products/{id}', json=data)
+  print(r.json())
   assert r.status_code == 200
   product = r.json()
   assert product['name'] == 'szarlotka'
@@ -113,14 +116,13 @@ def test_update_product_nutrients_returns_200_and_product_detail():
         'protein': None,
         'salt':None,
         'fiber':None}
-    }, 'img_src': None, 'category_id': None, 'ingredients': None, 'allergy_recommendations': None}
+    }, 'img_src': None, 'current_category_id': None, 'planned_category_id': None, 'ingredients': None, 'allergy_recommendations': None}
   r = requests.put(f'{url}/api/v1/products/{id}', json=data)
   assert r.status_code == 200
   product = r.json()
   assert product['name'] == 'szarlotka'
   assert product['nutrition_facts']['nutrients']['fat'] == None
   assert product['nutrition_facts']['nutrients']['sugars'] == 20
-
 @pytest.mark.usefixtures('restart_docker')
 def test_update_product_returns_404_not_existing_category():
   id = insert_product()
@@ -136,9 +138,10 @@ def test_update_product_returns_404_not_existing_category():
         'protein': None,
         'salt':None,
         'fiber':None}
-    }, 'img_src': None, 'category_id': 10, 'ingredients': None, 'allergy_recommendations': None}
+    }, 'img_src': None, 'current_category_id': 10, 'planned_category_id': None, 'ingredients': None, 'allergy_recommendations': None}
   r = requests.put(f'{url}/api/v1/products/{id}', json=data)
   assert r.status_code == 404
+
 
 
 @pytest.mark.usefixtures('restart_docker')
@@ -156,7 +159,7 @@ def test_update_product_returns_422_additional_field():
         'protein': None,
         'salt':None,
         'fiber':None}
-    }, 'img_src': None, 'category_id': None, 'ingredients': None, 'allergy_recommendations': None, 'nothing' : 0}  
+    }, 'img_src': None, 'current_category_id': None, 'planned_category_id': None, 'ingredients': None, 'allergy_recommendations': None, 'nothing' : 0}  
   r = requests.put(f'{url}/api/v1/products/{id}', json=data)
   assert r.status_code == 422
 
@@ -175,7 +178,7 @@ def test_update_product_returns_422_null_name():
           'protein': None,
           'salt':None,
           'fiber':None}
-      }, 'img_src': None, 'category_id': None, 'ingredients': None, 'allergy_recommendations': None}  
+      }, 'img_src': None, 'current_category_id': None, 'planned_category_id': None, 'ingredients': None, 'allergy_recommendations': None}  
   r = requests.put(f'{url}/api/v1/products/{id}', json=data)
   assert r.status_code == 422
 ""
@@ -193,7 +196,7 @@ def test_update_product_returns_404_not_existing_product():
           'protein': None,
           'salt':None,
           'fiber':None}
-      }, 'img_src': None, 'category_id': None, 'ingredients': None, 'allergy_recommendations': None}    
+      }, 'img_src': None, 'current_category_id': None, 'planned_category_id': None, 'ingredients': None, 'allergy_recommendations': None}    
   r = requests.put(f'{url}/api/v1/products/1000', json=data)
   assert r.status_code == 404
 
@@ -212,7 +215,7 @@ def test_update_product_returns_422_correct_id_in_body():
           'protein': None,
           'salt':None,
           'fiber':None}
-      }, 'img_src': None, 'category_id': None, 'ingredients': None, 'allergy_recommendations': None}      
+      }, 'img_src': None, 'current_category_id': None, 'planned_category_id': None, 'ingredients': None, 'allergy_recommendations': None}      
   r = requests.put(f'{url}/api/v1/products/{id}', json=data)
   assert r.status_code == 422
 
@@ -377,7 +380,5 @@ def test_get_returns_200_not_existing_name():
   assert pagination['total_pages'] == 0
   assert pagination['total'] == 0
   assert len(products) == 0
-"""
-"""
 
 #TODO: test get, search by category

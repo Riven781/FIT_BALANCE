@@ -1,15 +1,19 @@
 import pytest
 from product_catalog_context.infrastructure.aiosqlite_queries.product import ProductQueries
 from product_catalog_context.domain.enums.product_searching import SortBy
+from product_catalog_context.application.query.category_path_item import CategoryPathItem
 
 async def insert_categories_and_products(db):
   cursor = await db.executescript("""
-    INSERT INTO ProductCategory VALUES
-      (1, "Produkty", NULL),
-      (2, "Roślinne", 1),
-      (3, "Zwierzęce", 1),
-      (4, "Schab", 3),
-      (5, "Boczek", 3);
+    INSERT INTO ProductCategoryHierarchy (id, status) VALUES
+        (1, "ACTIVE");
+
+    INSERT INTO ProductCategoryNode (id, name, parent_id, hierarchy_id) VALUES
+      (1, "Produkty", NULL, 1),
+      (2, "Roślinne", 1, 1),
+      (3, "Zwierzęce", 1, 1),
+      (4, "Schab", 3, 1),
+      (5, "Boczek", 3, 1);
                             
     INSERT INTO ProductCategoryClosure VALUES
       (1, 1, 0),
@@ -24,18 +28,28 @@ async def insert_categories_and_products(db):
       (4, 4, 0),
       (5, 5, 0);
     
-    INSERT INTO Product (id, name, brand, kcal, reference_amount, reference_unit, name_search_standard, category_id)
+    INSERT INTO Product (id, name, brand_name, kcal, reference_amount, reference_unit, name_search_standard)
     VALUES 
-    (1, "Schab Drogi", "Auchan", 300, 100, "g","schab drogi", 4),
-    (2, "Schab Tani", "Rambert", 250, 100, "g", "schab tani", 4),
-    (3, "Schab Średni", "XYZ", 400, 100, "g", "schab sredni", 4),
+    (1, "Schab Drogi", "Auchan", 300, 100, "g","schab drogi"),
+    (2, "Schab Tani", "Rambert", 250, 100, "g", "schab tani"),
+    (3, "Schab Średni", "XYZ", 400, 100, "g", "schab sredni"),
 
-    (4, "Tofu", "XYZ", 300, 100, "g", "tofu", 2),
-    (5, "Groszek", "ABC", 100, 100, "g", "groszek", 2),
+    (4, "Tofu", "XYZ", 300, 100, "g", "tofu"),
+    (5, "Groszek", "ABC", 100, 100, "g", "groszek"),
                                                               
-    (6, "Boczek Kaszubski", "WWW", 500, 100, "g", "boczek kaszubski", 5),
-    (7, "Boczek Cielęcy", "YYY", 400, 100, "g", "boczek cielecy", 5),
-    (8, "Raw Energy Baton kakaowy Bombus", "BB", 300, 100, "g", "raw energy baton kakaowy bombus", 2);
+    (6, "Boczek Kaszubski", "WWW", 500, 100, "g", "boczek kaszubski"),
+    (7, "Boczek Cielęcy", "YYY", 400, 100, "g", "boczek cielecy"),
+    (8, "Raw Energy Baton kakaowy Bombus", "BB", 300, 100, "g", "raw energy baton kakaowy bombus");
+
+    INSERT INTO ProductCategoryAssignment (product_id, node_id) VALUES
+      (1, 4),
+      (2, 4),
+      (3, 4),
+      (4, 2),
+      (5, 2),
+      (6, 5),
+      (7, 5),
+      (8, 2);
   """)
 
   await db.commit()
@@ -57,6 +71,8 @@ async def test_get_by_filters_convert_polish_chars(db):
   query = ProductQueries(db)
   products = await query.get_detail_by_filters(names=['cielecy'])
   assert len(products) == 1
+  assert products[0].product_id == 7
+  assert products[0].category_path == [CategoryPathItem(category_id=1, name='Produkty'), CategoryPathItem(category_id=3, name='Zwierzęce'), CategoryPathItem(category_id=5, name='Boczek')]
 
 @pytest.mark.asyncio
 async def test_get_by_filters_parts_of_words(db):
@@ -144,7 +160,7 @@ async def test_get_by_filters_category_mixed_parts(db):
 
 async def insert_line(db):
   cursor = await db.execute("""
-    INSERT INTO Product (name, brand, kcal, reference_unit, reference_amount)
+    INSERT INTO Product (name, brand_name, kcal, reference_unit, reference_amount)
     VALUES ("Karmel", "Auchan", 300, "g", 100);
     """
   )
@@ -160,6 +176,15 @@ async def test_get_by_id(db):
   query = ProductQueries(db)
   product = await query.get_detail_by_id(product_id)
   assert product.name == "Karmel" and product.brand_name == "Auchan" and product.nutrition_facts.kcal == 300
+
+
+@pytest.mark.asyncio
+async def test_get_by_id_product_in_hierarchy(db):
+  await insert_categories_and_products(db)
+  query = ProductQueries(db)
+  product = await query.get_detail_by_id(6)
+  assert product.name == "Boczek Kaszubski" and product.category_path == [CategoryPathItem(category_id=1, name='Produkty'), CategoryPathItem(category_id=3, name='Zwierzęce'), CategoryPathItem(category_id=5, name='Boczek')]
+
 
 @pytest.mark.asyncio
 async def test_get_by_id_wrong_id(db):

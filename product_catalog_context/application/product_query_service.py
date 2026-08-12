@@ -47,7 +47,7 @@ class ProductQueryService():
     else:
       names = None
     category_id = product_filters.category_id
-
+    print('rrr')
     products = await self.product_queries.get_detail_by_filters(
       category_id=category_id, 
       names=names, sort_by=product_filters.sort_by, 
@@ -55,6 +55,6 @@ class ProductQueryService():
       page=pagination_filters.page,
       limit=pagination_filters.limit
     )
-    
+    print('ggg')
     total  = await self.product_queries.get_total(category_id=category_id, names=names)
     return total, products

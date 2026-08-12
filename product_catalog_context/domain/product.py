@@ -8,7 +8,12 @@ from product_catalog_context.domain.services.text_converter import normalize_for
 class Product:
   PROTECTED_FIELDS = {'product_id', 'name', 'name_search_standard'}
 
-  def __init__(self, name, brand_name, nutrition_facts:NutritionFacts, category_id, product_id=None, img_src: str=None, ingredients=None, allergy_recommendations=None, name_search_standard=None):
+  def __init__(
+      self, 
+      name, 
+      brand_name, 
+      nutrition_facts:NutritionFacts, 
+      current_category_id = None, planned_category_id = None, product_id=None, img_src: str=None, ingredients=None, allergy_recommendations=None, name_search_standard=None):
     self._product_id = product_id
     self.rename(name)
     self.change_brand_name(brand_name)
@@ -16,7 +21,9 @@ class Product:
     self.img_src = img_src
     self.ingredients = ingredients
     self.allergy_recommendations = allergy_recommendations
-    self.category_id = category_id
+    self.current_category_id = current_category_id
+    self.planned_category_id = planned_category_id
+    self.assign_alternative_category(planned_category_id)
 
   @property
   def product_id(self):
@@ -54,6 +61,8 @@ class Product:
       raise ValueError('Brand name cannot be empty.')
     self._brand_name = brand_name
 
+  def assign_alternative_category(self, category_id):
+    self.planned_category_id = category_id
 
   
 

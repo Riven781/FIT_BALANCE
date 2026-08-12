@@ -11,7 +11,8 @@ class ProductCommand:
   brand_name: str
   nutrition_facts: NutritionFacts
   img_src: str | None
-  category_id: int | None
+  current_category_id: int | None
+  planned_category_id: int | None = None
   ingredients: str | None = None
   allergy_recommendations: str | None = None
 

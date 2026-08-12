@@ -12,7 +12,7 @@ async def test_create_one_product(fake_product_repository):
   repo = fake_product_repository(
     [])
   service = ProductManagementService(repo)
-  product_command = ProductCommand(name="Raw Dzik", brand_name="BB", category_id=10, nutrition_facts=None, img_src=None)
+  product_command = ProductCommand(name="Raw Dzik", brand_name="BB", current_category_id=10, nutrition_facts=None, img_src=None)
   product_created = await service.create(product_command)
   print(product_created.name)
   assert product_created.name_search_standard == 'raw dzik'
@@ -23,7 +23,7 @@ async def test_create_empty_string_name(fake_product_repository):
   repo = fake_product_repository(
     [])
   service = ProductManagementService(repo)
-  product_command = ProductCommand(name="", brand_name="BB", category_id=10, nutrition_facts=None, img_src=None)
+  product_command = ProductCommand(name="", brand_name="BB", current_category_id=10, nutrition_facts=None, img_src=None)
   with pytest.raises(ValueError):
     product_created = await service.create(product_command)
 
@@ -31,8 +31,8 @@ async def test_create_empty_string_name(fake_product_repository):
 @pytest.mark.asyncio #with error (i need to create better exception hierarchy)
 async def test_update_wrong_id(fake_product_repository):
   repo = fake_product_repository(
-    [Product(product_id=80, name="Raw Dzik", brand_name="BB", nutrition_facts=None, category_id=10, name_search_standard='raw dzik')])
-  new_info_about_product = ProductCommand(name="Żywiec zdrój", brand_name="BB", category_id=10, nutrition_facts=None, img_src=None)
+    [Product(product_id=80, name="Raw Dzik", brand_name="BB", nutrition_facts=None, current_category_id=10, name_search_standard='raw dzik')])
+  new_info_about_product = ProductCommand(name="Żywiec zdrój", brand_name="BB", current_category_id=10, nutrition_facts=None, img_src=None)
   service = ProductManagementService(repo)
   
   with pytest.raises(ProductNotFoundError):
@@ -51,9 +51,9 @@ async def test_update_one_product(fake_product_repository):
       name="Raw Dzik", 
       brand_name="BB", 
       nutrition_facts=nutrition_facts, 
-      category_id=10, 
+      current_category_id=10, 
       name_search_standard='raw dzik')])
-  new_info_about_product = ProductCommand(name="Żywiec zdrój", brand_name="BB", category_id=10, nutrition_facts=nutrition_facts, img_src=None)
+  new_info_about_product = ProductCommand(name="Żywiec zdrój", brand_name="BB", current_category_id=10, nutrition_facts=nutrition_facts, img_src=None)
   service = ProductManagementService(repo)
 
   await service.update(80, new_info_about_product)
@@ -73,10 +73,10 @@ async def test_update_one_product_with_null_field(fake_product_repository):
       name="Raw Dzik", 
       brand_name="BB", 
       nutrition_facts=nutrition_facts, 
-      category_id=10, 
+      current_category_id=10, 
       name_search_standard='raw dzik')])
   new_nutrition_facts = NutritionFacts(reference_quantity=ReferenceQuantity(amount=100, unit='g'), kcal=300, nutrients=Nutrients())
-  new_info_about_product = ProductCommand(name="Raw Dzik", brand_name="BB", category_id=10, nutrition_facts=new_nutrition_facts, img_src=None)
+  new_info_about_product = ProductCommand(name="Raw Dzik", brand_name="BB", current_category_id=10, nutrition_facts=new_nutrition_facts, img_src=None)
 
   service = ProductManagementService(repo)
   await service.update(80, new_info_about_product)
@@ -89,7 +89,7 @@ async def test_update_one_product_with_null_field(fake_product_repository):
 @pytest.mark.asyncio
 async def test_delete_one_product(fake_product_repository):
   repo = fake_product_repository(
-    [Product(product_id=80, name="Raw Dzik", brand_name="BB", nutrition_facts=None, category_id=10, name_search_standard='raw dzik')])
+    [Product(product_id=80, name="Raw Dzik", brand_name="BB", nutrition_facts=None, current_category_id=10, name_search_standard='raw dzik')])
   service = ProductManagementService(repo)
   await service.delete(80)
   with pytest.raises(ProductNotFoundError):
@@ -98,7 +98,7 @@ async def test_delete_one_product(fake_product_repository):
 @pytest.mark.asyncio
 async def test_delete_wrong_id(fake_product_repository):
   repo = fake_product_repository(
-    [Product(product_id=80, name="Raw Dzik", brand_name="BB", nutrition_facts=None, category_id=10, name_search_standard='raw dzik')])
+    [Product(product_id=80, name="Raw Dzik", brand_name="BB", nutrition_facts=None, current_category_id=10, name_search_standard='raw dzik')])
   service = ProductManagementService(repo)
   with pytest.raises(ProductNotFoundError):
     await service.delete(100)
