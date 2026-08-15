@@ -90,20 +90,21 @@ class ProductManagementService():
       self._handle_repository_data_error(e)
     return product
 
-  async def assign_alternative_category(self, product_id, alternative_category_id):
-    hierarchy = self.product_category_hierarchy.get_planned_for_deploy()
-    if hierarchy is None:
-      raise ValueError()
+  """ 
+  async def assign_planned_category(self, product_id, alternative_category_id):
+      hierarchy = self.product_category_hierarchy.get_planned_for_deploy()
+      if hierarchy is None:
+        raise ValueError()
 
-    if not hierarchy.is_product_category_in_hierarchy(alternative_category_id):
-      raise ValueError()
+      if not hierarchy.is_product_category_in_hierarchy(alternative_category_id):
+        raise ValueError()
 
-    product = await self.product_repository.get_by_id(product_id)
+      product = await self.product_repository.get_by_id(product_id)
 
-    if product is None:
-      raise ProductNotFoundError()
+      if product is None:
+        raise ProductNotFoundError()
 
-    product.assign_alternative_category(alternative_category_id)
+      product.assign_alternative_category(alternative_category_id)
 
-    await self.product_repository.update(product)
-
+      await self.product_repository.update(product)
+  """

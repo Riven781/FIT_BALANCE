@@ -1,3 +1,4 @@
+from product_catalog_context.domain.category_assignment_task import CategoryAssignmentTask
 from product_catalog_context.domain.nutrition_facts import Nutrients, NutritionFacts, ReferenceQuantity
 from product_catalog_context.domain.product import Product
 from product_catalog_context.domain.product_category_hierarchy import ProductCategoryHierarchy
@@ -78,4 +79,29 @@ class ProductCategoryHierarchyMapper:
       out_dict['id'] = hierarchy.hierarchy_id
     out_dict['status'] = hierarchy.status
     out_dict['categories'] = [{'name': category.name, 'parent_id': category.parent_id, 'id': category.category_id} for category in hierarchy.product_categories]
+    return out_dict
+
+class CategoryAssignmentTaskMapper:
+  def __init__(self):
+    pass
+
+  @staticmethod
+  def to_task(row):
+    return CategoryAssignmentTask(
+      task_id=row['id'],
+      product_id=row['product_id'],
+      hierarchy_id=row['hierarchy_id'],
+      user_id=row['user_id'],
+      status=row['status']
+    )
+  
+  @staticmethod
+  def to_storage_dict(task: CategoryAssignmentTask):
+    out_dict = {}
+    if task.task_id is not None:
+      out_dict['id'] = task.task_id
+    out_dict['product_id'] = task.product_id
+    out_dict['hierarchy_id'] = task.hierarchy_id
+    out_dict['user_id'] = task.user_id
+    out_dict['status'] = task.status
     return out_dict

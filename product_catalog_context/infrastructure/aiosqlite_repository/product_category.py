@@ -1,5 +1,6 @@
 import aiosqlite
 from httpx import delete
+from product_catalog_context.domain.product import Product
 from product_catalog_context.infrastructure.aiosqlite_repository.errors_mapper import map_errors
 from product_catalog_context.infrastructure.aiosqlite_repository.repository import DbRepository
 from product_catalog_context.infrastructure.api.rest.schemas.product_category import ProductCategoryCreate, ProductCategoryHierarchy, ProductCategoryUpdate
@@ -20,7 +21,6 @@ class ProductCategoryRepository(DbRepository):
       map_errors(e)
     categories = [dict(row) for row in data]
     return categories
-
 
 
 
