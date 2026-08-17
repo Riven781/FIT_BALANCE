@@ -1,7 +1,6 @@
 from product_catalog_context.infrastructure.aiosqlite_repository.errors_mapper import map_errors
 from product_catalog_context.infrastructure.aiosqlite_repository.mapper import ProductCategoryHierarchyMapper
 from product_catalog_context.infrastructure.aiosqlite_repository.repository import DbRepository
-from product_catalog_context.infrastructure.api.rest.schemas.product_category import ProductCategoryHierarchy
 
 
 class ProductCategoryHierarchyRepository(DbRepository):
@@ -59,7 +58,58 @@ class ProductCategoryHierarchyRepository(DbRepository):
 
     return self.mapper.to_hierarchy(hierarchy_dict)
 
-  async def insert(self, hierarchy: ProductCategoryHierarchy):
+  async def get_planned_for_publication(self):
+    get_hierarchy_query = """
+      SELECT * FROM ProductCategoryHierarchy
+      WHERE status = 'PLANNED_FOR_PUBLICATION'
+    """
+
+    get_categories_query = """
+      SELECT * FROM ProductCategoryNode
+      WHERE hierarchy_id = ?
+    """
+
+    async with self.db.execute(get_hierarchy_query) as cursor:
+      hierarchy = await cursor.fetchone()
+      
+    if hierarchy is None:
+      return None
+
+    hierarchy_dict = dict(hierarchy)
+
+    async with self.db.execute(get_categories_query, (hierarchy['id'],)) as cursor:
+      categories = await cursor.fetchall()
+      print(categories)
+    hierarchy_dict['categories'] = categories
+
+    return self.mapper.to_hierarchy(hierarchy_dict)  
+
+  async def get_active(self):
+    get_hierarchy_query = """
+      SELECT * FROM ProductCategoryHierarchy
+      WHERE status = 'ACTIVE'
+    """
+
+    get_categories_query = """
+      SELECT * FROM ProductCategoryNode
+      WHERE hierarchy_id = ?
+    """
+
+    async with self.db.execute(get_hierarchy_query) as cursor:
+      hierarchy = await cursor.fetchone()
+      
+    if hierarchy is None:
+      return None
+
+    hierarchy_dict = dict(hierarchy)
+
+    async with self.db.execute(get_categories_query, (hierarchy['id'],)) as cursor:
+      categories = await cursor.fetchall()
+    hierarchy_dict['categories'] = categories
+
+    return self.mapper.to_hierarchy(hierarchy_dict)
+
+  async def insert(self, hierarchy):
     hierarchy_dict : dict = self.mapper.to_storage_dict(hierarchy)
     categories = hierarchy_dict.pop('categories')
     insert_hierarchy_query = f"""
@@ -87,7 +137,7 @@ class ProductCategoryHierarchyRepository(DbRepository):
 
     return hierarchy_id
 
-  async def update(self, hierarchy_id, hierarchy: ProductCategoryHierarchy):
+  async def update(self, hierarchy_id, hierarchy):
     hierarchy_dict : dict = self.mapper.to_storage_dict(hierarchy)
     categories = hierarchy_dict.pop('categories')
     update_hierarchy_query = f"""

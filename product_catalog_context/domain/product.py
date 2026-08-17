@@ -23,7 +23,7 @@ class Product:
     self.allergy_recommendations = allergy_recommendations
     self.current_category_id = current_category_id
     self.planned_category_id = planned_category_id
-    self.assign_alternative_category(planned_category_id)
+    self.assign_to_planned_category(planned_category_id)
 
   @property
   def product_id(self):
@@ -61,9 +61,8 @@ class Product:
       raise ValueError('Brand name cannot be empty.')
     self._brand_name = brand_name
 
-  def assign_alternative_category(self, category_id):
+  def assign_to_planned_category(self, category_id):
     self.planned_category_id = category_id
-
   
 
   def change_nutrients(self, nutrition_facts):
@@ -73,6 +72,8 @@ class Product:
     self.name_search_standard = normalize_for_search(self.name)
 
   def update_details(self, data: dict):
+    if self.planned_category_id != data.get('planned_category_id') and data.get('planned_category_id') is not None:
+      pass #generate event PRODUCT_PLANNED_CATEGORY_CHANGED -- sprawdamy czy jest task jesli tak to ktory user zmienił i zmieniamy stan na completed lub cancelled
     if 'name' in data and data['name'] != self.name:
       self.rename(data['name'])
 

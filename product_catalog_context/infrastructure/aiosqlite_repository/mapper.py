@@ -59,7 +59,9 @@ class ProductMapper:
       nutrition_facts=nutrition_facts,
       img_src=row['img_src'],
       ingredients=row['ingredients'],
-      allergy_recommendations=row['allergy_recommendations']
+      allergy_recommendations=row['allergy_recommendations'],
+      current_category_id=row['current_category_id'],
+      planned_category_id=row['planned_category_id']
       )
 
 

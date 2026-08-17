@@ -1,10 +1,18 @@
 from abc import ABC, abstractmethod
 from dataclasses import asdict
 import re
+from product_catalog_context.application.category_assignment_task_service import CategoryAssignmentTaskService
+from product_catalog_context.application.product_management_service import ProductManagementService
+from product_catalog_context.domain.product_category import ProductCategory
+from product_catalog_context.domain.product_category_hierarchy import ProductCategoryHierarchy
+from product_catalog_context.infrastructure.aiosqlite_repository.category_assignment_task_repository import CategoryAssignmentTaskRepository
+from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
+from product_catalog_context.infrastructure.aiosqlite_repository.product_category_hierarchy import ProductCategoryHierarchyRepository
 import pytest_asyncio
 
 from product_catalog_context.domain.product import Product
 from product_catalog_context.infrastructure.aiosqlite_repository.mapper import ProductMapper
+
 
 
 
@@ -109,4 +117,27 @@ async def db():
   yield db
 
   await db.close()
+
+@pytest_asyncio.fixture
+async def hierarchy_repository(db):
+  repo = ProductCategoryHierarchyRepository(db)
+  category_1 = ProductCategory(name='Batony', category_id=10, parent_id=None)
+  category_2 = ProductCategory(name='Batony proteinowe', category_id=11, parent_id=None)
+
+  await repo.insert(ProductCategoryHierarchy(status='ACTIVE', product_categories=[category_1, category_2]))
+  return ProductCategoryHierarchyRepository(db)
+
+@pytest_asyncio.fixture
+async def category_assignment_service(db) -> CategoryAssignmentTaskService:
+  hierarchy_repo = ProductCategoryHierarchyRepository(db)
+  product_repo = ProductRepository(db)
+  task_repo = CategoryAssignmentTaskRepository(db)
+
+  return CategoryAssignmentTaskService(category_assignment_task_repository=task_repo, product_category_hierarchy_repository=hierarchy_repo, product_repository=product_repo)
+
+@pytest_asyncio.fixture
+async def product_management_service(db) -> CategoryAssignmentTaskService:
+  hierarchy_repo = ProductCategoryHierarchyRepository(db)
+  product_repo = ProductRepository(db)
+  return ProductManagementService(product_repository=product_repo, product_category_hierarchy=hierarchy_repo)
 

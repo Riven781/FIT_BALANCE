@@ -87,7 +87,7 @@ class DbRepository:
 		#print(vals)
 		q = f'INSERT INTO {self.name} (' + ', '.join(columns) + ') VALUES '
 		q +=  value_fields
-		q += f" RETURNING id, {','.join(columns)}" if return_obj else "RETURNING id"
+		q += f" ON CONFLICT DO NOTHING RETURNING id, {','.join(columns)}" if return_obj else " ON CONFLICT DO NOTHING RETURNING id"
 		print(q)
 		cursor = None
 		try:
@@ -132,6 +132,7 @@ class DbRepository:
 		q += ', '.join([c + ' = ?' for c in columns])
 		q += ' WHERE id = ?'
 		cursor = None
+
 		try:
 			if type(obj) is list and type(id) is list:
 				cursor = await self._exec(q, vals, many=True)
@@ -149,7 +150,6 @@ class DbRepository:
 			cursor = await self.db.execute(query)
 		else:
 			if many:
-				print('oo')
 				cursor = await self.db.executemany(query, params)
 			else:
 				cursor = await self.db.execute(query, params)

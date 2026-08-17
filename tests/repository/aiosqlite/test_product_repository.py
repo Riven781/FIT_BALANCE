@@ -13,7 +13,7 @@ async def insert_categories_and_products(db):
     INSERT INTO ProductCategoryHierarchy (id, status) VALUES
       (1, "ACTIVE");
 
-    INSERT INTO ProductCategoryNode VALUES
+    INSERT INTO ProductCategoryNode (id, name, parent_id, hierarchy_id) VALUES
       (1, "Produkty", NULL, 1),
       (2, "Roślinne", 1, 1),
       (3, "Zwierzęce", 1, 1),
@@ -55,6 +55,8 @@ async def insert_categories_and_products(db):
     (6, 5),
     (7, 5),
     (8, 2);
+
+
   """)
 
   await db.commit()
@@ -228,3 +230,75 @@ async def test_update_product_with_string_kcal_type(db):
   product_id = await repo.insert(product)
   with pytest.raises(TypeViolationError):
     await repo.update(product_id, Product(name="Baton", brand_name="Auchan", current_category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal="tak", nutrients=Nutrients())))
+
+
+@pytest.mark.asyncio
+async def test_delete_category_assignments(db):
+  await insert_categories_and_products(db)
+  repo = ProductRepository(db)
+  await repo.delete_category_assignments([4])
+  cursor = await db.execute(""" 
+    SELECT * FROM ProductCategoryAssignment WHERE node_id  = ?
+  """, (4,))
+
+  assignments = await cursor.fetchall()
+  assert assignments == []
+
+async def insert_draft_hierarchy(db):
+  cursor = await db.executescript("""
+    INSERT INTO ProductCategoryHierarchy (id, status) VALUES
+      (2, "DRAFT");
+
+    INSERT INTO ProductCategoryNode (id, name, parent_id, hierarchy_id, source_node_id) VALUES
+      (10, "Wszyskie produkty", NULL, 2, 1),
+      (20, "Roślinne", 10, 2, 2),
+      (30, "Zwierzęce", 10, 2, 3),
+      (40, "Schab", 30, 2, 4),
+      (50, "Boczek", 30, 2, 5);
+  """)
+  await db.commit()
+  await cursor.close()
+
+@pytest.mark.asyncio
+async def test_copy_category_assignments(db):
+  await insert_categories_and_products(db)
+  await insert_draft_hierarchy(db)
+  repo = ProductRepository(db)
+  await repo.copy_category_assignments(1, 2)
+  cursor = await db.execute(""" 
+    SELECT * FROM ProductCategoryAssignment
+  """)
+  assignments = await cursor.fetchall()
+  assert len(assignments) == 16
+
+
+@pytest.mark.asyncio
+async def test_get_without_planned_category_and_task(db):
+  await insert_categories_and_products(db)
+  repo = ProductRepository(db)
+  products = await repo.get_without_planned_category_and_task(4, 1)
+  assert len(products) == 3
+  assert products[0].name == 'Schab Drogi'
+
+@pytest.mark.asyncio
+async def test_get_without_planned_category_and_task_with_limit(db):
+  await insert_categories_and_products(db)
+  repo = ProductRepository(db)
+  products = await repo.get_without_planned_category_and_task(4,1, limit=2)
+  assert len(products) == 2
+  assert products[0].name == 'Schab Drogi'
+
+@pytest.mark.asyncio
+async def test_get_without_planned_category_and_task_returns_empty_list(db):
+  await insert_categories_and_products(db)
+  repo = ProductRepository(db)
+  products = await repo.get_without_planned_category_and_task(1, 1)
+  assert products == []
+
+@pytest.mark.asyncio
+async def test_get_total_without_planned_category(db):
+  await insert_categories_and_products(db)
+  await insert_draft_hierarchy(db)
+  repo = ProductRepository(db)
+  total = await repo.get_total_without_planned_category()
+  assert total == 8
