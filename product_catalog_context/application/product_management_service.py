@@ -3,6 +3,8 @@ from itertools import count
 from operator import ge
 from typing import Annotated
 import re
+
+from click import command
 from fastapi import Depends, HTTPException
 
 from product_catalog_context.application.command.product import PaginationFiltersCommand, ProductCommand, ProductsFiltersCommand
@@ -14,14 +16,15 @@ from product_catalog_context.infrastructure.aiosqlite_queries.product import Pro
 from product_catalog_context.domain.enums import product_searching
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
 from product_catalog_context.infrastructure.aiosqlite_repository.errors.errors import CheckViolationError, ForeignKeyViolationError, NotNullViolationError, RepositoryError, UniqueViolationError
-from product_catalog_context.application.errors.errors import  InvalidProductCategoryId, InvalidProductDataError, ProductNotFoundError
+from product_catalog_context.application.errors.errors import  CategoryDoesNotBelongToActiveHierarchy, CategoryDoesNotBelongToPlannedHierarchy, CategoryHierarchyDoesNotExist, InvalidProductCategoryId, InvalidProductDataError, PlannedHierarchyDoesNotExist, ProductNotFoundError
+from product_catalog_context.infrastructure.aiosqlite_repository.product_category_hierarchy import ProductCategoryHierarchyRepository
 
 
 
 class ProductManagementService():
-  def __init__(self, product_repository : ProductRepository, product_category_hierarchy=None):
+  def __init__(self, product_repository : ProductRepository, product_category_hierarchy : ProductCategoryHierarchyRepository=None):
     self.product_repository = product_repository
-    self.product_category_hierarchy = product_category_hierarchy
+    self.product_category_hierarchy_repository = product_category_hierarchy
   
   async def _handle_repository_data_error(self, e):
     await self.product_repository.rollback()
@@ -33,19 +36,28 @@ class ProductManagementService():
     
 
   async def create(self, product_command: ProductCommand):
+    if product_command.current_category_id is not None:
+      active_hierarchy = await self.product_category_hierarchy_repository.get_active()
+      if not active_hierarchy.contains_product_category(product_command.current_category_id):
+        raise CategoryDoesNotBelongToActiveHierarchy()
+    if product_command.planned_category_id is not None:
+      planned_hierarchy = await self.product_category_hierarchy_repository.get_planned_for_publication()
+      if not planned_hierarchy:
+        raise PlannedHierarchyDoesNotExist()
+      if not planned_hierarchy.contains_product_category(product_command.planned_category_id):
+        raise CategoryDoesNotBelongToPlannedHierarchy()
+
     product = Product(
       name=product_command.name,
       brand_name=product_command.brand_name,
       nutrition_facts=product_command.nutrition_facts,
       current_category_id=product_command.current_category_id,
+      planned_category_id=product_command.planned_category_id,
       ingredients=product_command.ingredients,
       allergy_recommendations=product_command.allergy_recommendations
     )
     try:
-      
       id_created = await self.product_repository.insert(product)
-      
-
       product_created = await self.product_repository.get_by_id(id_created)
       await self.product_repository.commit()
       return product_created
@@ -71,9 +83,20 @@ class ProductManagementService():
     if product is None:
       raise ProductNotFoundError()
 
+    if product_command.current_category_id != product.current_category_id and product_command.current_category_id is not None:
+      active_hierarchy = await self.product_category_hierarchy_repository.get_active()
+      if not active_hierarchy.contains_product_category(product_command.current_category_id):
+        raise CategoryDoesNotBelongToActiveHierarchy()
+
+    if product_command.planned_category_id != product.planned_category_id and product_command.planned_category_id is not None:
+      planned_hierarchy = await self.product_category_hierarchy_repository.get_planned_for_publication()
+      if not planned_hierarchy:
+        raise PlannedHierarchyDoesNotExist()
+      if not planned_hierarchy.contains_product_category(product_command.planned_category_id):
+        raise CategoryDoesNotBelongToPlannedHierarchy()
+
     data_dict = shallow_asdict(product_command)
     product.update_details(data_dict)
-
 
     try:
       await self.product_repository.update(product_id, product)
@@ -87,7 +110,7 @@ class ProductManagementService():
       if product is None:
         raise ProductNotFoundError()
     except RepositoryError as e:
-      self._handle_repository_data_error(e)
+      await self._handle_repository_data_error(e)
     return product
 
   """ 

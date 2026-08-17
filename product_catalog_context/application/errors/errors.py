@@ -23,9 +23,17 @@ class DraftCategoryHierarchyExists(ServiceError):
 class CategoryDoesNotBelongToHierarchy(ServiceError): #move to domain error
   pass
 
+class CategoryDoesNotBelongToActiveHierarchy(ServiceError): #move to domain error
+  pass
+
+class CategoryDoesNotBelongToPlannedHierarchy(ServiceError): #move to domain error
+  pass
+
 class CategoryHierarchyDoesNotExist(ServiceError):
   pass
 
+class PlannedHierarchyDoesNotExist(ServiceError):
+  pass
 
 #assignment
 class TaskDoesNotExist(ServiceError):
@@ -33,4 +41,10 @@ class TaskDoesNotExist(ServiceError):
 
 class TasksBelongToDifferentHierarchies(ServiceError):
   pass
-    
+
+
+class UserIdRequired(ServiceError):
+  pass
+
+class TaskNotFoundError(ServiceError):
+  pass

@@ -40,9 +40,9 @@ class ProductCategoryHierarchy:
   def get_non_leaf_category_ids(self):
     return list({category.parent_id for category in self.product_categories if category.parent_id is not None})
 
-  def ensure_category_assignment_allowed(self):
+  def ensure_category_assignment_allowed(self): #planned_assignment
     if self.status != ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION:
-      raise CategoryAssignmentNotAllowed 
+      raise CategoryAssignmentNotAllowed()
   
 
   def create_draft_based_on_hierarchy(self, ids):
