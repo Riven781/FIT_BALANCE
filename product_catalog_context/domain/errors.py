@@ -38,3 +38,11 @@ class TaskCannotBeCompleted(DomainError):
 class TaskCannotBeCancelled(DomainError):
   pass
 
+class IssueCanNotBeConfirmed(DomainError):
+  pass
+
+class IssueCanNotBeRejected(DomainError):
+  pass
+
+class IssueCanNotBeMarkedAsObsolete(DomainError):
+  pass

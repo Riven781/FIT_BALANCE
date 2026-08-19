@@ -1,7 +1,7 @@
 from enum import StrEnum
 
 
-class ReportedItem(StrEnum):
+class ReportedField(StrEnum):
   NAME = 'name'
   #BRAND_NAME = 'brand_name'
   KCAL = 'kcal'
