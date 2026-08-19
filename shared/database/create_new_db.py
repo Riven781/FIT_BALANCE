@@ -44,8 +44,11 @@ product_category_node_table_query = """
     name TEXT NOT NULL,
     parent_id INTEGER,
     hierarchy_id INTEGER NOT NULL,
+    source_node_id INTEGER,
     FOREIGN KEY (parent_id) REFERENCES ProductCategoryNode(id)
       ON DELETE SET NULL,
+    FOREIGN KEY (source_node_id) REFERENCES ProductCategoryNode(id)
+        ON DELETE SET NULL,
     FOREIGN KEY (hierarchy_id) REFERENCES ProductCategoryHierarchy(id)
       ON DELETE CASCADE
   ) STRICT;
@@ -85,9 +88,11 @@ product_category_assignment = """
 
 product_category_assignment_task = """
   CREATE TABLE IF NOT EXISTS ProductCategoryAssignmentTask(
+    id INTEGER PRIMARY KEY,
     product_id INTEGER NOT NULL,
     hierarchy_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
+    status TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES Product(id)
       ON DELETE CASCADE,
@@ -95,7 +100,7 @@ product_category_assignment_task = """
       ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES User(id)
       ON DELETE CASCADE,
-    PRIMARY KEY (product_id, hierarchy_id)
+    UNIQUE (product_id, hierarchy_id)
   ) STRICT;
 """
 
@@ -141,7 +146,6 @@ report_item = """
     report_id INTEGER NOT NULL,
     issue_id INTEGER NOT NULL,
     proposed_value TEXT,
-    proposed_value_outcome TEXT,
     FOREIGN KEY (report_id) REFERENCES ProductReport(id)
       ON DELETE CASCADE,
     FOREIGN KEY (issue_id) REFERENCES ProductIssue(id)
@@ -152,13 +156,12 @@ issue = """
   CREATE TABLE IF NOT EXISTS ProductIssue(
     id INTEGER PRIMARY KEY,
     product_id INTEGER NOT NULL,
-    field_id INTEGER NOT NULL,
     status TEXT,
+    reported_field TEXT,
+    resolved_value TEXT,
     resolved_by INTEGER,
     FOREIGN KEY (product_id) REFERENCES Product(id)
       ON DELETE CASCADE,
-    FOREIGN KEY (field_id) REFERENCES Field(id)
-      ON DELETE RESTRICT,
     FOREIGN KEY (resolved_by) REFERENCES User(id)
       ON DELETE SET NULL
   ) STRICT;
@@ -192,6 +195,17 @@ user_role = """
     PRIMARY KEY(user_id, role_id)
    ) STRICT;
 """
+id_sequence = """
+  CREATE TABLE IF NOT EXISTS IdSequence(
+    name TEXT PRIMARY KEY,
+    next_value INTEGER NOT NULL)
+"""
+
+init_id_seq = """
+INSERT INTO IdSequence VALUES
+  ('product_category', 1)
+"""
+
 if __name__ == '__main__':
   cursor.execute(product_table_query)
   cursor.execute(product_category_node_table_query)
@@ -207,6 +221,7 @@ if __name__ == '__main__':
   cursor.execute(user)
   cursor.execute(role)
   cursor.execute(user_role)
-
+  cursor.execute(id_sequence)
+  cursor.execute(init_id_seq)
 conn.commit()
 conn.close()
