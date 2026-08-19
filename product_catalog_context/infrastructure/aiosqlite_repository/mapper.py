@@ -1,4 +1,5 @@
 from product_catalog_context.domain.category_assignment_task import CategoryAssignmentTask
+from product_catalog_context.domain.issues.product_issue import ProductIssue
 from product_catalog_context.domain.nutrition_facts import Nutrients, NutritionFacts, ReferenceQuantity
 from product_catalog_context.domain.product import Product
 from product_catalog_context.domain.product_category_hierarchy import ProductCategoryHierarchy
@@ -107,3 +108,29 @@ class CategoryAssignmentTaskMapper:
     out_dict['user_id'] = task.user_id
     out_dict['status'] = task.status
     return out_dict
+
+class ProductIssueMapper:
+  def __init__(self):
+    pass
+
+  @staticmethod
+  def to_issue(row):
+    return ProductIssue(
+      issue_id=row['id'],
+      reported_field=row['reported_field'],
+      status=row['status'],
+      product_id=row['product_id'],
+      resolved_value=row['resolved_value']
+    )
+
+  @staticmethod
+  def to_storage_dict(product_issue : ProductIssue):
+    out_dict = {}
+    if product_issue.issue_id is not None:
+      out_dict['id'] = product_issue.issue_id
+    out_dict['product_id'] = product_issue.product_id
+    out_dict['reported_field'] = product_issue.reported_field
+    out_dict['status'] = product_issue.status
+    out_dict['resolved_value'] = product_issue.resolved_value
+    return out_dict
+
