@@ -20,7 +20,7 @@ class ProductIssueRepository(DbRepository):
   async def get_pending_issue(self, product_id, reported_field):
     get_query ="""
     SELECT * FROM ProductIssue
-    WHERE product_id = ? AND reported_field = ?
+    WHERE product_id = ? AND reported_field = ? AND status='pending'
     """
     async with self.db.execute(get_query, (product_id, reported_field)) as cursor:
       row = await cursor.fetchone()

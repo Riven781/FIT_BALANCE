@@ -5,7 +5,7 @@ from product_catalog_context.domain.enums.reported_field import ReportedField
 
 class ProductReportItem:
   def __init__(self, reported_field : ReportedField, proposed_value, issue_id = None):
-    self.reported_item = reported_field
+    self.reported_field = reported_field
     self.proposed_value = proposed_value
     self.issue_id = issue_id
 

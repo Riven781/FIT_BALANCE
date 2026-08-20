@@ -2,7 +2,9 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict
 import re
 from product_catalog_context.application.category_assignment_task_service import CategoryAssignmentTaskService
+from product_catalog_context.application.product_issue_service import ProductIssueService
 from product_catalog_context.application.product_management_service import ProductManagementService
+from product_catalog_context.application.product_report_service import ProductReportService
 from product_catalog_context.domain.product_category import ProductCategory
 from product_catalog_context.domain.product_category_hierarchy import ProductCategoryHierarchy
 from product_catalog_context.infrastructure.aiosqlite_repository.category_assignment_task_repository import CategoryAssignmentTaskRepository
@@ -12,6 +14,8 @@ import pytest_asyncio
 
 from product_catalog_context.domain.product import Product
 from product_catalog_context.infrastructure.aiosqlite_repository.mapper import ProductMapper
+from product_catalog_context.infrastructure.aiosqlite_repository.product_issue_repository import ProductIssueRepository
+from product_catalog_context.infrastructure.aiosqlite_repository.product_report_repository import ProductReportRepository
 
 
 
@@ -141,3 +145,44 @@ async def product_management_service(db) -> CategoryAssignmentTaskService:
   product_repo = ProductRepository(db)
   return ProductManagementService(product_repository=product_repo, product_category_hierarchy=hierarchy_repo)
 
+
+
+@pytest_asyncio.fixture
+async def product_report_service(db) -> ProductReportService:
+  async with db.executescript(
+    """    
+    INSERT INTO Product (id, name, brand_name, kcal, reference_amount, reference_unit, name_search_standard)
+    VALUES 
+    (1, "Schab Drogi", "Auchan", 300, 100, "g","schab drogi");
+    
+    INSERT INTO ProductIssue (id, product_id, status, reported_field)
+    VALUES
+    (99, 1, 'rejected', 'sugars'),
+    (100, 1, 'pending', 'sugars')
+    
+    """
+  ) as cursor:
+    pass
+  report_repo = ProductReportRepository(db)
+  issue_repo = ProductIssueRepository(db)
+  return ProductReportService(report_repo, issue_repo)
+
+@pytest_asyncio.fixture
+async def product_issue_service(db) -> ProductReportService:
+  async with db.executescript(
+    """    
+    INSERT INTO Product (id, name, brand_name, kcal, reference_amount, reference_unit, name_search_standard)
+    VALUES 
+    (1, "Schab Drogi", "Auchan", 300, 100, "g","schab drogi");
+    
+    INSERT INTO ProductIssue (id, product_id, status, reported_field)
+    VALUES
+    (99, 1, 'rejected', 'sugars'),
+    (100, 1, 'pending', 'sugars'),
+    (101, 1, 'pending', 'fat'),(102, 1, 'confirmed', 'fat');
+    
+    """
+  ) as cursor:
+    pass
+  issue_repo = ProductIssueRepository(db)
+  return ProductIssueService(issue_repo)

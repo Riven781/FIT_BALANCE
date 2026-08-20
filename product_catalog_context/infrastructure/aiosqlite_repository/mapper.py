@@ -1,5 +1,8 @@
 from product_catalog_context.domain.category_assignment_task import CategoryAssignmentTask
+from product_catalog_context.domain.enums import reported_field
 from product_catalog_context.domain.issues.product_issue import ProductIssue
+from product_catalog_context.domain.issues.product_report import ProductReport
+from product_catalog_context.domain.issues.product_report_item import ProductReportItem
 from product_catalog_context.domain.nutrition_facts import Nutrients, NutritionFacts, ReferenceQuantity
 from product_catalog_context.domain.product import Product
 from product_catalog_context.domain.product_category_hierarchy import ProductCategoryHierarchy
@@ -134,3 +137,20 @@ class ProductIssueMapper:
     out_dict['resolved_value'] = product_issue.resolved_value
     return out_dict
 
+class ProductReportMapper:
+  def __init__(self):
+    pass
+  @staticmethod
+  def to_report(row):
+    reported_items = [ProductReportItem(reported_field=reported_item['reported_field'], proposed_value=reported_item['proposed_value'], issue_id=reported_item['issue_id']) for reported_item in row['reported_items']]
+    return ProductReport(report_id=row['id'], product_id=row['product_id'], user_id=row['user_id'], reported_items=reported_items)
+
+  @staticmethod
+  def to_storage_dict(product_report : ProductReport):
+    out_dict = {}
+    if product_report.report_id is not None:
+      out_dict['id'] = product_report.report_id
+    out_dict['product_id'] = product_report.product_id
+    out_dict['user_id'] = product_report.user_id
+    out_dict['reported_items'] = [{ 'proposed_value' : report_item.proposed_value, 'issue_id': report_item.issue_id}for report_item in product_report.reported_items]
+    return out_dict

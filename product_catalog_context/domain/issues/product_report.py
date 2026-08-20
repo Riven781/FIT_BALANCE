@@ -5,7 +5,8 @@ from product_catalog_context.domain.issues.product_report_item import ProductRep
 
 
 class ProductReport:
-  def __init__(self,  product_id, reported_items : list[ProductReportItem], user_id = None):
+  def __init__(self,  product_id, reported_items : list[ProductReportItem], user_id = None, report_id = None):
+    self.report_id = report_id
     self.reported_items = reported_items
     self.product_id = product_id
     self.user_id = user_id

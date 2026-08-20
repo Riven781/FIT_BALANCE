@@ -48,3 +48,6 @@ class UserIdRequired(ServiceError):
 
 class TaskNotFoundError(ServiceError):
   pass
+
+class IssueNotFoundError(ServiceError):
+  pass
