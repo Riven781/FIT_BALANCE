@@ -185,14 +185,12 @@ role = """
 """
 
 user_role = """
-   CREATE TABLE IF NOT EXISTS UserRole(
+  CREATE TABLE IF NOT EXISTS UserRole(
     user_id INTEGER NOT NULL,
-    role_id INTEGER NOT NULL,
+    role TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES User(id)
       ON DELETE CASCADE,
-    FOREIGN KEY (role_id) REFERENCES Role(id)
-      ON DELETE CASCADE,
-    PRIMARY KEY(user_id, role_id)
+    PRIMARY KEY(user_id, role)
    ) STRICT;
 """
 id_sequence = """
