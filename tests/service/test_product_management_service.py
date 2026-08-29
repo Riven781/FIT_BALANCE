@@ -4,14 +4,15 @@ from product_catalog_context.domain.nutrition_facts import NutritionFacts, Nutri
 from product_catalog_context.application.command.product import ProductCommand
 from product_catalog_context.application.product_management_service import ProductManagementService
 from product_catalog_context.application.errors.errors import ProductNotFoundError
+from product_catalog_context.infrastructure.aiosqlite_repository.product_category_hierarchy import ProductCategoryHierarchyRepository
 
 #pytest tests/service/test_product_management_service.py
 
 @pytest.mark.asyncio
-async def test_create_one_product(fake_product_repository):
+async def test_create_one_product(fake_product_repository, hierarchy_repository):
   repo = fake_product_repository(
     [])
-  service = ProductManagementService(repo)
+  service = ProductManagementService(repo, hierarchy_repository)
   product_command = ProductCommand(name="Raw Dzik", brand_name="BB", current_category_id=10, nutrition_facts=None, img_src=None)
   product_created = await service.create(product_command)
   print(product_created.name)
@@ -19,10 +20,10 @@ async def test_create_one_product(fake_product_repository):
   assert product_created.name == 'Raw Dzik'
 
 @pytest.mark.asyncio
-async def test_create_empty_string_name(fake_product_repository):
+async def test_create_empty_string_name(fake_product_repository, hierarchy_repository):
   repo = fake_product_repository(
     [])
-  service = ProductManagementService(repo)
+  service = ProductManagementService(repo, hierarchy_repository)
   product_command = ProductCommand(name="", brand_name="BB", current_category_id=10, nutrition_facts=None, img_src=None)
   with pytest.raises(ValueError):
     product_created = await service.create(product_command)
@@ -63,6 +64,28 @@ async def test_update_one_product(fake_product_repository):
   assert product.name == "Żywiec zdrój"
   assert product.name_search_standard == 'zywiec zdroj'
   assert product.brand_name == "BB"
+
+
+@pytest.mark.asyncio
+async def test_update_current_category_id(fake_product_repository, hierarchy_repository):
+  nutrition_facts = NutritionFacts(reference_quantity=ReferenceQuantity(amount=100, unit='g'), kcal=300, nutrients=Nutrients())
+  repo = fake_product_repository(
+    [Product(
+      product_id=80, 
+      name="Raw Dzik", 
+      brand_name="BB", 
+      nutrition_facts=nutrition_facts, 
+      current_category_id=10, 
+      name_search_standard='raw dzik')])
+  new_info_about_product = ProductCommand(name="Raw Dzik", brand_name="BB", current_category_id=11, nutrition_facts=nutrition_facts, img_src=None)
+  service = ProductManagementService(repo, hierarchy_repository)
+
+  await service.update(80, new_info_about_product)
+
+  product = await service.get(80)
+  assert product.product_id == 80
+  assert product.name == "Raw Dzik"
+  assert product.current_category_id == 11
 
 @pytest.mark.asyncio
 async def test_update_one_product_with_null_field(fake_product_repository):
