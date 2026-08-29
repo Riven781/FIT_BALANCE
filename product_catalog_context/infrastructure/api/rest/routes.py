@@ -3,7 +3,7 @@ from fastapi import Depends
 from typing import Annotated
 from product_catalog_context.application.product_management_service import ProductManagementService
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
-from product_catalog_context.application.product_category import ProductCategoryService
+from product_catalog_context.application.category_hierarchy_management_service import ProductCategoryService
 from config import MODE
 from product_catalog_context.infrastructure.api.rest.schemas.product import ProductPostRequest, ProductPutRequest, ProductResponse, PublicProductListResponse, PublicProductResponse
 from product_catalog_context.infrastructure.api.rest.schemas.product_category import ProductCategory, ProductCategoryHierarchy

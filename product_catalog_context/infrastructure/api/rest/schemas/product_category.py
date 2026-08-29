@@ -9,16 +9,14 @@ class ProductCategory(BaseModel):
   name: str
   parent_id: int | None
 
-class ProductCategoryView(BaseModel):
-  id: int
-  name: str
+
 
 class ProductCategoryCreate(BaseModel):
   model_config = ConfigDict(extra='ignore')
   name: str
   parent_id: int | None
 
- 
+
 
 class ProductCategoryUpdate(BaseModel):
   model_config = ConfigDict(extra='ignore')
