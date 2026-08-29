@@ -2,4 +2,4 @@
 name  = "fit-balance"
 
 [tool.fastapi]
-entrypoint = "api.main:app"
+entrypoint = "main:app"
