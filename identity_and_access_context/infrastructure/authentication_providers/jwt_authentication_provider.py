@@ -1,0 +1,77 @@
+import hashlib
+import secrets
+
+import jwt
+import json
+from config import JWT_SECRET
+from datetime import datetime, timedelta, timezone
+
+from identity_and_access_context.domain.authentication_provider.authentication_provider import AuthenticationProvider
+from identity_and_access_context.domain.authentication_provider.errors import CredentialNotFound, InvalidCredential
+from identity_and_access_context.domain.refresh_token.errors import RefreshTokenAlreadyRevoked, RefreshTokenExpired
+from identity_and_access_context.domain.refresh_token.refresh_token import RefreshToken
+from identity_and_access_context.domain.session.session import SessionData
+from identity_and_access_context.domain.tokens import Tokens
+from identity_and_access_context.infrastructure.security import hash_value
+
+class JwtAuthenticationProvider(AuthenticationProvider):
+  def __init__(self, refresh_token_repository):
+    self.refresh_token_repository = refresh_token_repository
+
+  async def login(self, user) -> Tokens:
+    access_token = self._create_access_token(user.user_id)
+    refresh_token = await self._create_refresh_token(user.user_id)
+    return Tokens(access_token, refresh_token)
+
+  async def logout(self, refresh_token): #refresh token 
+    token_hash = hash_value(refresh_token)
+    refresh_token = await self.refresh_token_repository.get_by_hash(token_hash)
+    if refresh_token is None:
+      raise CredentialNotFound("Refresh Token not found")
+    await self.refresh_token_repository.delete(refresh_token)
+
+  async def authenticate(self, access_token) -> int: #user_id
+    payload = self._decode_access_token(access_token)
+    return int(payload['sub'])
+
+  async def refresh(self, refresh_token_value):
+    token_hash = hash_value(refresh_token_value)
+    refresh_token = await self.refresh_token_repository.get_by_hash(token_hash)
+    if refresh_token is None:
+      raise CredentialNotFound("Refresh Token not found")
+    try:
+      refresh_token.ensure_valid()
+    except (RefreshTokenAlreadyRevoked, RefreshTokenExpired) as e:
+      raise InvalidCredential("Invalid Refresh Token") from e
+
+    access_token = self._create_access_token(refresh_token.user_id)
+    now = datetime.now(timezone.utc)
+    if refresh_token.expires_at < now + timedelta(days=7):
+      await self.refresh_token_repository.delete(refresh_token)
+      new_refresh_token_value = await self._create_refresh_token(refresh_token.user_id)
+      return Tokens(access_token, new_refresh_token_value)
+    return Tokens(access_token, refresh_token_value)
+    
+  def _create_access_token(self, user_id):
+    now = datetime.now(timezone.utc)
+    token = jwt.encode({
+      'sub' : str(user_id),
+      'iat' : now,
+      'exp' : now + timedelta(minutes=30)
+    }, JWT_SECRET, algorithm="HS256")
+    return token
+
+  def _decode_access_token(self, token):
+    try:
+      payload = jwt.decode(token, JWT_SECRET, algorithms='HS256')
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError) as e:
+      raise InvalidCredential() from e
+    return payload
+
+  async def _create_refresh_token(self, user_id):
+    now = datetime.now(timezone.utc)
+    refresh_token_value = secrets.token_urlsafe(32)
+    token_hash = hash_value(refresh_token_value)
+    refresh_token = RefreshToken(token_hash=token_hash, user_id=user_id, expires_at=now + timedelta(days=30), created_at=now)
+    await self.refresh_token_repository.save(refresh_token)
+    return refresh_token_value
