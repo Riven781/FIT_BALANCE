@@ -1,0 +1,9 @@
+from typing import Annotated
+from fastapi import Depends
+from identity_and_access_context.application.authentication_service import AuthenticationService
+from identity_and_access_context.infrastructure.api.rest.dependencies import get_authentication_service
+from identity_and_access_context.public.api.identity_api import IdentityApi
+
+
+def get_identity_api(authentication_service: Annotated[AuthenticationService, Depends(get_authentication_service)]):
+  return IdentityApi(authentication_service)
