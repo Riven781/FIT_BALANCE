@@ -60,8 +60,17 @@ async def logout_jwt(
 async def refresh_session(
   session_id: Annotated[str, Cookie()], 
   authentication_service: Annotated[AuthenticationService, Depends(get_authentication_service)],
+  response: Response
 ) -> None:
-  await authentication_service.refresh(SessionCredential(session_id))
+  session = await authentication_service.refresh(SessionCredential(session_id))
+  response.set_cookie(
+      key="session_id",
+      value=session.session_id,
+      httponly=True,
+      secure=True,
+      samesite='lax',
+      max_age=session.ttl
+    )
 
 
 @identity_and_access_context_router.post("/refresh/jwt")
