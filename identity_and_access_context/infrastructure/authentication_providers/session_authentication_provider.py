@@ -18,9 +18,8 @@ class SessionAuthenticationProvider(AuthenticationProvider):
   async def logout(self, session_id):
     async with self.unit_of_work:
       session = await self.unit_of_work.sessions.get_by_id(session_id)
-      if session is None:
-        raise CredentialNotFound()
-      await self.unit_of_work.sessions.delete_by_id(session_id)
+      if session is not None:
+        await self.unit_of_work.sessions.delete_by_id(session_id)
 
   async def authenticate(self, session_id) -> int | None:
     async with self.unit_of_work:
@@ -37,4 +36,3 @@ class SessionAuthenticationProvider(AuthenticationProvider):
       session.increase_ttl(60 * 60 * 24 * 30)
       await self.unit_of_work.sessions.save(session)
       return session
-    #Set-Cookie: session_id=abc; Max-Age=604800; HttpOnly; Secure

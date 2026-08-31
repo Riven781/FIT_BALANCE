@@ -1,7 +1,9 @@
 import pytest
 from identity_and_access_context.domain.user.user import User
+from identity_and_access_context.domain.session.session import Session, SessionData
 from identity_and_access_context.domain.role import Role
 from identity_and_access_context.domain.authentication_provider.errors import CredentialNotFound
+import time 
 
 @pytest.mark.asyncio
 async def test_login(session_authentication_provider, session_repository):
@@ -14,8 +16,7 @@ async def test_login(session_authentication_provider, session_repository):
 
 @pytest.mark.asyncio
 async def test_logout_not_existing_session(session_authentication_provider):
-  with pytest.raises(CredentialNotFound):
-    await session_authentication_provider.logout(10)
+  await session_authentication_provider.logout(10)
 
 @pytest.mark.asyncio
 async def test_logout(session_authentication_provider, session_repository, example_session):
@@ -40,7 +41,33 @@ async def test_refresh_session(session_authentication_provider, example_session)
   assert session.ttl == 60 * 60 * 24 * 37
 
 @pytest.mark.asyncio
-async def test_refreshnot_existing_session(session_authentication_provider):
+async def test_refresh_not_existing_session(session_authentication_provider):
   with pytest.raises(CredentialNotFound):
     session = await session_authentication_provider.refresh(10)
- 
+
+
+@pytest.mark.asyncio
+async def test_authenticate_with_expired_session(session_repository, session_authentication_provider, redis_client):
+  session = Session(session_id=1, session_data=SessionData(user_id=1, username='Pawel'), ttl=1)
+  await session_repository.save(session)
+
+  time.sleep(1)
+  with pytest.raises(CredentialNotFound):
+    await session_authentication_provider.authenticate(1)
+
+@pytest.mark.asyncio
+async def test_logout_with_expired_session(session_repository, session_authentication_provider, redis_client):
+  session = Session(session_id=1, session_data=SessionData(user_id=1, username='Pawel'), ttl=1)
+  await session_repository.save(session)
+
+  time.sleep(1)
+  await session_authentication_provider.logout(1)
+
+@pytest.mark.asyncio
+async def test_refresh_with_expired_session(session_repository, session_authentication_provider, redis_client):
+  session = Session(session_id=1, session_data=SessionData(user_id=1, username='Pawel'), ttl=1)
+  await session_repository.save(session)
+
+  time.sleep(1)
+  with pytest.raises(CredentialNotFound):
+    await session_authentication_provider.refresh(1)

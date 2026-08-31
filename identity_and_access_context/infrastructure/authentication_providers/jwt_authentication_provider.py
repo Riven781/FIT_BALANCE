@@ -29,9 +29,8 @@ class JwtAuthenticationProvider(AuthenticationProvider):
     async with self.unit_of_work:
       token_hash = hash_value(refresh_token)
       refresh_token = await self.unit_of_work.refresh_tokens.get_by_hash(token_hash)
-      if refresh_token is None:
-        raise CredentialNotFound("Refresh Token not found")
-      await self.unit_of_work.refresh_tokens.delete(refresh_token)
+      if refresh_token is not None:
+        await self.unit_of_work.refresh_tokens.delete(refresh_token)
 
   async def authenticate(self, access_token) -> int: #user_id
     payload = self._decode_access_token(access_token)
@@ -56,12 +55,12 @@ class JwtAuthenticationProvider(AuthenticationProvider):
         return Tokens(access_token, new_refresh_token_value)
       return Tokens(access_token, refresh_token_value)
     
-  def _create_access_token(self, user_id):
+  def _create_access_token(self, user_id, seconds=60 * 30):
     now = datetime.now(timezone.utc)
     token = jwt.encode({
       'sub' : str(user_id),
       'iat' : now,
-      'exp' : now + timedelta(minutes=30)
+      'exp' : now + timedelta(seconds=seconds)
     }, JWT_SECRET, algorithm="HS256")
     return token
 
@@ -72,10 +71,10 @@ class JwtAuthenticationProvider(AuthenticationProvider):
       raise InvalidCredential() from e
     return payload
 
-  async def _create_refresh_token(self, user_id):
+  async def _create_refresh_token(self, user_id, seconds=60  * 60 * 24* 30):
     now = datetime.now(timezone.utc)
     refresh_token_value = secrets.token_urlsafe(32)
     token_hash = hash_value(refresh_token_value)
-    refresh_token = RefreshToken(token_hash=token_hash, user_id=user_id, expires_at=now + timedelta(days=30), created_at=now)
+    refresh_token = RefreshToken(token_hash=token_hash, user_id=user_id, expires_at=now + timedelta(seconds=seconds), created_at=now)
     await self.unit_of_work.refresh_tokens.save(refresh_token)
     return refresh_token_value

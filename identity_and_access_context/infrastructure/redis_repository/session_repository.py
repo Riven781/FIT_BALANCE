@@ -17,8 +17,11 @@ class RedisSessionRepository(SessionRepository):
           'user_id': session.session_data.user_id, 
           'username': session.session_data.username
           })
+      pipe.expire(session_key,  session.ttl,  nx=True)
       pipe.expire(session_key,  session.ttl,  gt=True)
+
       pipe.sadd(user_sessions_key, session.session_id)
+      pipe.expire(user_sessions_key, session.ttl, nx=True)
       pipe.expire(user_sessions_key, session.ttl, gt=True)
       await pipe.execute()
 
