@@ -24,7 +24,9 @@ from sqlalchemy.event import listens_for
 import redis.asyncio as redis
 from identity_and_access_context.domain.session.session import Session, SessionData
 import json
-
+from identity_and_access_context.infrastructure.unit_of_work_factory import DefaultUnitOfWorkFactory
+from identity_and_access_context.infrastructure.sql_alchemy_repository.unit_of_work import SqlAlchemyUnitOfWork
+from identity_and_access_context.infrastructure.redis_repository.unit_of_work import RedisUnitOfWork
 
 @pytest_asyncio.fixture
 async def db_session():
@@ -40,6 +42,8 @@ async def db_session():
   async with SessionTest() as session:
     yield session
   await engine.dispose()
+
+
 
 @pytest_asyncio.fixture
 async def user(db_session):
@@ -118,6 +122,17 @@ async def example_session(redis_client):
   await redis_client.expire(key,  60 * 60 * 24 * 7)
   return session
 
+@pytest.fixture
+def unit_of_work_factory(db_session, redis_client):
+  return DefaultUnitOfWorkFactory(db_session, redis_client)
+
+@pytest.fixture
+def redis_uow(redis_client):
+  return RedisUnitOfWork(redis_client)
+
+@pytest.fixture
+def sql_uow(db_session):
+  return SqlAlchemyUnitOfWork(db_session)
 
 @pytest_asyncio.fixture
 async def session_repository(redis_client):
@@ -141,17 +156,20 @@ async def example_roles(redis_client):
   return roles
 
 @pytest_asyncio.fixture
-async def session_authentication_provider(session_repository):
-  return SessionAuthenticationProvider(session_repository)
+async def session_authentication_provider(redis_uow):
+  return SessionAuthenticationProvider(redis_uow)
 
 @pytest_asyncio.fixture
-async def jwt_authentication_provider(refresh_token_repository):
-  return JwtAuthenticationProvider(refresh_token_repository)
+async def jwt_authentication_provider(sql_uow):
+  return JwtAuthenticationProvider(sql_uow)
 
 @pytest_asyncio.fixture
-def authentication_provider_factory(session_repository, refresh_token_repository):
-  return DefaultAuthenticationProviderFactory(session_repository=session_repository, refresh_token_repository=refresh_token_repository)
+def authentication_provider_factory(unit_of_work_factory):
+  return DefaultAuthenticationProviderFactory(unit_of_work_factory)
 
 @pytest.fixture
 def authentication_service(authentication_provider_factory, user_repository):
   return AuthenticationService(authentication_provider_factory, user_repository)
+
+
+

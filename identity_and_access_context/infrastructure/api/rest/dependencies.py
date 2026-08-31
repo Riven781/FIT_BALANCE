@@ -5,6 +5,8 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from identity_and_access_context.application.access_service import AccessService
 from identity_and_access_context.application.authentication_service import AuthenticationService
+from identity_and_access_context.application.unit_of_work.unit_of_work import UnitOfWork
+from identity_and_access_context.application.unit_of_work.unit_of_work_factory import UnitOfWorkFactory
 from identity_and_access_context.application.user_management_service import UserManagementService
 from identity_and_access_context.application.user_roles_management_serivce import UserRolesManagementService
 from identity_and_access_context.domain.auth_method import AuthMethod
@@ -13,9 +15,12 @@ from identity_and_access_context.infrastructure.authentication_providers.authent
 from identity_and_access_context.infrastructure.authentication_providers.jwt_authentication_provider import JwtAuthenticationProvider
 from identity_and_access_context.infrastructure.redis_repository.session_repository import RedisSessionRepository
 from identity_and_access_context.infrastructure.authentication_providers.session_authentication_provider import SessionAuthenticationProvider
+from identity_and_access_context.infrastructure.redis_repository.unit_of_work import RedisUnitOfWork
 from identity_and_access_context.infrastructure.sql_alchemy_repository.refresh_token_repository import SqlAlchemyRefreshTokenRepository
+from identity_and_access_context.infrastructure.sql_alchemy_repository.unit_of_work import SqlAlchemyUnitOfWork
 from identity_and_access_context.infrastructure.sql_alchemy_repository.user_repository import SqlAlchemyUserRepository
 from identity_and_access_context.infrastructure.sql_alchemy_repository.user_roles_repository import SqlAlchemyUserRolesRepository
+from identity_and_access_context.infrastructure.unit_of_work_factory import DefaultUnitOfWorkFactory
 from shared.database.redis_client import get_redis
 from shared.database.session import get_session
 from shared.infrastructure.fastapi.security.contracts import RawAuthenticationCredentials
@@ -67,12 +72,19 @@ def get_user_roles_repository(session: Annotated[AsyncSession, Depends(get_sessi
 def get_access_service(user_roles_repository: Annotated[SqlAlchemyUserRolesRepository, get_user_roles_repository]):
   return AccessService(user_roles_repository)
 
+def get_ephemeral_unit_of_work(redis: Annotated[Redis, Depends(get_redis)]):
+  return RedisUnitOfWork(redis)
+
+def get_persistent_unit_of_work(session: Annotated[AsyncSession, Depends(get_session)]):
+  return SqlAlchemyUnitOfWork(session)
+
+def get_unit_of_work_factory(session: Annotated[AsyncSession, Depends(get_session)], redis: Annotated[Redis, Depends(get_redis)]):
+  return DefaultUnitOfWorkFactory(session, redis)
 
 def get_authentication_provider_factory(
-    session_repository: Annotated[RedisSessionRepository, Depends(get_session_repository)],
-    refresh_token_repository: Annotated[SqlAlchemyRefreshTokenRepository, Depends(get_refresh_token_repository)]
+    unit_of_work_factory: Annotated[UnitOfWorkFactory, Depends(get_unit_of_work_factory)]
 ):
-  return DefaultAuthenticationProviderFactory(session_repository=session_repository, refresh_token_repository=refresh_token_repository)
+  return DefaultAuthenticationProviderFactory(unit_of_work_factory)
 
 def get_authentication_service(
     user_repository: Annotated[SqlAlchemyUserRepository, Depends(get_user_repository)],
@@ -95,12 +107,12 @@ async def get_current_user(
     return await authentication_service.authenticate(authentication_credential)
 
 async def get_user_management_service(
-    user_repository: Annotated[SqlAlchemyUserRepository, Depends(get_user_repository)]
+    unit_of_work : Annotated[UnitOfWork, Depends(get_persistent_unit_of_work)]
 ):
-  return UserManagementService(user_repository)
+  return UserManagementService(unit_of_work)
 
 async def get_user_roles_management_service(
-    user_roles_repository: Annotated[SqlAlchemyUserRepository, Depends(get_user_roles_repository)],
+    unit_of_work : Annotated[UnitOfWork, Depends(get_persistent_unit_of_work)],
     access_service: Annotated[AccessService, Depends(get_access_service)]
 ):
-  return UserRolesManagementService(user_roles_repository, access_service)
+  return UserRolesManagementService(unit_of_work, access_service)
