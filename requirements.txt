@@ -5,4 +5,5 @@ uvicorn
 python-dotenv
 aiofiles
 redis
-jwt
+PyJWT
+sqlalchemy

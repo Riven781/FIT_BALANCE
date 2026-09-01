@@ -69,7 +69,7 @@ async def get_authenticated_user_id(
 def get_user_roles_repository(session: Annotated[AsyncSession, Depends(get_session)]):
   return SqlAlchemyUserRolesRepository(session=session)
 
-def get_access_service(user_roles_repository: Annotated[SqlAlchemyUserRolesRepository, get_user_roles_repository]):
+def get_access_service(user_roles_repository: Annotated[SqlAlchemyUserRolesRepository, Depends(get_user_roles_repository)]):
   return AccessService(user_roles_repository)
 
 def get_ephemeral_unit_of_work(redis: Annotated[Redis, Depends(get_redis)]):

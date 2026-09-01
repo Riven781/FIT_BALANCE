@@ -1,13 +1,13 @@
 from fastapi.responses import JSONResponse
 
-from identity_and_access_context.application.errors import AmbiguousAuthentication, AuthenticationRequired, EmailAlreadyExists, InsufficientPermissions, PasswordsMustBeTheSame, UserNotFoundError, UserRolesChangedSinceRead, UsernameAlreadyExists
+from identity_and_access_context.application.errors import AmbiguousAuthentication, AuthenticationRequired, EmailAlreadyExists, InsufficientPermissions, PasswordsMustBeTheSame, UserNotFoundError, UserRolesChangedSinceRead, UsernameAlreadyExists, InvalidCredentialsError
 from identity_and_access_context.domain.authentication_provider.errors import InvalidCredential
 from identity_and_access_context.domain.repository.errors import RepositoryError
 
 
 def register_identity_and_access_exception_handlers(app):
   app.add_exception_handler(RepositoryError, repository_error_handler)
-  app.add_exception_handler(InvalidCredential, invalid_credentials_handler)
+  app.add_exception_handler(InvalidCredentialsError, invalid_credentials_handler)
   app.add_exception_handler(AuthenticationRequired, authentication_required_handler)
   app.add_exception_handler(AmbiguousAuthentication, ambiguous_authentication_handler)
   app.add_exception_handler(InsufficientPermissions, insufficient_permissions_handler)
@@ -26,7 +26,7 @@ def repository_error_handler(req, exc: RepositoryError):
     }
   )
 
-def invalid_credentials_handler(req, exc: InvalidCredential):
+def invalid_credentials_handler(req, exc: InvalidCredentialsError):
   return JSONResponse(
     status_code=401,
     content={

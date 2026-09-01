@@ -35,6 +35,13 @@ async def login_session(
     max_age=authentication_credential.ttl
   )
 
+@identity_and_access_context_router.post("/login/jwt", status_code=status.HTTP_200_OK)
+async def login_jwt(
+  credentials: LoginRequest, 
+  authentication_service: Annotated[AuthenticationService, Depends(get_authentication_service)],
+) -> TokensResponse:
+  tokens = await authentication_service.login(LoginCommand(auth_method=AuthMethod.JWT, username=credentials.username, password=credentials.password))
+  return tokens
 
 @identity_and_access_context_router.post("/logout/session", status_code=status.HTTP_204_NO_CONTENT)
 async def logout_session(
@@ -50,10 +57,10 @@ oauth2_schema = OAuth2PasswordBearer(tokenUrl="login", auto_error=False)
 
 @identity_and_access_context_router.post("/logout/jwt", status_code=status.HTTP_204_NO_CONTENT)
 async def logout_jwt(
-  token: Annotated[str, Depends(oauth2_schema)], 
+  request: RefreshJwtRequest,
   authentication_service: Annotated[AuthenticationService, Depends(get_authentication_service)],
 ):
-  await authentication_service.logout(JwtAccessTokenCredential(token))
+  await authentication_service.logout(JwtAccessTokenCredential(request.refresh_token))
 
 
 @identity_and_access_context_router.post("/refresh/session", status_code=status.HTTP_204_NO_CONTENT)
@@ -73,7 +80,7 @@ async def refresh_session(
     )
 
 
-@identity_and_access_context_router.post("/refresh/jwt")
+@identity_and_access_context_router.post("/refresh/jwt", status_code=status.HTTP_200_OK)
 async def refresh_jwt(
   request: RefreshJwtRequest, 
   authentication_service: Annotated[AuthenticationService, Depends(get_authentication_service)],

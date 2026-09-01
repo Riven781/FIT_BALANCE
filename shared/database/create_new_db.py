@@ -184,6 +184,16 @@ role = """
   ) STRICT;
 """
 
+user_roles = """
+  CREATE TABLE IF NOT EXISTS UserRoles(
+    user_id INTEGER NOT NULL,
+    version INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES User(id)
+      ON DELETE CASCADE,
+    PRIMARY KEY(user_id)
+   ) STRICT;
+"""
+
 user_role = """
   CREATE TABLE IF NOT EXISTS UserRole(
     user_id INTEGER NOT NULL,
@@ -204,6 +214,19 @@ INSERT INTO IdSequence VALUES
   ('product_category', 1)
 """
 
+refresh_token = """
+  CREATE TABLE IF NOT EXISTS RefreshToken(
+    id INTEGER PRIMARY KEY,
+    token_hash TEXT UNIQUE NOT NULL,
+    user_id INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at TEXT,
+    revoked_at TEXT,
+    FOREIGN KEY (user_id) REFERENCES User(id)
+      ON DELETE CASCADE
+   ) STRICT;
+"""
+
 if __name__ == '__main__':
   cursor.execute(product_table_query)
   cursor.execute(product_category_node_table_query)
@@ -218,8 +241,10 @@ if __name__ == '__main__':
   cursor.execute(issue)
   cursor.execute(user)
   cursor.execute(role)
+  cursor.execute(user_roles)
   cursor.execute(user_role)
   cursor.execute(id_sequence)
   cursor.execute(init_id_seq)
+  cursor.execute(refresh_token)
 conn.commit()
 conn.close()
