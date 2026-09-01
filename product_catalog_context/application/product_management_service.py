@@ -22,9 +22,9 @@ from product_catalog_context.infrastructure.aiosqlite_repository.product_categor
 
 
 class ProductManagementService():
-  def __init__(self, product_repository : ProductRepository, product_category_hierarchy : ProductCategoryHierarchyRepository=None):
+  def __init__(self, product_repository : ProductRepository, product_category_hierarchy_repository : ProductCategoryHierarchyRepository):
     self.product_repository = product_repository
-    self.product_category_hierarchy_repository = product_category_hierarchy
+    self.product_category_hierarchy_repository = product_category_hierarchy_repository
   
   async def _handle_repository_data_error(self, e):
     await self.product_repository.rollback()

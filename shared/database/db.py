@@ -68,4 +68,12 @@ async def reset_db():
     await db.execute(role)
     await db.execute(user_role)
 
+
+
+    await db.commit()
+  async with aiosqlite.connect(DB_PATH) as db:
+    await db.executescript("""
+      INSERT INTO ProductCategoryHierarchy (id, status)
+      VALUES (101, 'ACTIVE');
+    """)
     await db.commit()

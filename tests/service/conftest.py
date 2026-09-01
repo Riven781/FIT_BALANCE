@@ -143,7 +143,7 @@ async def category_assignment_service(db) -> CategoryAssignmentTaskService:
 async def product_management_service(db) -> CategoryAssignmentTaskService:
   hierarchy_repo = ProductCategoryHierarchyRepository(db)
   product_repo = ProductRepository(db)
-  return ProductManagementService(product_repository=product_repo, product_category_hierarchy=hierarchy_repo)
+  return ProductManagementService(product_repository=product_repo, product_category_hierarchy_repository=hierarchy_repo)
 
 
 

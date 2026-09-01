@@ -34,7 +34,7 @@ async def test_update_wrong_id(fake_product_repository):
   repo = fake_product_repository(
     [Product(product_id=80, name="Raw Dzik", brand_name="BB", nutrition_facts=None, current_category_id=10, name_search_standard='raw dzik')])
   new_info_about_product = ProductCommand(name="Żywiec zdrój", brand_name="BB", current_category_id=10, nutrition_facts=None, img_src=None)
-  service = ProductManagementService(repo)
+  service = ProductManagementService(repo, None)
   
   with pytest.raises(ProductNotFoundError):
     await service.update(100, new_info_about_product)
@@ -55,7 +55,7 @@ async def test_update_one_product(fake_product_repository):
       current_category_id=10, 
       name_search_standard='raw dzik')])
   new_info_about_product = ProductCommand(name="Żywiec zdrój", brand_name="BB", current_category_id=10, nutrition_facts=nutrition_facts, img_src=None)
-  service = ProductManagementService(repo)
+  service = ProductManagementService(repo, None)
 
   await service.update(80, new_info_about_product)
 
@@ -101,7 +101,7 @@ async def test_update_one_product_with_null_field(fake_product_repository):
   new_nutrition_facts = NutritionFacts(reference_quantity=ReferenceQuantity(amount=100, unit='g'), kcal=300, nutrients=Nutrients())
   new_info_about_product = ProductCommand(name="Raw Dzik", brand_name="BB", current_category_id=10, nutrition_facts=new_nutrition_facts, img_src=None)
 
-  service = ProductManagementService(repo)
+  service = ProductManagementService(repo, None)
   await service.update(80, new_info_about_product)
   product = await service.get(80)
   assert product.product_id == 80
@@ -113,7 +113,7 @@ async def test_update_one_product_with_null_field(fake_product_repository):
 async def test_delete_one_product(fake_product_repository):
   repo = fake_product_repository(
     [Product(product_id=80, name="Raw Dzik", brand_name="BB", nutrition_facts=None, current_category_id=10, name_search_standard='raw dzik')])
-  service = ProductManagementService(repo)
+  service = ProductManagementService(repo, None)
   await service.delete(80)
   with pytest.raises(ProductNotFoundError):
     product = await service.get(80)
@@ -122,7 +122,7 @@ async def test_delete_one_product(fake_product_repository):
 async def test_delete_wrong_id(fake_product_repository):
   repo = fake_product_repository(
     [Product(product_id=80, name="Raw Dzik", brand_name="BB", nutrition_facts=None, current_category_id=10, name_search_standard='raw dzik')])
-  service = ProductManagementService(repo)
+  service = ProductManagementService(repo, None)
   with pytest.raises(ProductNotFoundError):
     await service.delete(100)
   

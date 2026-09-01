@@ -3,7 +3,6 @@ from fastapi import Depends
 from typing import Annotated
 from product_catalog_context.application.product_management_service import ProductManagementService
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
-from product_catalog_context.application.category_hierarchy_management_service import ProductCategoryService
 from config import MODE
 from product_catalog_context.infrastructure.api.rest.schemas.product import ProductPostRequest, ProductPutRequest, ProductResponse, PublicProductListResponse, PublicProductResponse
 from product_catalog_context.infrastructure.api.rest.schemas.product_category import ProductCategory, ProductCategoryHierarchy
@@ -11,7 +10,7 @@ import math
 from product_catalog_context.infrastructure.api.rest.dependencies.database import get_product_category_service, get_product_management_service, get_product_query_service, get_product_repository
 from product_catalog_context.application.product_query_service import ProductQueryService
 from product_catalog_context.infrastructure.api.rest.dependencies.filters import SortBy, NameMode, ProductsFilters, PaginationFilters
-
+from product_catalog_context.application.category_hierarchy_management_service import CategoryHierarchyManagementService
 
 product_catalog_router = APIRouter()
 
@@ -55,14 +54,14 @@ async def update_product(product_id: int, product: ProductPutRequest, product_ma
 
 
 @product_catalog_router.get('api/v1/product-categories/hierarchy', response_model=list[ProductCategoryHierarchy])
-async def read_category_hierarchy(product_category_service: Annotated[ProductCategoryService, Depends(get_product_category_service)]):
+async def read_category_hierarchy(product_category_service: Annotated[CategoryHierarchyManagementService, Depends(get_product_category_service)]):
   return await product_category_service.get_hierarchy()
 
 @product_catalog_router.put('api/v1/product-categories/hierarchy', response_model=list[ProductCategoryHierarchy])
-async def update_category_hierarchy(product_categories: list[ProductCategory], product_category_service: Annotated[ProductCategoryService, Depends(get_product_category_service)]):
+async def update_category_hierarchy(product_categories: list[ProductCategory], product_category_service: Annotated[CategoryHierarchyManagementService, Depends(get_product_category_service)]):
   return await product_category_service.update_hierarchy(product_categories)
 
 @product_catalog_router.get('api/v1/product-categories', response_model=list[ProductCategory])
-async def read_categories(product_category_service: Annotated[ProductCategoryService, Depends(get_product_category_service)]):
+async def read_categories(product_category_service: Annotated[CategoryHierarchyManagementService, Depends(get_product_category_service)]):
   return await product_category_service.get_all()
 
