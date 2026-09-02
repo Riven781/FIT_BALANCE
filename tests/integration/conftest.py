@@ -29,3 +29,32 @@ def restart_docker():
   wait_for_api()
   yield
   subprocess.run(["docker", "compose", "down", "-v"],check=True)
+
+
+
+
+@pytest.fixture
+def cookies():
+  url = config.get_api_url()
+  data = {
+      'username': 'Pawlo',
+      'password': 'strong_password',
+    }
+  r = requests.post(f'{url}/login/session', json=data)
+  print(r.cookies.get('session_id'))
+  return {'session_id': r.cookies.get('session_id')}
+
+
+def login_jwt():
+  url = config.get_api_url()
+  data = {
+      'username': 'Pawlo',
+      'password': 'Pawlo@123',
+    }
+  r = requests.post(f'{url}/login/jwt', json=data)
+  return r.json()
+
+method = 'SESSION'
+
+
+

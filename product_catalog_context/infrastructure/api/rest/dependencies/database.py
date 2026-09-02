@@ -27,8 +27,8 @@ async def get_identity_adapter(identity_api: Annotated[IdentityApi, Depends(get_
   return IdentityAdapter(identity_api)
 
 #it should be used in many routes
-async def get_current_user_id(identity_adapter: Annotated[IdentityApi, Depends(get_identity_adapter)], credentials: Annotated[RawAuthenticationCredentials, Depends(get_raw_authentication_credentials)]):
-  return await identity_adapter.get_current_user(credentials) #identity adapter can use rest in future
+async def get_current_user_id(identity_adapter: Annotated[IdentityAdapter, Depends(get_identity_adapter)], credentials: Annotated[RawAuthenticationCredentials, Depends(get_raw_authentication_credentials)]):
+  return await identity_adapter.get_current_user_id(credentials) #identity adapter can use rest in future
 
 async def get_product_repository(db: Annotated[aiosqlite.Connection, Depends(get_db)]):
   return ProductRepository(db)
@@ -47,8 +47,11 @@ async def get_product_category_repository(db: Annotated[aiosqlite.Connection, De
 async def get_product_category_hierarchy_repository(db: Annotated[aiosqlite.Connection, Depends(get_db)]):
   return ProductCategoryHierarchyRepository(db)
 
-async def get_product_management_service(product_repository: Annotated[ProductRepository, Depends(get_product_repository)], product_category_hierarchy_repository: Annotated[ProductCategoryHierarchyRepository, Depends(get_product_category_hierarchy_repository)]):
-  return ProductManagementService(product_repository, product_category_hierarchy_repository)
+async def get_product_management_service(
+    product_repository: Annotated[ProductRepository, Depends(get_product_repository)], 
+    product_category_hierarchy_repository: Annotated[ProductCategoryHierarchyRepository, Depends(get_product_category_hierarchy_repository)],
+    access_adapter: Annotated[AccessAdapter, Depends(get_access_adapter)]):
+  return ProductManagementService(product_repository, product_category_hierarchy_repository, access_adapter)
 
 async def get_product_category_service(
     product_category_repository: Annotated[ProductCategoryRepository, Depends(get_product_category_repository)],
