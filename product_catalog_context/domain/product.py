@@ -13,7 +13,7 @@ class Product:
       name, 
       brand_name, 
       nutrition_facts:NutritionFacts, 
-      current_category_id = None, planned_category_id = None, product_id=None, img_src: str=None, ingredients=None, allergy_recommendations=None, name_search_standard=None):
+      current_category_id = None, planned_category_id = None, product_id=None, img_src: str=None, ingredients=None, allergy_recommendations=None, name_search_standard=None, created_by=None):
     self._product_id = product_id
     self.rename(name)
     self.change_brand_name(brand_name)
@@ -24,6 +24,7 @@ class Product:
     self.current_category_id = current_category_id
     self.planned_category_id = planned_category_id
     self.assign_to_planned_category(planned_category_id)
+    self.created_by = created_by
 
   @property
   def product_id(self):

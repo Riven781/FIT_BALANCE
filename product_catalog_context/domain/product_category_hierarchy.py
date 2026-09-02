@@ -5,10 +5,12 @@ from product_catalog_context.domain.product_category import ProductCategory, Pro
 
 
 class ProductCategoryHierarchy:
-  def __init__(self, product_categories : list[ProductCategory], status :ProductCategoryHierarchyStatus=ProductCategoryHierarchyStatus.DRAFT, hierarchy_id=None):
+  def __init__(self, product_categories : list[ProductCategory], status :ProductCategoryHierarchyStatus=ProductCategoryHierarchyStatus.DRAFT, hierarchy_id=None, created_by=None, published_by=None):
     self.hierarchy_id = hierarchy_id
     self.product_categories = product_categories
     self.status = status
+    self.created_by = created_by
+    self.published_by = published_by
 
 
   #def is_hierarchy_structure_correct(self, product_categories: list[ProductCategory]):
@@ -45,12 +47,12 @@ class ProductCategoryHierarchy:
       raise CategoryAssignmentNotAllowed()
   
 
-  def create_draft_based_on_hierarchy(self, ids):
+  def create_draft_based_on_hierarchy(self, ids, user_id):
     if len(ids) != len(self.product_categories):
       return DraftCategoryIdCountMismatch()
     new_id_by_old_id = {category.category_id : ids[i] for i, category in enumerate(self.product_categories)}
     product_categories_copy = [ProductCategory(name=category.name, parent_id=new_id_by_old_id.get(category.parent_id) , category_id=new_id_by_old_id[category.category_id], source_node_id=category.category_id) for category in self.product_categories]
-    return ProductCategoryHierarchy(status=ProductCategoryHierarchyStatus.DRAFT, product_categories=product_categories_copy)
+    return ProductCategoryHierarchy(status=ProductCategoryHierarchyStatus.DRAFT, product_categories=product_categories_copy, created_by=user_id)
 
   def product_categories_len(self):
     return len(self.product_categories)
@@ -62,11 +64,12 @@ class ProductCategoryHierarchy:
     return all(self.contains_product_category(category.category_id) for category in product_categories)
 
 
-  def publish(self):
+  def publish(self, user_id):
     if self.status != ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION:
       raise CategoryHierarchyCannotBePublished()
 
     self.status = ProductCategoryHierarchyStatus.ACTIVE
+    self.published_by = user_id
 
   def revert_to_draft(self):
     if self.status != ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION:

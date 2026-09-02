@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.event import listens_for
 from config import DB_PATH
 
-sqlite_engine = create_async_engine(f'sqlite+aiosqlite:///{DB_PATH}', echo=True)
+sqlite_engine = create_async_engine(f'sqlite+aiosqlite:///{DB_PATH}')
 
 SessionLocal = async_sessionmaker(sqlite_engine, class_=AsyncSession, expire_on_commit=False)
 

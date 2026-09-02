@@ -35,7 +35,7 @@ product_table_query = """
       ON DELETE SET NULL
   ) STRICT;
 """
-
+#delete updated by and updated at
 
 
 product_category_node_table_query = """

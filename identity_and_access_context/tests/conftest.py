@@ -30,7 +30,7 @@ from identity_and_access_context.infrastructure.redis_repository.unit_of_work im
 
 @pytest_asyncio.fixture
 async def db_session():
-  engine = create_async_engine(f'sqlite+aiosqlite:///:memory:', echo=True)
+  engine = create_async_engine(f'sqlite+aiosqlite:///:memory:')
   SessionTest = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
   @listens_for(engine.sync_engine, 'connect')
   def set_sqlite_pragma(dbapi_connection, connection_record):

@@ -56,12 +56,13 @@ class CategoryAssignmentTaskRepository(DbRepository):
       WHERE user_id = ? AND product_id = ?
     """
     async with self.db.execute(delete_id, (user_id, product_id)) as cursor:
-          return cursor.rowcount
+      return cursor.rowcount
+
   async def delete_by_user(self, user_id):
     delete_id = """
       DELETE FROM ProductCategoryAssignmentTask
       WHERE user_id = ?
     """
     async with self.db.execute(delete_id, (user_id,)) as cursor:
-          return cursor.rowcount
+      return cursor.rowcount
     

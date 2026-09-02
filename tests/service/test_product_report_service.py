@@ -8,7 +8,7 @@ from product_catalog_context.domain.enums.product_issue_status import ProductIss
 @pytest.mark.asyncio
 async def test_create_report_without_issues(product_report_service : ProductReportService, db):
   product_report_command = ProductReportCommand(product_id=1, reported_items=[ReportedItem(reported_field=ReportedField.KCAL), ReportedItem(reported_field=ReportedField.FIBER)])
-  product_report = await product_report_service.create_report(product_report_command)
+  product_report = await product_report_service.create_report(product_report_command, 1)
   assert product_report.product_id == 1
   assert len(product_report.reported_items) == 2
   product_item_1 = product_report.reported_items[0]
@@ -40,7 +40,7 @@ async def test_create_report_without_issues(product_report_service : ProductRepo
 @pytest.mark.asyncio
 async def test_create_report_with_issue(product_report_service : ProductReportService, db):
   product_report_command = ProductReportCommand(product_id=1, reported_items=[ReportedItem(reported_field=ReportedField.SUGARS, proposed_value=11), ReportedItem(reported_field=ReportedField.FIBER)])
-  product_report = await product_report_service.create_report(product_report_command)
+  product_report = await product_report_service.create_report(product_report_command, 1)
   assert product_report.product_id == 1
   assert len(product_report.reported_items) == 2
   product_item_1 = product_report.reported_items[0]

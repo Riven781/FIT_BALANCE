@@ -51,3 +51,12 @@ class TaskNotFoundError(ServiceError):
 
 class IssueNotFoundError(ServiceError):
   pass
+
+class AccessDenied(ServiceError):
+  pass
+
+class CategoryAssignmentBelongsToAnotherUser(ServiceError):
+  pass
+
+class CategoryAssignmentRequiresProductEditor(ServiceError):
+  pass

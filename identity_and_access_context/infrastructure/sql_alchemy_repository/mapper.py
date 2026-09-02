@@ -29,7 +29,7 @@ user_role_table = Table(
   "UserRole",
   mapper_registry.metadata,
   Column("user_id", Integer, ForeignKey("UserRoles.user_id", ondelete='CASCADE'), primary_key=True),
-  Column("role", Enum(Role, native_enum=False), primary_key=True)
+  Column("role", Enum(Role, native_enum=False, values_callable=lambda x: [e.value for e in x]), primary_key=True)
 )
 
 class UserRoleModel:
@@ -43,7 +43,7 @@ mapper_registry.map_imperatively(
 
 
 mapper_registry.map_imperatively(UserRoles, user_roles_table, properties={
-  "_user_roles" : relationship(UserRoleModel, cascade="all, delete-orphan"),
+  "_user_roles" : relationship(UserRoleModel, cascade="all, delete-orphan", lazy='selectin'),
 })
 UserRoles.roles = association_proxy("_user_roles", "role", creator=lambda role: UserRoleModel(role=role))
 

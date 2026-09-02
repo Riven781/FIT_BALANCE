@@ -6,15 +6,21 @@ class AccessAdapter:
   def __init__(self, access_api: AccessApi):
     self.access_api = access_api
 
-  def get_product_editor_for(self, user_id):
-    authorized_user = self.access_api.get_authorized_user(user_id, 'product_editor')
+  async def get_product_editor_for(self, user_id):
+    authorized_user = await self.access_api.get_authorized_user(user_id, 'product_editor')
+    if authorized_user is None:
+      return None
     return ProductEditor(authorized_user.user_id)
 
-  def get_catalog_manager_for(self, user_id):
-    authorized_user = self.access_api.get_authorized_user(user_id, 'catalog_manager')
+  async def get_catalog_manager_for(self, user_id):
+    authorized_user = await self.access_api.get_authorized_user(user_id, 'catalog_manager')
+    if authorized_user is None:
+      return None
     return CatalogManager(authorized_user.user_id)
 
-  def get_moderator_for(self, user_id):
-    authorized_user = self.access_api.get_authorized_user(user_id, 'moderator')
+  async def get_moderator_for(self, user_id):
+    authorized_user = await self.access_api.get_authorized_user(user_id, 'moderator')
+    if authorized_user is None:
+      return None
     return Moderator(authorized_user.user_id)
   

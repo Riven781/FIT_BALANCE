@@ -3,8 +3,31 @@ from product_catalog_context.application.errors.errors import TaskNotFoundError,
 from product_catalog_context.domain.enums.category_assignment_task_status import CategoryAssignmentTaskStatus
 from product_catalog_context.domain.errors import CategoryAssignmentNotAllowed, DraftCategoryHierarchyCannotBeDeleted, CategoryHierarchyCannotBeRevertedToDraft,ParentCategoryNotInHierarchy, CategoryHierarchyIsNotDraft,CategoryHierarchyCannotBePublished, OnlyDraftHierarchyCanBeUpdated, DraftCategoryHierarchyCannotBeCreated, DraftCategoryIdCountMismatch
 
+async def insert_users(db):
+  cursor = await db.executescript(
+    """
+    INSERT INTO User(id, username, email, hashed_password) VALUES 
+      (1, 'ZYZ','xyz@gm.c','xyz'), 
+      (2, 'ABC','abc@gm.c','abc'),
+      (3, 'OKO','oko@gm.c','oko');
+
+    INSERT INTO UserRoles(user_id, version) VALUES 
+      (1, 1), 
+      (2, 1),
+      (3, 1);
+
+    INSERT INTO UserRole(user_id, role) VALUES 
+      (1, 'product_editor'),
+      (1, 'catalog_manager'),
+      (2, 'product_editor'),
+      (3, 'product_editor');
+    """
+  )
+  await db.commit()
+  await cursor.close()
 
 async def insert_data(db):
+  await insert_users(db)
   cursor = await db.executescript(""" 
     INSERT INTO ProductCategoryHierarchy (id, status) VALUES
       (2, "PLANNED_FOR_PUBLICATION");
@@ -28,11 +51,7 @@ async def insert_data(db):
       (5, 'Boczek', 3, 1, NULL),
       (6, 'Tofu', 2, 1, NULL),
       (7, 'Groszek', 2, 1, NULL);
-  
-    INSERT INTO User(id, username, email, hashed_password) VALUES 
-      (1, 'ZYZ','xyz@gm.c','xyz'), 
-      (2, 'ABC','abc@gm.c','abc'),
-      (3, 'OKO','oko@gm.c','oko');
+
 
     INSERT INTO Product (id, name, brand_name, kcal, reference_amount, reference_unit, name_search_standard)
       VALUES 
@@ -49,7 +68,7 @@ async def insert_data(db):
     (1, 4), (2, 4), (3, 4), (4, 6), (6, 5), (7, 5);
 
     INSERT INTO ProductCategoryAssignmentTask (id, product_id, hierarchy_id, user_id, status) VALUES
-      (1, 1, 2, 1, 'PENDING'), (2, 1, 1, 1, 'PENDING');
+      (1, 1, 2, 2, 'PENDING'), (2, 2, 1, 1, 'PENDING');
 
 
   """)
@@ -63,7 +82,7 @@ async def test_get_task(category_assignment_service, db):
   assert task.task_id == 1
   assert task.product_id == 1
   assert task.hierarchy_id == 2
-  assert task.user_id == 1
+  assert task.user_id == 2
   assert task.status == CategoryAssignmentTaskStatus.PENDING
 
 @pytest.mark.asyncio
@@ -74,7 +93,7 @@ async def test_get_not_existing_task(category_assignment_service):
 @pytest.mark.asyncio
 async def test_complete_category_assignment(category_assignment_service, db, product_management_service):
   await insert_data(db)
-  await category_assignment_service.complete_category_assignment(1, 13)
+  await category_assignment_service.complete_category_assignment(task_id=1, category_id=13, product_editor_id=2)
   task = await category_assignment_service.get_task(1)
   assert task.status == CategoryAssignmentTaskStatus.COMPLETED
 
@@ -85,12 +104,12 @@ async def test_complete_category_assignment(category_assignment_service, db, pro
 async def test_complete_category_assignment_in_active_hierarchy(category_assignment_service, db):
   await insert_data(db)
   with pytest.raises(CategoryAssignmentNotAllowed):
-    await category_assignment_service.complete_category_assignment(2, 1)
+    await category_assignment_service.complete_category_assignment(task_id=2, category_id=1, product_editor_id=1)
 
 @pytest.mark.asyncio
 async def test_assign_tasks_for_user_by_active_category_id(category_assignment_service, db):
   await insert_data(db)
-  await category_assignment_service.assign_tasks_for_user_by_active_category_id(user_id=3, hierarchy_id=2, current_category_id=4, limit=20)
+  await category_assignment_service.assign_tasks_for_user_by_active_category_id(product_editor_id=3, hierarchy_id=2, catalog_manager_id=1, current_category_id=4, limit=20)
   cursor = await db.execute("""
   SELECT product_id, hierarchy_id, user_id, status
   FROM ProductCategoryAssignmentTask
@@ -104,7 +123,7 @@ async def test_assign_tasks_for_user_by_active_category_id(category_assignment_s
 @pytest.mark.asyncio
 async def test_assign_tasks_for_user_by_active_category_id_with_limit(category_assignment_service, db):
   await insert_data(db)
-  await category_assignment_service.assign_tasks_for_user_by_active_category_id(user_id=3, hierarchy_id=2, current_category_id=4, limit=1)
+  await category_assignment_service.assign_tasks_for_user_by_active_category_id(product_editor_id=3, catalog_manager_id=1,hierarchy_id=2, current_category_id=4, limit=1)
   cursor = await db.execute("""
   SELECT product_id, hierarchy_id, user_id, status
   FROM ProductCategoryAssignmentTask
@@ -117,7 +136,7 @@ async def test_assign_tasks_for_user_by_active_category_id_with_limit(category_a
 @pytest.mark.asyncio
 async def test_assign_tasks_for_users(category_assignment_service, db):
   await insert_data(db)
-  await category_assignment_service.assign_tasks_for_users([2, 3], 2)
+  await category_assignment_service.assign_tasks_for_users(product_editor_ids=[2, 3], hierarchy_id=2, catalog_manager_id=1)
   cursor = await db.execute("""
     SELECT product_id, hierarchy_id, user_id, status
     FROM ProductCategoryAssignmentTask
@@ -134,13 +153,13 @@ async def test_assign_tasks_for_users(category_assignment_service, db):
     ORDER BY product_id
     """)
   tasks_user_2 = await cursor.fetchall()
-  assert len(tasks_user_2) == 4
+  assert len(tasks_user_2) == 5
 
 
 @pytest.mark.asyncio
 async def test_delete_task(category_assignment_service, db):
   await insert_data(db)
-  await category_assignment_service.delete_task(1)
+  await category_assignment_service.delete_task(task_id=1, catalog_manager_id=1)
   with pytest.raises(TaskDoesNotExist):
     task = await category_assignment_service.get_task(1)
 
@@ -148,21 +167,20 @@ async def test_delete_task(category_assignment_service, db):
 async def test_not_existing_delete_task(category_assignment_service, db):
   await insert_data(db)
   with pytest.raises(TaskNotFoundError):
-    await category_assignment_service.delete_task(1000)
+    await category_assignment_service.delete_task(task_id=1000, catalog_manager_id=1)
 
 @pytest.mark.asyncio
 async def test_delete_tasks_by_user(category_assignment_service, db):
   await insert_data(db)
-  await category_assignment_service.delete_tasks_by_user(1)
+  await category_assignment_service.delete_tasks_by_user(user_id=2, catalog_manager_id=1)
   with pytest.raises(TaskDoesNotExist):
     task = await category_assignment_service.get_task(1)
-  with pytest.raises(TaskDoesNotExist):
-    task = await category_assignment_service.get_task(2)
+
 
 @pytest.mark.asyncio
 async def test_delete_task_by_user_and_product(category_assignment_service, db):
   await insert_data(db)
-  await category_assignment_service.delete_task_by_user_and_product(1, 1)
+  await category_assignment_service.delete_task_by_user_and_product(user_id=2, product_id=1, catalog_manager_id=1)
   with pytest.raises(TaskDoesNotExist):
     task = await category_assignment_service.get_task(1)
 
@@ -170,5 +188,4 @@ async def test_delete_task_by_user_and_product(category_assignment_service, db):
 async def test_delete_not_existing_task_by_user_and_product(category_assignment_service, db):
   await insert_data(db)
   with pytest.raises(TaskNotFoundError):
-    await category_assignment_service.delete_task_by_user_and_product(1, 100)
-  
+    await category_assignment_service.delete_task_by_user_and_product(user_id=1, product_id=100, catalog_manager_id=1)

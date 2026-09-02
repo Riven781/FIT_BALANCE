@@ -10,8 +10,10 @@ services:
     environment:
       DB_PATH: /tmp/test.db
       MODE: TEST
-      REDIS-HOST: redis-test
-      REDIS-PORT: 6379
+      REDIS_HOST: redis-test
+      REDIS_PORT: 6379
+    depends_on:
+     - redis-test
   redis-test:
     image: redis:latest
     ports: 

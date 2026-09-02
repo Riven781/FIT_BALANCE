@@ -9,8 +9,33 @@ from product_catalog_context.application.category_hierarchy_management_service i
 from product_catalog_context.application.errors.errors import DraftCategoryHierarchyExists
 from product_catalog_context.domain.product_category import ProductCategory, ProductCategoryDraft, ProductCategoryItem
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
+from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
+
+async def insert_users(db):
+  cursor = await db.executescript(
+    """
+    INSERT INTO User(id, username, email, hashed_password) VALUES 
+      (1, 'ZYZ','xyz@gm.c','xyz'), 
+      (2, 'ABC','abc@gm.c','abc'),
+      (3, 'OKO','oko@gm.c','oko');
+
+    INSERT INTO UserRoles(user_id, version) VALUES 
+      (1, 1), 
+      (2, 1),
+      (3, 1);
+
+    INSERT INTO UserRole(user_id, role) VALUES 
+      (1, 'product_editor'),
+      (1, 'catalog_manager'),
+      (2, 'product_editor'),
+      (3, 'product_editor');
+    """
+  )
+  await db.commit()
+  await cursor.close()
 
 async def insert_2_hierarchies(db):
+  await insert_users(db)
   repo = ProductCategoryHierarchyRepository(db)
   ids = [await repo.next_category_id() for _ in range(18)]
   cursor = await db.executescript(f"""
@@ -47,6 +72,7 @@ async def insert_2_hierarchies(db):
   await cursor.close()
 
 async def insert_1_hierarchy(db):
+  await insert_users(db)
   repo = ProductCategoryHierarchyRepository(db)
   ids = [await repo.next_category_id() for _ in range(9)]
   cursor = await db.executescript(f"""
@@ -69,29 +95,29 @@ async def insert_1_hierarchy(db):
 
 
 @pytest.mark.asyncio
-async def test_get_hierarchy(db):
+async def test_get_hierarchy(db, access_adapter):
   await insert_2_hierarchies(db)
   repo = ProductCategoryHierarchyRepository(db)
-  service = CategoryHierarchyManagementService(repo)
+  service = CategoryHierarchyManagementService(repo, access_adapter=access_adapter)
   hierarchy = await service.get_hierarchy(1)
   assert len(hierarchy.product_categories) == 9
   assert hierarchy.status == ProductCategoryHierarchyStatus.ACTIVE
 
 @pytest.mark.asyncio
-async def test_create_draft_when_draft_version_exists(db):
+async def test_create_draft_when_draft_version_exists(db, access_adapter):
   await insert_2_hierarchies(db)
   repo = ProductCategoryHierarchyRepository(db)
-  service = CategoryHierarchyManagementService(repo)
+  service = CategoryHierarchyManagementService(repo, access_adapter=access_adapter)
   with pytest.raises(DraftCategoryHierarchyExists):
-    hierarchy = await service.create_draft(1)
+    hierarchy = await service.create_draft(1, 1)
 
 
 @pytest.mark.asyncio
-async def test_create_draft(db):
+async def test_create_draft(db, access_adapter):
   await insert_1_hierarchy(db)
   repo = ProductCategoryHierarchyRepository(db)
-  service = CategoryHierarchyManagementService(repo, ProductRepository(db))
-  hierarchy = await service.create_draft(1)
+  service = CategoryHierarchyManagementService(repo, access_adapter, ProductRepository(db))
+  hierarchy = await service.create_draft(1, 1)
   assert hierarchy.hierarchy_id == 2
   assert len(hierarchy.product_categories) == 9
   assert hierarchy.status == ProductCategoryHierarchyStatus.DRAFT
@@ -100,33 +126,33 @@ async def test_create_draft(db):
 
 
 @pytest.mark.asyncio
-async def test_plan_for_publication(db):
+async def test_plan_for_publication(db, access_adapter):
   await insert_2_hierarchies(db)
   repo = ProductCategoryHierarchyRepository(db)
-  service = CategoryHierarchyManagementService(repo, ProductRepository(db))
-  hierarchy = await service.plan_for_publication(2)
+  service = CategoryHierarchyManagementService(repo, access_adapter, ProductRepository(db))
+  hierarchy = await service.plan_for_publication(2, 1)
   assert hierarchy.status == ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION
 
 @pytest.mark.asyncio
-async def test_plan_for_publication_active_hierarchy(db):
+async def test_plan_for_publication_active_hierarchy(db, access_adapter):
   await insert_2_hierarchies(db)
   repo = ProductCategoryHierarchyRepository(db)
-  service = CategoryHierarchyManagementService(repo)
+  service = CategoryHierarchyManagementService(repo, access_adapter)
   with pytest.raises(CategoryHierarchyIsNotDraft):
-    hierarchy = await service.plan_for_publication(1)
+    hierarchy = await service.plan_for_publication(1, 1)
 
 @pytest.mark.asyncio
-async def test_edit_hierarchy(db):
+async def test_edit_hierarchy(db, access_adapter):
   await insert_2_hierarchies(db)
   repo = ProductCategoryHierarchyRepository(db)
-  service = CategoryHierarchyManagementService(repo)
+  service = CategoryHierarchyManagementService(repo, access_adapter)
   categories = [
     ProductCategory(name='Produkty', parent_id=None, category_id=10, source_node_id=1),
     ProductCategory(name='Roślinne', parent_id=10, category_id=11, source_node_id=2),
     ProductCategory(name='Zwierzęce', parent_id=10, category_id=12, source_node_id = 3),
     ProductCategoryDraft(name='Kurczak', parent_id=12, temp_id="temp-1")
   ]
-  hierarchy = await service.edit_hierarchy(2, categories)
+  hierarchy = await service.edit_hierarchy(2, categories, 1)
   assert len(hierarchy.product_categories) == 4
   assert hierarchy.status == ProductCategoryHierarchyStatus.DRAFT
   assert hierarchy.product_categories[0].category_id == 10 and hierarchy.product_categories[0].name == 'Produkty' and hierarchy.product_categories[0].parent_id == None and hierarchy.product_categories[0].source_node_id == 1
@@ -135,41 +161,42 @@ async def test_edit_hierarchy(db):
   assert hierarchy.product_categories[3].category_id == 19 and hierarchy.product_categories[3].name == 'Kurczak' and hierarchy.product_categories[3].parent_id == 12 and hierarchy.product_categories[3].source_node_id == None 
 
 @pytest.mark.asyncio
-async def test_edit_active_hierarchy(db):
+async def test_edit_active_hierarchy(db, access_adapter):
   await insert_2_hierarchies(db)
   repo = ProductCategoryHierarchyRepository(db)
-  service = CategoryHierarchyManagementService(repo)
+  service = CategoryHierarchyManagementService(repo, access_adapter)
   categories = []
   with pytest.raises(OnlyDraftHierarchyCanBeUpdated):
-    hierarchy = await service.edit_hierarchy(1, categories)
+    hierarchy = await service.edit_hierarchy(1, categories, 1)
 
 
 @pytest.mark.asyncio
-async def test_publish(db):
+async def test_publish(db, access_adapter):
   await insert_2_hierarchies(db)
   repo = ProductCategoryHierarchyRepository(db)
-  service = CategoryHierarchyManagementService(repo, ProductRepository(db))
-  hierarchy = await service.plan_for_publication(2)
-  hierarchy = await service.publish_hierarchy(2)
+  service = CategoryHierarchyManagementService(repo, access_adapter, ProductRepository(db))
+  hierarchy = await service.plan_for_publication(2, 1)
+  hierarchy = await service.publish_hierarchy(2, 1)
   assert hierarchy.status == ProductCategoryHierarchyStatus.ACTIVE
+  assert hierarchy.published_by == 1
   hierarchy = await service.get_hierarchy(1)
   assert hierarchy is None
 
 @pytest.mark.asyncio
-async def test_revert_to_draft(db):
+async def test_revert_to_draft(db, access_adapter):
   await insert_2_hierarchies(db)
   repo = ProductCategoryHierarchyRepository(db)
-  service = CategoryHierarchyManagementService(repo, ProductRepository(db))
-  hierarchy = await service.plan_for_publication(2)
-  hierarchy = await service.revert_to_draft(2)
+  service = CategoryHierarchyManagementService(repo, access_adapter, ProductRepository(db))
+  hierarchy = await service.plan_for_publication(2, 1)
+  hierarchy = await service.revert_to_draft(2, 1)
   assert hierarchy.status == ProductCategoryHierarchyStatus.DRAFT
 
 @pytest.mark.asyncio
-async def test_delete_draft(db):
+async def test_delete_draft(db, access_adapter):
   await insert_2_hierarchies(db)
   repo = ProductCategoryHierarchyRepository(db)
-  service = CategoryHierarchyManagementService(repo, ProductRepository(db))
-  await service.delete_draft(2)
+  service = CategoryHierarchyManagementService(repo, access_adapter, ProductRepository(db))
+  await service.delete_draft(2, 1)
   hierarchy = await service.get_hierarchy(2)
   assert hierarchy is None
 

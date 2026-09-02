@@ -1,6 +1,6 @@
 import pytest
 from product_catalog_context.domain.product import Product
-from product_catalog_context.domain.nutrition_facts import NutritionFacts, Nutrients, ReferenceQuantity
+from product_catalog_context.domain.nutrition_facts import NutritionFacts, Nutrients, ReferenceQuantity, Nutrients
 from product_catalog_context.application.command.product import ProductCommand
 from product_catalog_context.application.product_management_service import ProductManagementService
 from product_catalog_context.application.errors.errors import ProductNotFoundError
@@ -8,56 +8,101 @@ from product_catalog_context.infrastructure.aiosqlite_repository.product_categor
 
 #pytest tests/service/test_product_management_service.py
 
+async def insert_users(db):
+  async with db.executescript(
+    """
+    INSERT INTO User(id, username, email, hashed_password) VALUES 
+      (1, 'ZYZ','xyz@gm.c','xyz'), 
+      (2, 'ABC','abc@gm.c','abc');
+    
+    INSERT INTO UserRoles(user_id, version) VALUES 
+      (1, 1), 
+      (2, 1);
+    
+    INSERT INTO UserRole(user_id, role) VALUES 
+      (1, 'product_editor'),
+      (2, 'catalog_manager');
+    """
+  ) as cursor:
+    pass  
+
 @pytest.mark.asyncio
-async def test_create_one_product(fake_product_repository, hierarchy_repository):
-  repo = fake_product_repository(
-    [])
-  service = ProductManagementService(repo, hierarchy_repository)
-  product_command = ProductCommand(name="Raw Dzik", brand_name="BB", current_category_id=10, nutrition_facts=None, img_src=None)
-  product_created = await service.create(product_command)
+async def test_create_one_product(db, product_repository, hierarchy_repository, access_adapter):
+  await insert_users(db)
+  service = ProductManagementService(product_repository, hierarchy_repository, access_adapter)
+  product_command = ProductCommand(
+    name="Raw Dzik", 
+    brand_name="BB", 
+    current_category_id=10, 
+    nutrition_facts=
+      NutritionFacts(
+        reference_quantity=ReferenceQuantity(amount=100, unit='g'), 
+        kcal=120, 
+        nutrients=Nutrients()), 
+    img_src=None)
+  product_created = await service.create(product_command, 1)
   print(product_created.name)
   assert product_created.name_search_standard == 'raw dzik'
   assert product_created.name == 'Raw Dzik'
 
 @pytest.mark.asyncio
-async def test_create_empty_string_name(fake_product_repository, hierarchy_repository):
-  repo = fake_product_repository(
-    [])
-  service = ProductManagementService(repo, hierarchy_repository)
-  product_command = ProductCommand(name="", brand_name="BB", current_category_id=10, nutrition_facts=None, img_src=None)
+async def test_create_empty_string_name(db, product_repository, hierarchy_repository, access_adapter):
+  await insert_users(db)
+  service = ProductManagementService(product_repository, hierarchy_repository, access_adapter)
+  product_command = ProductCommand(
+    name="", 
+    brand_name="BB", 
+    current_category_id=10, 
+    nutrition_facts=
+      NutritionFacts(
+        reference_quantity=ReferenceQuantity(amount=100, unit='g'),
+        kcal=120, 
+        nutrients=Nutrients()), 
+    img_src=None)
   with pytest.raises(ValueError):
-    product_created = await service.create(product_command)
+    product_created = await service.create(product_command, 1)
+
+async def insert_product(db):
+  async with db.executescript(
+    """
+    INSERT INTO Product(id, name, brand_name, kcal, reference_amount, reference_unit, name_search_standard, fat) VALUES 
+      (80, 'Raw Dzik','BB', 120, 100, 'g', 'raw dzik', 100);
+
+    INSERT INTO ProductCategoryAssignment(product_id, node_id) VALUES
+      (80, 10);
+    """
+    ) as cursor:
+        pass  
 
 
 @pytest.mark.asyncio #with error (i need to create better exception hierarchy)
-async def test_update_wrong_id(fake_product_repository):
-  repo = fake_product_repository(
-    [Product(product_id=80, name="Raw Dzik", brand_name="BB", nutrition_facts=None, current_category_id=10, name_search_standard='raw dzik')])
-  new_info_about_product = ProductCommand(name="Żywiec zdrój", brand_name="BB", current_category_id=10, nutrition_facts=None, img_src=None)
-  service = ProductManagementService(repo, None)
+async def test_update_wrong_id(db, product_repository, hierarchy_repository, access_adapter):
+  await insert_users(db)
+  await insert_product(db)
+  new_info_about_product = ProductCommand(
+    name="Żywiec zdrój", brand_name="BB", current_category_id=10,
+    nutrition_facts=NutritionFacts(
+    reference_quantity=ReferenceQuantity(amount=100, unit='g'),
+    kcal=120, 
+    nutrients=Nutrients()), img_src=None)
+  service = ProductManagementService(product_repository, hierarchy_repository, access_adapter)
   
   with pytest.raises(ProductNotFoundError):
-    await service.update(100, new_info_about_product)
+    await service.update(100, new_info_about_product, 1)
 
   product = await service.get(80)
   assert product.product_id == 80
   assert product.name == "Raw Dzik"
 
 @pytest.mark.asyncio
-async def test_update_one_product(fake_product_repository):
+async def test_update_one_product(db, product_repository, hierarchy_repository, access_adapter):
   nutrition_facts = NutritionFacts(reference_quantity=ReferenceQuantity(amount=100, unit='g'), kcal=300, nutrients=Nutrients())
-  repo = fake_product_repository(
-    [Product(
-      product_id=80, 
-      name="Raw Dzik", 
-      brand_name="BB", 
-      nutrition_facts=nutrition_facts, 
-      current_category_id=10, 
-      name_search_standard='raw dzik')])
+  await insert_users(db)
+  await insert_product(db)
   new_info_about_product = ProductCommand(name="Żywiec zdrój", brand_name="BB", current_category_id=10, nutrition_facts=nutrition_facts, img_src=None)
-  service = ProductManagementService(repo, None)
+  service = ProductManagementService(product_repository, hierarchy_repository, access_adapter)
 
-  await service.update(80, new_info_about_product)
+  await service.update(80, new_info_about_product, 1)
 
   product = await service.get(80)
   assert product.product_id == 80
@@ -67,20 +112,14 @@ async def test_update_one_product(fake_product_repository):
 
 
 @pytest.mark.asyncio
-async def test_update_current_category_id(fake_product_repository, hierarchy_repository):
+async def test_update_current_category_id(db, product_repository, hierarchy_repository, access_adapter):
+  await insert_users(db)
+  await insert_product(db)
   nutrition_facts = NutritionFacts(reference_quantity=ReferenceQuantity(amount=100, unit='g'), kcal=300, nutrients=Nutrients())
-  repo = fake_product_repository(
-    [Product(
-      product_id=80, 
-      name="Raw Dzik", 
-      brand_name="BB", 
-      nutrition_facts=nutrition_facts, 
-      current_category_id=10, 
-      name_search_standard='raw dzik')])
   new_info_about_product = ProductCommand(name="Raw Dzik", brand_name="BB", current_category_id=11, nutrition_facts=nutrition_facts, img_src=None)
-  service = ProductManagementService(repo, hierarchy_repository)
+  service = ProductManagementService(product_repository, hierarchy_repository, access_adapter)
 
-  await service.update(80, new_info_about_product)
+  await service.update(80, new_info_about_product, 1)
 
   product = await service.get(80)
   assert product.product_id == 80
@@ -88,21 +127,14 @@ async def test_update_current_category_id(fake_product_repository, hierarchy_rep
   assert product.current_category_id == 11
 
 @pytest.mark.asyncio
-async def test_update_one_product_with_null_field(fake_product_repository):
-  nutrition_facts = NutritionFacts(reference_quantity=ReferenceQuantity(amount=100, unit='g'), kcal=300, nutrients=Nutrients(fat=100))
-  repo = fake_product_repository(
-    [Product(
-      product_id=80, 
-      name="Raw Dzik", 
-      brand_name="BB", 
-      nutrition_facts=nutrition_facts, 
-      current_category_id=10, 
-      name_search_standard='raw dzik')])
+async def test_update_one_product_with_null_field(db, product_repository, hierarchy_repository, access_adapter):
+  await insert_users(db)
+  await insert_product(db)
   new_nutrition_facts = NutritionFacts(reference_quantity=ReferenceQuantity(amount=100, unit='g'), kcal=300, nutrients=Nutrients())
   new_info_about_product = ProductCommand(name="Raw Dzik", brand_name="BB", current_category_id=10, nutrition_facts=new_nutrition_facts, img_src=None)
 
-  service = ProductManagementService(repo, None)
-  await service.update(80, new_info_about_product)
+  service = ProductManagementService(product_repository, hierarchy_repository, access_adapter)
+  await service.update(80, new_info_about_product, 1)
   product = await service.get(80)
   assert product.product_id == 80
   assert product.name == "Raw Dzik"
@@ -110,19 +142,18 @@ async def test_update_one_product_with_null_field(fake_product_repository):
   assert product.brand_name == "BB"
 
 @pytest.mark.asyncio
-async def test_delete_one_product(fake_product_repository):
-  repo = fake_product_repository(
-    [Product(product_id=80, name="Raw Dzik", brand_name="BB", nutrition_facts=None, current_category_id=10, name_search_standard='raw dzik')])
-  service = ProductManagementService(repo, None)
-  await service.delete(80)
+async def test_delete_one_product(db, product_repository, hierarchy_repository, access_adapter):
+  await insert_users(db)
+  await insert_product(db)
+  service = ProductManagementService(product_repository, hierarchy_repository, access_adapter)
+  await service.delete(80, 1)
   with pytest.raises(ProductNotFoundError):
     product = await service.get(80)
 
 @pytest.mark.asyncio
-async def test_delete_wrong_id(fake_product_repository):
-  repo = fake_product_repository(
-    [Product(product_id=80, name="Raw Dzik", brand_name="BB", nutrition_facts=None, current_category_id=10, name_search_standard='raw dzik')])
-  service = ProductManagementService(repo, None)
+async def test_delete_wrong_id(db, product_repository, hierarchy_repository, access_adapter):
+  await insert_users(db)
+  service = ProductManagementService(product_repository, hierarchy_repository, access_adapter)
   with pytest.raises(ProductNotFoundError):
-    await service.delete(100)
+    await service.delete(100, 1)
   

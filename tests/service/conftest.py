@@ -1,16 +1,28 @@
 from abc import ABC, abstractmethod
 from dataclasses import asdict
 import re
+
+from sqlalchemy import StaticPool, text
+from sqlalchemy import event
+from identity_and_access_context.application.access_service import AccessService
+from identity_and_access_context.infrastructure.sql_alchemy_repository.user_repository import SqlAlchemyUserRepository
+from identity_and_access_context.infrastructure.sql_alchemy_repository.user_roles_repository import SqlAlchemyUserRolesRepository
+from identity_and_access_context.public.adapters.fastapi.dependencies.get_access_api import get_access_api
+from identity_and_access_context.public.api.access_api import AccessApi
 from product_catalog_context.application.category_assignment_task_service import CategoryAssignmentTaskService
 from product_catalog_context.application.product_issue_service import ProductIssueService
 from product_catalog_context.application.product_management_service import ProductManagementService
 from product_catalog_context.application.product_report_service import ProductReportService
 from product_catalog_context.domain.product_category import ProductCategory
 from product_catalog_context.domain.product_category_hierarchy import ProductCategoryHierarchy
+from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
 from product_catalog_context.infrastructure.aiosqlite_repository.category_assignment_task_repository import CategoryAssignmentTaskRepository
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
 from product_catalog_context.infrastructure.aiosqlite_repository.product_category_hierarchy import ProductCategoryHierarchyRepository
 import pytest_asyncio
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from identity_and_access_context.infrastructure.sql_alchemy_repository.mapper import mapper_registry
+from sqlalchemy.event import listens_for
 
 from product_catalog_context.domain.product import Product
 from product_catalog_context.infrastructure.aiosqlite_repository.mapper import ProductMapper
@@ -91,36 +103,11 @@ async def fake_product_queries():
 
 import pytest
 import aiosqlite
-
+from sqlalchemy.engine import Engine
 from shared.database.create_new_db import product_table_query, product_category_node_table_query, product_category_hierarchy_query, product_category_assignment, product_category_closure_query, product_category_assignment_task
-from shared.database.create_new_db import fields, report, report_item, issue, user, role, user_role, id_sequence, init_id_seq
+from shared.database.create_new_db import fields, report, report_item, issue, user, role, user_role, id_sequence, init_id_seq, user_roles
 
-@pytest_asyncio.fixture
-async def db():
-  db = await aiosqlite.connect(":memory:") #tworzy nową dla każdego połączenia
-  db.row_factory = aiosqlite.Row
-  await db.execute("PRAGMA foreign_keys = ON")
-  await db.execute(product_table_query)
-  await db.execute(product_category_node_table_query)
-  await db.execute(product_category_hierarchy_query)
-  await db.execute(product_category_assignment)
-  await db.execute(product_category_closure_query)
-  await db.execute(product_category_assignment_task)
-  await db.execute(fields)
-  await db.execute(report)
-  await db.execute(report_item)
-  await db.execute(issue)
-  await db.execute(user)
-  await db.execute(role)
-  await db.execute(user_role)
-  await db.execute(id_sequence)
-  await db.execute(init_id_seq)
 
-  await db.commit()
-
-  yield db
-
-  await db.close()
 
 @pytest_asyncio.fixture
 async def hierarchy_repository(db):
@@ -131,26 +118,111 @@ async def hierarchy_repository(db):
   await repo.insert(ProductCategoryHierarchy(status='ACTIVE', product_categories=[category_1, category_2]))
   return ProductCategoryHierarchyRepository(db)
 
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+  cursor = dbapi_connection.cursor()
+  cursor.execute("PRAGMA foreign_keys=ON")
+  cursor.close()
+
 @pytest_asyncio.fixture
-async def category_assignment_service(db) -> CategoryAssignmentTaskService:
+async def db_engine():
+  engine = create_async_engine(
+    "sqlite+aiosqlite:///:memory:",
+    poolclass=StaticPool,
+  )
+
+    # Inicjalizacja schematu bazy danych na TYM SAMYM połączeniu
+  async with engine.begin() as conn:
+    # PRAGMA foreign_keys w SQLite musimy włączyć ręcznie dla każdego połączenia
+    await conn.execute(text("PRAGMA foreign_keys = ON"))
+    queries = [
+      product_table_query,
+      product_category_node_table_query,
+      product_category_hierarchy_query,
+      product_category_assignment,
+      product_category_closure_query,
+      product_category_assignment_task,
+      fields,
+      report,
+      report_item,
+      issue,
+      user,
+      role,
+      user_role,
+      user_roles,
+      id_sequence,
+      init_id_seq,
+    ]
+        
+    for q in queries:
+      await conn.execute(text(q))
+
+  yield engine
+
+  await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def db_session(db_engine):
+  SessionTest = async_sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+  async with SessionTest() as session:
+    yield session
+
+
+# Opcjonalnie: jeśli nadal potrzebujesz bezpośredniego dostępu do surowego aiosqlite connection
+@pytest_asyncio.fixture
+async def db(db_engine):
+  async with db_engine.connect() as conn:
+    raw_db = await conn.get_raw_connection()
+    driver_conn = raw_db.driver_connection  # Obiekt aiosqlite.Connection
+    # Ustawiamy row_factory, aby zapytań można było używać jak słowników
+    driver_conn.row_factory = aiosqlite.Row
+    yield raw_db.driver_connection
+
+@pytest_asyncio.fixture
+async def user_roles_repository(db_session):
+  return SqlAlchemyUserRolesRepository(db_session)
+
+@pytest_asyncio.fixture
+async def access_service(user_roles_repository):
+  return AccessService(user_roles_repository)
+
+@pytest_asyncio.fixture
+async def access_api(access_service):
+  return AccessApi(access_service)
+
+@pytest_asyncio.fixture
+async def access_adapter(access_api):
+  return AccessAdapter(access_api)
+
+
+@pytest_asyncio.fixture
+async def category_assignment_service(db, access_adapter) -> CategoryAssignmentTaskService:
   hierarchy_repo = ProductCategoryHierarchyRepository(db)
   product_repo = ProductRepository(db)
   task_repo = CategoryAssignmentTaskRepository(db)
 
-  return CategoryAssignmentTaskService(category_assignment_task_repository=task_repo, product_category_hierarchy_repository=hierarchy_repo, product_repository=product_repo)
+  return CategoryAssignmentTaskService(category_assignment_task_repository=task_repo, product_category_hierarchy_repository=hierarchy_repo, product_repository=product_repo, access_adapter=access_adapter)
 
 @pytest_asyncio.fixture
-async def product_management_service(db) -> CategoryAssignmentTaskService:
+async def product_management_service(db, access_adapter) -> CategoryAssignmentTaskService:
   hierarchy_repo = ProductCategoryHierarchyRepository(db)
   product_repo = ProductRepository(db)
-  return ProductManagementService(product_repository=product_repo, product_category_hierarchy_repository=hierarchy_repo)
+  return ProductManagementService(product_repository=product_repo, product_category_hierarchy_repository=hierarchy_repo, access_adapter=access_adapter)
+
+@pytest_asyncio.fixture
+async def product_repository(db) -> CategoryAssignmentTaskService:
+  return ProductRepository(db)
 
 
 
 @pytest_asyncio.fixture
-async def product_report_service(db) -> ProductReportService:
+async def product_report_service(db, access_adapter) -> ProductReportService:
   async with db.executescript(
-    """    
+    """  
+    INSERT INTO User(id, username, email, hashed_password) VALUES 
+      (1, 'ZYZ','xyz@gm.c','xyz');
+
     INSERT INTO Product (id, name, brand_name, kcal, reference_amount, reference_unit, name_search_standard)
     VALUES 
     (1, "Schab Drogi", "Auchan", 300, 100, "g","schab drogi");
@@ -165,12 +237,25 @@ async def product_report_service(db) -> ProductReportService:
     pass
   report_repo = ProductReportRepository(db)
   issue_repo = ProductIssueRepository(db)
-  return ProductReportService(report_repo, issue_repo)
+  return ProductReportService(report_repo, issue_repo, access_adapter)
 
 @pytest_asyncio.fixture
-async def product_issue_service(db) -> ProductReportService:
+async def product_issue_service(db, access_adapter) -> ProductReportService:
   async with db.executescript(
-    """    
+    """
+    INSERT INTO User(id, username, email, hashed_password) VALUES 
+      (1, 'ZYZ','xyz@gm.c','xyz'), 
+      (2, 'ABC','abc@gm.c','abc');
+    
+    INSERT INTO UserRoles(user_id, version) VALUES 
+      (1, 1), 
+      (2, 1);
+    
+    INSERT INTO UserRole(user_id, role) VALUES 
+      (1, 'moderator'),
+      (1, 'catalog_manager'),
+      (2, 'product_editor');
+
     INSERT INTO Product (id, name, brand_name, kcal, reference_amount, reference_unit, name_search_standard)
     VALUES 
     (1, "Schab Drogi", "Auchan", 300, 100, "g","schab drogi");
@@ -185,4 +270,4 @@ async def product_issue_service(db) -> ProductReportService:
   ) as cursor:
     pass
   issue_repo = ProductIssueRepository(db)
-  return ProductIssueService(issue_repo)
+  return ProductIssueService(issue_repo, access_adapter)

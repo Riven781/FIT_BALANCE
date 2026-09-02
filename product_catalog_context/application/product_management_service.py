@@ -12,19 +12,22 @@ from product_catalog_context.application.query.product_detail import PublicProdu
 from product_catalog_context.application.utils.shallow_asdict import shallow_asdict
 from product_catalog_context.domain.product import Product
 from product_catalog_context.domain.services.text_converter import tokenize_for_search
+from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
 from product_catalog_context.infrastructure.aiosqlite_queries.product import ProductQueries
 from product_catalog_context.domain.enums import product_searching
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
 from product_catalog_context.infrastructure.aiosqlite_repository.errors.errors import CheckViolationError, ForeignKeyViolationError, NotNullViolationError, RepositoryError, UniqueViolationError
-from product_catalog_context.application.errors.errors import  CategoryDoesNotBelongToActiveHierarchy, CategoryDoesNotBelongToPlannedHierarchy, CategoryHierarchyDoesNotExist, InvalidProductCategoryId, InvalidProductDataError, PlannedHierarchyDoesNotExist, ProductNotFoundError
+from product_catalog_context.application.errors.errors import  AccessDenied, CategoryDoesNotBelongToActiveHierarchy, CategoryDoesNotBelongToPlannedHierarchy, CategoryHierarchyDoesNotExist, InvalidProductCategoryId, InvalidProductDataError, PlannedHierarchyDoesNotExist, ProductNotFoundError
 from product_catalog_context.infrastructure.aiosqlite_repository.product_category_hierarchy import ProductCategoryHierarchyRepository
 
 
 
 class ProductManagementService():
-  def __init__(self, product_repository : ProductRepository, product_category_hierarchy_repository : ProductCategoryHierarchyRepository):
+  def __init__(self, product_repository : ProductRepository, product_category_hierarchy_repository : ProductCategoryHierarchyRepository, access_adapter: AccessAdapter):
     self.product_repository = product_repository
     self.product_category_hierarchy_repository = product_category_hierarchy_repository
+    self.access_adapter = access_adapter
+  
   
   async def _handle_repository_data_error(self, e):
     await self.product_repository.rollback()
@@ -35,7 +38,11 @@ class ProductManagementService():
     raise e
     
 
-  async def create(self, product_command: ProductCommand):
+  async def create(self, product_command: ProductCommand, product_editor_id):
+    product_editor = await self.access_adapter.get_product_editor_for(product_editor_id)
+    if product_editor is None:
+      raise AccessDenied()
+    
     if product_command.current_category_id is not None:
       active_hierarchy = await self.product_category_hierarchy_repository.get_active()
       if not active_hierarchy.contains_product_category(product_command.current_category_id):
@@ -54,7 +61,8 @@ class ProductManagementService():
       current_category_id=product_command.current_category_id,
       planned_category_id=product_command.planned_category_id,
       ingredients=product_command.ingredients,
-      allergy_recommendations=product_command.allergy_recommendations
+      allergy_recommendations=product_command.allergy_recommendations,
+      created_by=product_editor_id
     )
     try:
       id_created = await self.product_repository.insert(product)
@@ -64,7 +72,10 @@ class ProductManagementService():
     except RepositoryError as e:
       await self._handle_repository_data_error(e)
 
-  async def delete(self, product_id):
+  async def delete(self, product_id, product_editor_id):
+    product_editor = await self.access_adapter.get_product_editor_for(product_editor_id)
+    if product_editor is None:
+      raise AccessDenied()
     try:
       count = await self.product_repository.delete(product_id)
       if count == 0:
@@ -74,7 +85,10 @@ class ProductManagementService():
       await self.product_repository.rollback()
       raise  e 
   
-  async def update(self, product_id, product_command: ProductCommand):
+  async def update(self, product_id, product_command: ProductCommand, product_editor_id):
+    product_editor = await self.access_adapter.get_product_editor_for(product_editor_id)
+    if product_editor is None:
+      raise AccessDenied()
     try:
       product = await self.product_repository.get_by_id(product_id)
     except RepositoryError as e:
