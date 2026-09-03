@@ -11,7 +11,7 @@ from product_catalog_context.infrastructure.aiosqlite_repository.product_categor
 
 class CategoryAssignmentTaskService:
   def __init__(
-      self, 
+      self,
       category_assignment_task_repository : CategoryAssignmentTaskRepository, 
       product_category_hierarchy_repository : ProductCategoryHierarchyRepository, 
       product_repository : ProductRepository,

@@ -14,7 +14,6 @@ from product_catalog_context.infrastructure.adapters.identity_adapter import Ide
 from product_catalog_context.infrastructure.aiosqlite_queries.product import ProductQueries
 from shared.database.db import get_db
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
-from product_catalog_context.infrastructure.aiosqlite_repository.product_category import ProductCategoryRepository
 from product_catalog_context.infrastructure.aiosqlite_repository.product_category_hierarchy import ProductCategoryHierarchyRepository
 from product_catalog_context.application.category_hierarchy_management_service import CategoryHierarchyManagementService
 from shared.infrastructure.fastapi.security.contracts import RawAuthenticationCredentials
@@ -41,11 +40,10 @@ async def get_product_queries(db: Annotated[aiosqlite.Connection, Depends(get_db
 async def get_product_query_service(product_queries: Annotated[ProductQueries, Depends(get_product_queries)]):
   return ProductQueryService(product_queries)
 
-async def get_product_category_repository(db: Annotated[aiosqlite.Connection, Depends(get_db)]):
-  return ProductCategoryRepository(db)
-
 async def get_product_category_hierarchy_repository(db: Annotated[aiosqlite.Connection, Depends(get_db)]):
   return ProductCategoryHierarchyRepository(db)
+
+
 
 async def get_product_management_service(
     product_repository: Annotated[ProductRepository, Depends(get_product_repository)], 
@@ -53,7 +51,8 @@ async def get_product_management_service(
     access_adapter: Annotated[AccessAdapter, Depends(get_access_adapter)]):
   return ProductManagementService(product_repository, product_category_hierarchy_repository, access_adapter)
 
-async def get_product_category_service(
-    product_category_repository: Annotated[ProductCategoryRepository, Depends(get_product_category_repository)],
-    product_category_hierarchy_repository: Annotated[ProductCategoryHierarchyRepository, Depends(get_product_category_hierarchy_repository)]):
-  return CategoryHierarchyManagementService(product_category_repository, product_category_hierarchy_repository)
+async def get_product_hierarchy_category_service(
+    product_repository: Annotated[ProductRepository, Depends(get_product_category_hierarchy_repository)],
+    product_category_hierarchy_repository: Annotated[ProductCategoryHierarchyRepository, Depends(get_product_category_hierarchy_repository)],
+    access_adapter: Annotated[AccessAdapter, Depends(get_access_adapter)]):
+  return CategoryHierarchyManagementService(product_repository=product_repository,product_category_hierarchy_repository=product_category_hierarchy_repository, access_adapter=access_adapter)

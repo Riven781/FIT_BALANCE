@@ -23,7 +23,7 @@ class ProductRepository(DbRepository):
       )AS current_category_id,
       MAX(
         CASE 
-          WHEN hierarchy.status = 'DRAFT'
+          WHEN hierarchy.status = 'PLANNED_FOR_PUBLICATION'
           THEN node.id
         END
       ) AS planned_category_id
