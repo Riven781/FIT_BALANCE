@@ -13,7 +13,7 @@ from shared.database.db import init_db, reset_db
 from product_catalog_context.infrastructure.api.rest.error_handlers import invalid_product_category_id_handler, invalid_product_data_handler, product_already_exists_handler, product_not_found_handler, register_exception_handlers, repository_error_handler
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
 from product_catalog_context.infrastructure.aiosqlite_repository.errors.errors import RepositoryError
-from product_catalog_context.infrastructure.api.rest.schemas.product_category import ProductCategory, ProductCategoryHierarchy
+from product_catalog_context.infrastructure.api.rest.schemas.product_category import ProductCategory
 from product_catalog_context.application.errors.errors import InvalidProductCategoryId, InvalidProductDataError, ProductAlreadyExistsError, ProductNotFoundError
 from pydantic import BaseModel, Field
 from fastapi import Body, Depends, FastAPI, HTTPException, Path, Query
