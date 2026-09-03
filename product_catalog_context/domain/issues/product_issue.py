@@ -1,6 +1,7 @@
 from product_catalog_context.domain.enums.product_issue_status import ProductIssueStatus
 from product_catalog_context.domain.enums.reported_field import ReportedField
 from product_catalog_context.domain.errors import IssueCanNotBeConfirmed, IssueCanNotBeMarkedAsObsolete, IssueCanNotBeRejected
+from product_catalog_context.domain.product_issue_confirmed import ProductIssueConfirmed
 
 
 class ProductIssue:
@@ -11,6 +12,7 @@ class ProductIssue:
     self.status = status
     self.resolved_value = resolved_value
     self.resolved_by = resolved_by
+    self._events = []
 
   def confirm(self, resolved_value, user_id):
     if self.status != ProductIssueStatus.PENDING:
@@ -18,6 +20,7 @@ class ProductIssue:
     self.resolved_value = resolved_value
     self.status = ProductIssueStatus.CONFIRMED
     self.resolved_by = user_id
+    self._events.append(ProductIssueConfirmed(product_id=self.product_id, reported_field=ReportedField, resolved_value=resolved_value))
 
   def reject(self, user_id):
     if self.status != ProductIssueStatus.PENDING:
@@ -31,4 +34,7 @@ class ProductIssue:
     self.status = ProductIssueStatus.OBSOLETE
 
 
-  
+  def pull_events(self):
+    events = self._events
+    self._events = []
+    return events

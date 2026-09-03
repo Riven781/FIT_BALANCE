@@ -10,6 +10,7 @@ from fastapi import Depends, HTTPException
 from product_catalog_context.application.command.product import PaginationFiltersCommand, ProductCommand, ProductsFiltersCommand
 from product_catalog_context.application.query.product_detail import PublicProductDetail
 from product_catalog_context.application.utils.shallow_asdict import shallow_asdict
+from product_catalog_context.domain.event_dispatcher import EventDispatcher
 from product_catalog_context.domain.product import Product
 from product_catalog_context.domain.services.text_converter import tokenize_for_search
 from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
@@ -23,10 +24,11 @@ from product_catalog_context.infrastructure.aiosqlite_repository.product_categor
 
 
 class ProductManagementService():
-  def __init__(self, product_repository : ProductRepository, product_category_hierarchy_repository : ProductCategoryHierarchyRepository, access_adapter: AccessAdapter):
+  def __init__(self, product_repository : ProductRepository, product_category_hierarchy_repository : ProductCategoryHierarchyRepository, access_adapter: AccessAdapter, event_dispatcher: EventDispatcher=None):
     self.product_repository = product_repository
     self.product_category_hierarchy_repository = product_category_hierarchy_repository
     self.access_adapter = access_adapter
+    self.event_dispatcher = event_dispatcher
   
   
   async def _handle_repository_data_error(self, e):
@@ -85,7 +87,7 @@ class ProductManagementService():
       await self.product_repository.rollback()
       raise  e 
   
-  async def update(self, product_id, product_command: ProductCommand, product_editor_id):
+  async def update(self, product_id, product_command: ProductCommand, product_editor_id):  #planned category changed (for productassignemnttask), current category changed (for product issue)
     product_editor = await self.access_adapter.get_product_editor_for(product_editor_id)
     if product_editor is None:
       raise AccessDenied()
@@ -110,10 +112,14 @@ class ProductManagementService():
         raise CategoryDoesNotBelongToPlannedHierarchy()
 
     data_dict = shallow_asdict(product_command)
-    product.update_details(data_dict)
+    product.update_details(data_dict, product_editor_id)
 
     try:
       await self.product_repository.update(product_id, product)
+      events = product.pull_events()
+      if self.event_dispatcher:
+        self.event_dispatcher.dispatch(events) #not in the same transaction!
+
       return product
     except RepositoryError as e:
       await self._handle_repository_data_error(e)

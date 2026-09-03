@@ -9,7 +9,6 @@ from product_catalog_context.infrastructure.aiosqlite_repository.category_assign
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
 from product_catalog_context.infrastructure.aiosqlite_repository.product_category_hierarchy import ProductCategoryHierarchyRepository
 
-
 class CategoryAssignmentTaskService:
   def __init__(
       self, 
@@ -58,18 +57,7 @@ class CategoryAssignmentTaskService:
 
     await self.product_repository.update(product.product_id, product)
     await self.category_assignment_task_repository.update(task.task_id, task)
-  """
-  async def assign_tasks_for_user_by_source_category(self, user_id, hierarchy_id, source_node_id, limit):
-    hierarchy = await self.product_category_hierarchy_repository.get_by_id(hierarchy_id)
-    if hierarchy is None:
-      return CategoryHierarchyDoesNotExist()
-    hierarchy.ensure_category_assignment_allowed()
-    products = await self.product_repository.get_by_current_category_id(source_node_id, limit)
-    tasks = []
-    for product in products:
-      tasks.append(CategoryAssignmentTask(product_id=product.product_id, hierarchy_id=hierarchy_id, user_id=user_id, status=CategoryAssignmentTaskStatus.PENDING))
-    await self.category_assignment_task_repository.insert(tasks)
-  """
+
   async def assign_tasks_for_user_by_active_category_id(self, catalog_manager_id, product_editor_id, hierarchy_id, current_category_id, limit):
     catalog_manager = await self.access_adapter.get_catalog_manager_for(catalog_manager_id)
     if catalog_manager is None:
@@ -138,49 +126,3 @@ class CategoryAssignmentTaskService:
     count = await self.category_assignment_task_repository.delete_by_user_and_product(user_id, product_id)
     if count == 0:
       raise TaskNotFoundError()
-
-"""
-  async def complete_categories_assignment(self, task_ids, category_id):
-    tasks = self.category_assignment_task_repository.get_by_ids(task_ids)
-
-    if tasks == []:
-      return
-
-    hierarchy = await self.product_category_hierarchy_repository.get_by_id(tasks[0].hierarchy_id)
-
-    if hierarchy is None:
-      return CategoryHierarchyDoesNotExist()
-
-    for task in tasks:
-      if task.hierarchy_id != hierarchy.hierarchy_id:
-        raise TasksBelongToDifferentHierarchies()
-
-    if not hierarchy.contains_all_product_categories(category_id):
-      return CategoryDoesNotBelongToHierarchy()
-    
-    hierarchy.ensure_category_assignment_allowed()
-
-
-    products = await self.product_repository.get_by_ids([task.product_id for task in tasks]) #to do
-    for task in tasks:
-      product = products[task.product_id]
-
-      if product is None:
-        raise ProductNotFoundError()
-
-      product.assign_to_planned_category(category_id)
-      task.complete()
-
-    #to źle bo musi być grupowy
-    await self.product_repository.update(product.product_id, product)
-    await self.category_assignment_task_repository.update(task.task_id, task)
-"""
-
-
-
-
-    
-
-    
-
-    

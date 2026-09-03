@@ -1,5 +1,7 @@
 from re import L
 
+from product_catalog_context.domain.enums.reported_field import ReportedField
+from product_catalog_context.domain.events import PlannedProductCategoryChanged, ProductDataChanged
 from product_catalog_context.domain.nutrition_facts import NutritionFacts
 from product_catalog_context.domain.product_category import ProductCategory
 from product_catalog_context.domain.services.text_converter import normalize_for_search
@@ -25,6 +27,7 @@ class Product:
     self.planned_category_id = planned_category_id
     self.assign_to_planned_category(planned_category_id)
     self.created_by = created_by
+    self._events = []
 
   @property
   def product_id(self):
@@ -72,15 +75,30 @@ class Product:
   def generate_search_name(self):
     self.name_search_standard = normalize_for_search(self.name)
 
-  def update_details(self, data: dict):
+  def update_details(self, data: dict, product_editor_id):
     if self.planned_category_id != data.get('planned_category_id') and data.get('planned_category_id') is not None:
-      pass #generate event PRODUCT_PLANNED_CATEGORY_CHANGED -- sprawdamy czy jest task jesli tak to ktory user zmienił i zmieniamy stan na completed lub cancelled
+      self._events.append(PlannedProductCategoryChanged(product_id=self.product_id, old_category_id=self.planned_category_id, new_category_id=data.get('planned_category_id'), changed_by=product_editor_id))   #generate event PRODUCT_PLANNED_CATEGORY_CHANGED -- sprawdamy czy jest task jesli tak to ktory user zmienił i zmieniamy stan na completed lub cancelled
+    changed_fields =[]
     if 'name' in data and data['name'] != self.name:
+      changed_fields.append(ReportedField('name'))
       self.rename(data['name'])
 
     for key, value in data.items():
       if key not in self.PROTECTED_FIELDS and hasattr(self, key):
         setattr(self, key, value)
+      if key in [field.value for field in ReportedField]:
+        changed_fields.append(ReportedField(key))
+    if changed_fields:
+      self._events.append(ProductDataChanged(product_id=self.product_id, fields=changed_fields))
+
+
+  def pull_events(self):
+    events = self._events
+    self._events = []
+    return events
+
+  def resolve_issue(self, reported_field: ReportedField, new_value):
+    setattr(self, reported_field.value, new_value)
 
 #normalized_name better
 

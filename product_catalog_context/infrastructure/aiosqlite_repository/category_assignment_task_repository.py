@@ -32,6 +32,18 @@ class CategoryAssignmentTaskRepository(DbRepository):
 
     return self.mapper.to_task(task)
 
+  async def get_by_product_id(self, product_id) -> CategoryAssignmentTask:
+    get_task = """
+    SELECT * FROM ProductCategoryAssignmentTask WHERE product_id = ?
+    """
+    async with self.db.execute(get_task, (product_id)) as cursor:
+      task = await cursor.fetchone()
+
+    if task is None:
+      return None
+
+    return self.mapper.to_task(task)  
+
   async def insert_tasks_for_unassigned_products(self, user_id, hierarchy_id, limit):
     insert_query = """
     INSERT INTO ProductCategoryAssignmentTask (product_id, hierarchy_id, user_id, status)
@@ -65,4 +77,11 @@ class CategoryAssignmentTaskRepository(DbRepository):
     """
     async with self.db.execute(delete_id, (user_id,)) as cursor:
       return cursor.rowcount
-    
+
+  async def delete_by_hierarchy_id(self, hierarchy_id):
+    delete_id = """
+      DELETE FROM ProductCategoryAssignmentTask
+      WHERE hierarchy_id = ?
+    """
+    async with self.db.execute(delete_id, (hierarchy_id,)) as cursor:
+      return cursor.rowcount

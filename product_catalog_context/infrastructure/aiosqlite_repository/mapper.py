@@ -5,7 +5,7 @@ from product_catalog_context.domain.issues.product_report import ProductReport
 from product_catalog_context.domain.issues.product_report_item import ProductReportItem
 from product_catalog_context.domain.nutrition_facts import Nutrients, NutritionFacts, ReferenceQuantity
 from product_catalog_context.domain.product import Product
-from product_catalog_context.domain.product_category_hierarchy import ProductCategoryHierarchy
+from product_catalog_context.domain.category_hierarchy.product_category_hierarchy import ProductCategoryHierarchy
 from product_catalog_context.domain.product_category import ProductCategory
 
 

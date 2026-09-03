@@ -1,13 +1,15 @@
 from product_catalog_context.application.errors.errors import AccessDenied, IssueNotFoundError
+from product_catalog_context.domain.event_dispatcher import EventDispatcher
 from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
 from product_catalog_context.infrastructure.aiosqlite_repository.product_issue_repository import ProductIssueRepository
 from product_catalog_context.infrastructure.aiosqlite_repository.product_report_repository import ProductReportRepository
 
 
 class ProductIssueService:
-  def __init__(self, product_issue_repository: ProductIssueRepository, access_adapter: AccessAdapter):
+  def __init__(self, product_issue_repository: ProductIssueRepository, access_adapter: AccessAdapter, event_dispatcher: EventDispatcher = None):
     self.product_issue_repository = product_issue_repository
     self.access_adapter = access_adapter
+    self.event_dispatcher = event_dispatcher
 
   async def confirm_issue(self, issue_id, resolved_value, moderator_id):#event and update product in handler
     moderator = await self.access_adapter.get_moderator_for(moderator_id)
@@ -18,6 +20,12 @@ class ProductIssueService:
       raise IssueNotFoundError()
     product_issue.confirm(resolved_value, moderator_id)
     await self.product_issue_repository.update(product_issue.issue_id, product_issue)
+
+    events = product_issue.pull_events()
+
+    if self.event_dispatcher:
+      await self.event_dispatcher.dispatch(events) # not in uow
+
     return product_issue
 
   async def reject_issue(self, issue_id, moderator_id):

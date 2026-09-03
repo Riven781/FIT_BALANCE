@@ -3,7 +3,7 @@ from aiosqlite import cursor
 import pytest
 
 from product_catalog_context.domain.enums.product_category_hierarchy_status import ProductCategoryHierarchyStatus
-from product_catalog_context.domain.product_category_hierarchy import ProductCategoryHierarchy
+from product_catalog_context.domain.category_hierarchy.product_category_hierarchy import ProductCategoryHierarchy
 from product_catalog_context.infrastructure.aiosqlite_repository.product_category_hierarchy import ProductCategoryHierarchyRepository
 from product_catalog_context.domain.product_category import ProductCategory
 

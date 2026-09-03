@@ -1,7 +1,8 @@
 from httpx import delete
 
 from product_catalog_context.application.errors.errors import CategoryHierarchyDoesNotExist, DraftCategoryHierarchyExists, CategoryDoesNotBelongToHierarchy, AccessDenied
-from product_catalog_context.domain.product_category_hierarchy import ProductCategoryHierarchy
+from product_catalog_context.domain.event_dispatcher import EventDispatcher
+from product_catalog_context.domain.category_hierarchy.product_category_hierarchy import ProductCategoryHierarchy
 from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
 from product_catalog_context.infrastructure.aiosqlite_queries.product import ProductQueries
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
@@ -17,11 +18,13 @@ class CategoryHierarchyManagementService():
       self,
       product_category_hierarchy_repository : ProductCategoryHierarchyRepository,
       access_adapter: AccessAdapter,
-      product_repository : ProductRepository = None
+      product_repository : ProductRepository = None,
+      event_dispatcher: EventDispatcher = None
   ):
     self.access_adapter = access_adapter
     self.product_category_hierarchy_repository = product_category_hierarchy_repository
     self.product_repository = product_repository
+    self.event_dispatcher = event_dispatcher
 
   async def get_hierarchy(self, hierarchy_id) -> ProductCategoryHierarchy:
     return await self.product_category_hierarchy_repository.get_by_id(hierarchy_id)
@@ -38,6 +41,7 @@ class CategoryHierarchyManagementService():
     are_in_hierarchy = hierarchy.contains_all_product_categories(existing_product_categories)
     if not are_in_hierarchy:
       raise CategoryDoesNotBelongToHierarchy()
+    
     draft_product_categories = [category for category in product_categories if type(category) is ProductCategoryDraft]
     temp_to_id = {draft_category.temp_id: await self.product_category_hierarchy_repository.next_category_id() for draft_category in draft_product_categories}
     new_categories = [ProductCategory(name=item.name, category_id=temp_to_id[item.temp_id], parent_id=temp_to_id[item.parent_id] if item.parent_id in temp_to_id else item.parent_id) for item in draft_product_categories]
@@ -87,6 +91,11 @@ class CategoryHierarchyManagementService():
     hierarchy = await self.product_category_hierarchy_repository.get_by_id(hierarchy_id)
     hierarchy.revert_to_draft()
     await self.product_category_hierarchy_repository.update(hierarchy.hierarchy_id,hierarchy)
+    events = hierarchy.pull_events()
+    #without uow:
+    if self.event_dispatcher:
+      self.event_dispatcher.dispatch(events)
+
     return hierarchy
 
 
@@ -98,6 +107,10 @@ class CategoryHierarchyManagementService():
     hierarchy.publish(catalog_manager_id)
     await self.product_category_hierarchy_repository.delete_active()
     await self.product_category_hierarchy_repository.update(hierarchy.hierarchy_id,hierarchy)
+    events = hierarchy.pull_events()
+    #without uow:
+    if self.event_dispatcher:
+      self.event_dispatcher.dispatch(events)
     return hierarchy
 
   async def plan_for_publication(self, hierarchy_id, catalog_manager_id):

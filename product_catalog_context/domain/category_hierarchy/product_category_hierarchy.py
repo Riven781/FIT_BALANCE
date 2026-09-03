@@ -1,7 +1,7 @@
-
 from product_catalog_context.domain.errors import CategoryAssignmentNotAllowed, DraftCategoryHierarchyCannotBeDeleted, CategoryHierarchyCannotBeRevertedToDraft,ParentCategoryNotInHierarchy, CategoryHierarchyIsNotDraft,CategoryHierarchyCannotBePublished, OnlyDraftHierarchyCanBeUpdated, DraftCategoryHierarchyCannotBeCreated, DraftCategoryIdCountMismatch
 from product_catalog_context.domain.enums.product_category_hierarchy_status import ProductCategoryHierarchyStatus
 from product_catalog_context.domain.product_category import ProductCategory, ProductCategoryDraft, ProductCategoryNode
+from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, ProductCategoryHierarchyRevertedToDraft
 
 
 class ProductCategoryHierarchy:
@@ -11,6 +11,7 @@ class ProductCategoryHierarchy:
     self.status = status
     self.created_by = created_by
     self.published_by = published_by
+    self._events = []
 
 
   #def is_hierarchy_structure_correct(self, product_categories: list[ProductCategory]):
@@ -67,6 +68,7 @@ class ProductCategoryHierarchy:
   def publish(self, user_id):
     if self.status != ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION:
       raise CategoryHierarchyCannotBePublished()
+    self._events.append(ProductCategoryHierarchyPublished(self.hierarchy_id))
 
     self.status = ProductCategoryHierarchyStatus.ACTIVE
     self.published_by = user_id
@@ -75,8 +77,14 @@ class ProductCategoryHierarchy:
     if self.status != ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION:
       raise CategoryHierarchyCannotBeRevertedToDraft()
     self.status = ProductCategoryHierarchyStatus.DRAFT
+    self._events.append(ProductCategoryHierarchyRevertedToDraft(self.hierarchy_id))
 
+  def pull_events(self):
+    events = self._events
+    self._events = []
+    return events
+  
   def plan_for_publication(self):
     if self.status != ProductCategoryHierarchyStatus.DRAFT:
-      raise CategoryHierarchyIsNotDraft
+      raise CategoryHierarchyIsNotDraft()
     self.status = ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION
