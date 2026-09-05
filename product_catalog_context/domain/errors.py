@@ -31,6 +31,9 @@ class DraftCategoryHierarchyCannotBeDeleted(DomainError):
 class CategoryAssignmentNotAllowed(DomainError):
   pass
 
+class CategoryHierarchyCannotBeEdited(DomainError):
+  pass
+
 #tasks
 class TaskCannotBeCompleted(DomainError):
   pass

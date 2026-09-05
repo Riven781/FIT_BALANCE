@@ -34,6 +34,8 @@ class CategoryHierarchyManagementService():
       raise AccessDenied()
     
     hierarchy : ProductCategoryHierarchy = await self.product_category_hierarchy_repository.get_by_id(hierarchy_id)
+    if hierarchy is None:
+      raise CategoryHierarchyDoesNotExist()
 
     existing_product_categories = [category for category in product_categories if type(category) is ProductCategory]
     
@@ -51,7 +53,7 @@ class CategoryHierarchyManagementService():
     await self.product_category_hierarchy_repository.update(hierarchy.hierarchy_id, hierarchy)
     return hierarchy
 
-  async def create_draft(self, hierarchy_id, catalog_manager_id):
+  async def create_draft(self, hierarchy_id, catalog_manager_id): #TODO: event, event handler
     catalog_manager = await self.access_adapter.get_catalog_manager_for(catalog_manager_id)
     if catalog_manager is None:
       raise AccessDenied()
@@ -64,12 +66,12 @@ class CategoryHierarchyManagementService():
 
     ids = [await self.product_category_hierarchy_repository.next_category_id() for _ in range(hierarchy.product_categories_len())]
 
-    new_hierarchy = hierarchy.create_draft_based_on_hierarchy(ids, catalog_manager_id)
+    new_hierarchy = hierarchy.create_draft_based_on_hierarchy(ids, catalog_manager_id) #it should generate event: HierarchyDraftCreated
     
     hierarchy_id = await self.product_category_hierarchy_repository.insert(new_hierarchy)
     new_hierarchy.hierarchy_id = hierarchy_id
   
-    await self.product_repository.copy_category_assignments(hierarchy.hierarchy_id, hierarchy_id)
+    await self.product_repository.copy_category_assignments(hierarchy.hierarchy_id, hierarchy_id) #it should be done in handler
     return new_hierarchy
 
   async def delete_draft(self, hierarchy_id, catalog_manager_id):
@@ -112,14 +114,14 @@ class CategoryHierarchyManagementService():
       self.event_dispatcher.dispatch(events)
     return hierarchy
 
-  async def plan_for_publication(self, hierarchy_id, catalog_manager_id):
+  async def plan_for_publication(self, hierarchy_id, catalog_manager_id):#TODO: event, event handler
     catalog_manager = await self.access_adapter.get_catalog_manager_for(catalog_manager_id)
     if catalog_manager is None:
       raise AccessDenied()
     hierarchy = await self.product_category_hierarchy_repository.get_by_id(hierarchy_id)
-    hierarchy.plan_for_publication()
+    hierarchy.plan_for_publication()  #generate event HierarchyPlannedForPublication
     await self.product_category_hierarchy_repository.update(hierarchy_id, hierarchy)
-    category_ids = hierarchy.get_non_leaf_category_ids()
+    category_ids = hierarchy.get_non_leaf_category_ids()  #in handler
     await self.product_repository.delete_category_assignments(category_ids)
     return hierarchy
 

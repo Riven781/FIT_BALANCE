@@ -27,7 +27,7 @@ class CategoryAssignmentTaskService:
       raise TaskDoesNotExist()
     return task
 
-  async def complete_category_assignment(self, task_id, category_id, product_editor_id):
+  async def complete_category_assignment(self, task_id, category_id, product_editor_id): #TODO: apply events in the future
     product_editor = await self.access_adapter.get_product_editor_for(product_editor_id)
     if product_editor is None:
       raise AccessDenied()
@@ -48,12 +48,12 @@ class CategoryAssignmentTaskService:
 
     hierarchy.ensure_category_assignment_allowed()
 
-    product : Product = await self.product_repository.get_by_id(task.product_id)
+    product : Product = await self.product_repository.get_by_id(task.product_id)  #it should be at event handler in the future
     if product is None:
       raise ProductNotFoundError()
 
     product.assign_to_category(hierarchy.hierarchy_id, category_id, product_editor_id)
-    task.complete()
+    task.complete()  #it should generate event TaskAssignmentCompleted
 
     await self.product_repository.update(product.product_id, product)
     await self.category_assignment_task_repository.update(task.task_id, task)

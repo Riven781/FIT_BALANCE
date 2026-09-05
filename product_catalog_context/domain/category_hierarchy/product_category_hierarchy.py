@@ -1,4 +1,4 @@
-from product_catalog_context.domain.errors import CategoryAssignmentNotAllowed, DraftCategoryHierarchyCannotBeDeleted, CategoryHierarchyCannotBeRevertedToDraft,ParentCategoryNotInHierarchy, CategoryHierarchyIsNotDraft,CategoryHierarchyCannotBePublished, OnlyDraftHierarchyCanBeUpdated, DraftCategoryHierarchyCannotBeCreated, DraftCategoryIdCountMismatch
+from product_catalog_context.domain.errors import CategoryAssignmentNotAllowed, CategoryHierarchyCannotBeEdited, DraftCategoryHierarchyCannotBeDeleted, CategoryHierarchyCannotBeRevertedToDraft,ParentCategoryNotInHierarchy, CategoryHierarchyIsNotDraft,CategoryHierarchyCannotBePublished, OnlyDraftHierarchyCanBeUpdated, DraftCategoryHierarchyCannotBeCreated, DraftCategoryIdCountMismatch
 from product_catalog_context.domain.enums.product_category_hierarchy_status import ProductCategoryHierarchyStatus
 from product_catalog_context.domain.product_category import ProductCategory, ProductCategoryDraft, ProductCategoryNode
 from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, ProductCategoryHierarchyRevertedToDraft
@@ -31,7 +31,11 @@ class ProductCategoryHierarchy:
     self._validate_hierarchy(new_product_category_nodes)
     self.product_categories = new_product_category_nodes
     #save -> update hierarchy
-
+  """
+  def ensure_can_be_edited(self):
+    if self.status not in [ProductCategoryHierarchyStatus.DRAFT]:
+      raise CategoryHierarchyCannotBeEdited()
+  """
   def ensure_draft_be_created(self):
     if self.status != ProductCategoryHierarchyStatus.ACTIVE:
       raise DraftCategoryHierarchyCannotBeCreated()

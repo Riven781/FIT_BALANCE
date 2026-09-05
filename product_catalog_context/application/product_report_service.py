@@ -13,7 +13,7 @@ class ProductReportService:
     self.product_issue_repository = product_issue_repository
     self.access_adapter = access_adapter
 
-  async def create_report(self, product_report_command : ProductReportCommand, user_id):
+  async def create_report(self, product_report_command : ProductReportCommand, user_id): #issue should be created in handler event ReportCreated and id should be add to issue
     product_report = ProductReport(product_id=product_report_command.product_id, reported_items=[], user_id=user_id)
     for reported_item in product_report_command.reported_items:
       product_report_item = ProductReportItem(reported_field=reported_item.reported_field, proposed_value=reported_item.proposed_value)

@@ -1,4 +1,4 @@
-from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished
+from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, ProductCategoryHierarchyRevertedToDraft
 from product_catalog_context.infrastructure.aiosqlite_repository.category_assignment_task_repository import CategoryAssignmentTaskRepository
 
 
@@ -6,5 +6,5 @@ class CategoryHierarchyPublishedOrRevertedHandler:
   def __init__(self, category_assignment_task_repository: CategoryAssignmentTaskRepository):
     self.category_assignment_task_repository = category_assignment_task_repository
 
-  async def handler(self, event: ProductCategoryHierarchyPublished):
+  async def handler(self, event: ProductCategoryHierarchyPublished | ProductCategoryHierarchyRevertedToDraft):
     await self.category_assignment_task_repository.delete_by_hierarchy_id(event.hierarchy_id)
