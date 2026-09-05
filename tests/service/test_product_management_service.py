@@ -1,6 +1,6 @@
 import pytest
-from product_catalog_context.domain.product import Product
-from product_catalog_context.domain.nutrition_facts import NutritionFacts, Nutrients, ReferenceQuantity, Nutrients
+from product_catalog_context.domain.product.product import Product
+from product_catalog_context.domain.product.nutrition_facts import NutritionFacts, Nutrients, ReferenceQuantity, Nutrients
 from product_catalog_context.application.command.product import ProductCommand
 from product_catalog_context.application.product_management_service import ProductManagementService
 from product_catalog_context.application.errors.errors import ProductNotFoundError

@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from product_catalog_context.application.command.product import ProductCommand
 from product_catalog_context.infrastructure.api.rest.schemas.product_category import ProductCategory, ProductCategoryItem
-from product_catalog_context.domain.nutrition_facts import NutritionFacts as domain_NutritionFacts, ReferenceQuantity as domain_ReferenceQuantity, Nutrients as domain_Nutrients
+from product_catalog_context.domain.product.nutrition_facts import NutritionFacts as domain_NutritionFacts, ReferenceQuantity as domain_ReferenceQuantity, Nutrients as domain_Nutrients
 
 class PartialNutrients(BaseModel):
   model_config = ConfigDict(frozen=True, from_attributes=True)

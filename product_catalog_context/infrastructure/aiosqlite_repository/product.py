@@ -1,7 +1,7 @@
 
 
 import aiosqlite
-from product_catalog_context.domain.product import Product
+from product_catalog_context.domain.product.product import Product
 from product_catalog_context.infrastructure.aiosqlite_repository.mapper import ProductMapper
 from product_catalog_context.infrastructure.api.rest.dependencies.filters import ProductsFilters
 from product_catalog_context.domain.enums.product_searching import NameMode, SortBy
@@ -203,7 +203,7 @@ class ProductRepository(DbRepository):
     """
     await self.db.execute(insert_assignments, (active_hierarchy_id, draft_hierarchy_id))
 
-  async def delete_category_assignments(self, category_ids):
+  async def delete_category_assignments_by_category_id(self, category_ids):
     placeholder = ', '.join(['?' for _ in category_ids])
     delete_assignments = f"""
       DELETE FROM ProductCategoryAssignment

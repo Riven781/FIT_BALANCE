@@ -1,4 +1,4 @@
-from product_catalog_context.domain.product_issue_confirmed import ProductIssueConfirmed
+from product_catalog_context.domain.issues.product_issue_confirmed import ProductIssueConfirmed
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
 
 

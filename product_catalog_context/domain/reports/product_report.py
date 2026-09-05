@@ -1,7 +1,7 @@
-from product_catalog_context.domain.enums.product_report_item_status import ProductReportItemStatus
-from product_catalog_context.domain.enums.report_outcome import ReportOutcome
-from product_catalog_context.domain.enums.report_status import ReportStatus
-from product_catalog_context.domain.issues.product_report_item import ProductReportItem
+from product_catalog_context.domain.issues.product_issue_status import ProductIssueStatus
+from product_catalog_context.domain.reports.report_outcome import ReportOutcome
+from product_catalog_context.domain.reports.report_status import ReportStatus
+from product_catalog_context.domain.reports.product_report_item import ProductReportItem
 
 
 class ProductReport:
@@ -18,19 +18,19 @@ class ProductReport:
     self.reported_items.append(reported_item)
 
   def calculate_status(self, issue_statuses) -> ReportStatus:
-    if all(status in [ProductReportItemStatus.CONFIRMED, ProductReportItemStatus.REJECTED, ProductReportItemStatus.OBSOLETE] for status in issue_statuses):
+    if all(status in [ProductIssueStatus.CONFIRMED, ProductIssueStatus.REJECTED, ProductIssueStatus.OBSOLETE] for status in issue_statuses):
       return ReportStatus.REVIEWED
-    if any(status in [ProductReportItemStatus.CONFIRMED, ProductReportItemStatus.REJECTED, ProductReportItemStatus.OBSOLETE] for status in issue_statuses):
+    if any(status in [ProductIssueStatus.CONFIRMED, ProductIssueStatus.REJECTED, ProductIssueStatus.OBSOLETE] for status in issue_statuses):
         return ReportStatus.PARTIALLY_REVIEWED
     return ReportStatus.PENDING
 
   def calculate_outcome(self, issue_statuses):
     if self.calculate_status(issue_statuses) == ReportStatus.PENDING:
       return ReportOutcome.IN_REVIEW
-    if all(status == ProductReportItemStatus.OBSOLETE for status in issue_statuses):
+    if all(status == ProductIssueStatus.OBSOLETE for status in issue_statuses):
       return ReportOutcome.OBSOLETE
-    if all(status in [ProductReportItemStatus.CONFIRMED, ProductReportItemStatus.OBSOLETE] for status in issue_statuses):
+    if all(status in [ProductIssueStatus.CONFIRMED, ProductIssueStatus.OBSOLETE] for status in issue_statuses):
       return ReportOutcome.FULLY_CONFIRMED
-    if any(status == ProductReportItemStatus.CONFIRMED for status in issue_statuses):
+    if any(status == ProductIssueStatus.CONFIRMED for status in issue_statuses):
       return ReportOutcome.PARTIALLY_CONFIRMED
     return ReportOutcome.REJECTED

@@ -1,12 +1,11 @@
 from re import L
 
 from product_catalog_context.domain.enums.reported_field import ReportedField
-from product_catalog_context.domain.events import ProductCategoryChangedInHierarchy, ProductDataChanged
-from product_catalog_context.domain.nutrition_facts import NutritionFacts
-from product_catalog_context.domain.product_category import ProductCategory
+from product_catalog_context.domain.product.events import ProductCategoryChangedInHierarchy, ProductDataChanged
+from product_catalog_context.domain.product.nutrition_facts import NutritionFacts
+from product_catalog_context.domain.category_hierarchy.product_category import ProductCategory
 from product_catalog_context.domain.services.text_converter import normalize_for_search
 
-#TODO: delete planned_category_id, current_category_id from domain
 class Product:
   PROTECTED_FIELDS = {'product_id', 'name', 'name_search_standard'}
 
@@ -87,8 +86,6 @@ class Product:
     self.name_search_standard = normalize_for_search(self.name)
 
   def update_details(self, data: dict, product_editor_id):
-    #if self.planned_category_id != data.get('planned_category_id') and data.get('planned_category_id') is not None:
-    #  self._events.append(PlannedProductCategoryChanged(product_id=self.product_id, old_category_id=self.planned_category_id, new_category_id=data.get('planned_category_id'), changed_by=product_editor_id))   #generate event PRODUCT_PLANNED_CATEGORY_CHANGED -- sprawdamy czy jest task jesli tak to ktory user zmienił i zmieniamy stan na completed lub cancelled
     changed_fields =[]
     if 'name' in data and data['name'] != self.name:
       changed_fields.append(ReportedField('name'))

@@ -1,7 +1,7 @@
 import pytest
 from product_catalog_context.infrastructure.aiosqlite_repository.product_issue_repository import ProductIssueRepository
 from product_catalog_context.domain.issues.product_issue import ProductIssue
-from product_catalog_context.domain.enums.product_issue_status import ProductIssueStatus
+from product_catalog_context.domain.issues.product_issue_status import ProductIssueStatus
 
 
 async def insert_issues(db):

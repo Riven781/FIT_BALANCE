@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from product_catalog_context.application.query.category_path_item import CategoryPathItem
-from product_catalog_context.domain.nutrition_facts import NutritionFacts
+from product_catalog_context.domain.product.nutrition_facts import NutritionFacts
 
 @dataclass
 class PublicProductDetail:

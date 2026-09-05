@@ -1,4 +1,4 @@
-from product_catalog_context.domain.enums.category_assignment_task_status import CategoryAssignmentTaskStatus
+from product_catalog_context.domain.tasks.category_assignment_task_status import CategoryAssignmentTaskStatus
 from product_catalog_context.domain.errors import TaskCannotBeCompleted, TaskCannotBeCancelled
 
 

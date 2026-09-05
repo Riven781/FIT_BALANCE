@@ -1,5 +1,4 @@
-from product_catalog_context.domain.enums.product_report_item_status import ProductReportItemStatus
-from product_catalog_context.domain.enums.proposed_value_outcome import ProposedValueOutcome
+from product_catalog_context.domain.reports.proposed_value_outcome import ProposedValueOutcome
 from product_catalog_context.domain.enums.reported_field import ReportedField
 
 

@@ -5,8 +5,8 @@ from product_catalog_context.domain.enums.product_searching import SortBy
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
 from product_catalog_context.infrastructure.aiosqlite_repository.errors.errors import ForeignKeyViolationError, NotNullViolationError,  RepositoryIntegrityError, TypeViolationError, UniqueViolationError
 from tests.schema import ProductTest, ProductTestStrKcal
-from product_catalog_context.domain.product import Product
-from product_catalog_context.domain.nutrition_facts import NutritionFacts, Nutrients, ReferenceQuantity
+from product_catalog_context.domain.product.product import Product
+from product_catalog_context.domain.product.nutrition_facts import NutritionFacts, Nutrients, ReferenceQuantity
 
 async def insert_categories_and_products(db):
   cursor = await db.executescript("""
@@ -236,7 +236,7 @@ async def test_update_product_with_string_kcal_type(db):
 async def test_delete_category_assignments(db):
   await insert_categories_and_products(db)
   repo = ProductRepository(db)
-  await repo.delete_category_assignments([4])
+  await repo.delete_category_assignments_by_category_id([4])
   cursor = await db.execute(""" 
     SELECT * FROM ProductCategoryAssignment WHERE node_id  = ?
   """, (4,))

@@ -1,14 +1,14 @@
 from httpx import delete
 
 from product_catalog_context.application.errors.errors import CategoryHierarchyDoesNotExist, DraftCategoryHierarchyExists, CategoryDoesNotBelongToHierarchy, AccessDenied
-from product_catalog_context.domain.event_dispatcher import EventDispatcher
+from product_catalog_context.infrastructure.adapters.event_dispatcher import EventDispatcher
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy import ProductCategoryHierarchy
 from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
 from product_catalog_context.infrastructure.aiosqlite_queries.product import ProductQueries
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
 from product_catalog_context.infrastructure.aiosqlite_repository.product_category_hierarchy import ProductCategoryHierarchyRepository
 from product_catalog_context.infrastructure.api.rest.schemas.product_category import  ProductCategoryCreate, ProductCategoryUpdate
-from product_catalog_context.domain.product_category import ProductCategory, ProductCategoryDraft, ProductCategoryItem
+from product_catalog_context.domain.category_hierarchy.product_category import ProductCategory, ProductCategoryDraft, ProductCategoryItem
 
 
 class CategoryHierarchyManagementService():
@@ -122,6 +122,6 @@ class CategoryHierarchyManagementService():
     hierarchy.plan_for_publication()  #generate event HierarchyPlannedForPublication
     await self.product_category_hierarchy_repository.update(hierarchy_id, hierarchy)
     category_ids = hierarchy.get_non_leaf_category_ids()  #in handler
-    await self.product_repository.delete_category_assignments(category_ids)
+    await self.product_repository.delete_category_assignments_by_category_id(category_ids)
     return hierarchy
 

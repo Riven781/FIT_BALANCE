@@ -1,7 +1,7 @@
 import pytest
 from product_catalog_context.infrastructure.aiosqlite_repository.category_assignment_task_repository import CategoryAssignmentTaskRepository
-from product_catalog_context.domain.category_assignment_task import CategoryAssignmentTask
-from product_catalog_context.domain.enums.category_assignment_task_status import CategoryAssignmentTaskStatus
+from product_catalog_context.domain.tasks.category_assignment_task import CategoryAssignmentTask
+from product_catalog_context.domain.tasks.category_assignment_task_status import CategoryAssignmentTaskStatus
 
 
 async def insert_data(db):

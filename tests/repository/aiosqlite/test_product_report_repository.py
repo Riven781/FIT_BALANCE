@@ -1,8 +1,8 @@
 import pytest
 from product_catalog_context.infrastructure.aiosqlite_repository.product_report_repository import ProductReportRepository
 from product_catalog_context.domain.enums.reported_field import ReportedField
-from product_catalog_context.domain.issues.product_report import ProductReport
-from product_catalog_context.domain.issues.product_report_item import ProductReportItem
+from product_catalog_context.domain.reports.product_report import ProductReport
+from product_catalog_context.domain.reports.product_report_item import ProductReportItem
 
 async def insert_reports(db):
   cursor = await db.executescript(

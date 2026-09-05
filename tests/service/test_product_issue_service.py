@@ -1,6 +1,6 @@
 import pytest
 from product_catalog_context.application.product_issue_service import ProductIssueService
-from product_catalog_context.domain.enums.product_issue_status import ProductIssueStatus
+from product_catalog_context.domain.issues.product_issue_status import ProductIssueStatus
 from product_catalog_context.domain.errors import IssueCanNotBeConfirmed, IssueCanNotBeMarkedAsObsolete, IssueCanNotBeRejected
 from product_catalog_context.application.errors.errors import IssueNotFoundError
 

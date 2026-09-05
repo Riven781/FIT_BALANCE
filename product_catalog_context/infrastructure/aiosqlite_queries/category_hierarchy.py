@@ -1,7 +1,7 @@
 import sqlite3
 
 from product_catalog_context.application.query.active_category_hierarchy import ActiveCategoryHierarchy, CategoryHierarchyNode
-from product_catalog_context.domain.product_category import ProductCategoryNode
+from product_catalog_context.domain.category_hierarchy.product_category import ProductCategoryNode
 from product_catalog_context.infrastructure.aiosqlite_repository.errors_mapper import map_errors
 
 

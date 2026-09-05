@@ -1,4 +1,4 @@
-from product_catalog_context.domain.category_assignment_task import CategoryAssignmentTask
+from product_catalog_context.domain.tasks.category_assignment_task import CategoryAssignmentTask
 from product_catalog_context.infrastructure.aiosqlite_repository.mapper import CategoryAssignmentTaskMapper
 from product_catalog_context.infrastructure.aiosqlite_repository.repository import DbRepository
 
@@ -32,17 +32,6 @@ class CategoryAssignmentTaskRepository(DbRepository):
 
     return self.mapper.to_task(task)
 
-  async def get_by_product_id(self, product_id) -> CategoryAssignmentTask:
-    get_task = """
-    SELECT * FROM ProductCategoryAssignmentTask WHERE product_id = ?
-    """
-    async with self.db.execute(get_task, (product_id)) as cursor:
-      task = await cursor.fetchone()
-
-    if task is None:
-      return None
-
-    return self.mapper.to_task(task)  
 
   async def insert_tasks_for_unassigned_products(self, user_id, hierarchy_id, limit):
     insert_query = """

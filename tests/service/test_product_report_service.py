@@ -2,7 +2,7 @@ import pytest
 from product_catalog_context.application.command.product_report import ProductReportCommand, ReportedItem
 from product_catalog_context.domain.enums.reported_field import ReportedField
 from product_catalog_context.application.product_report_service import ProductReportService
-from product_catalog_context.domain.enums.product_issue_status import ProductIssueStatus
+from product_catalog_context.domain.issues.product_issue_status import ProductIssueStatus
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,6 @@
 from product_catalog_context.application.query.category_path_item import CategoryPathItem
 from product_catalog_context.application.query.product_detail import PublicProductDetail
-from product_catalog_context.domain.nutrition_facts import Nutrients, NutritionFacts, ReferenceQuantity
+from product_catalog_context.domain.product.nutrition_facts import Nutrients, NutritionFacts, ReferenceQuantity
 
 
 #def to_category_path_item():

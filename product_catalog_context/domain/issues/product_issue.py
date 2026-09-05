@@ -1,7 +1,7 @@
-from product_catalog_context.domain.enums.product_issue_status import ProductIssueStatus
+from product_catalog_context.domain.issues.product_issue_status import ProductIssueStatus
 from product_catalog_context.domain.enums.reported_field import ReportedField
 from product_catalog_context.domain.errors import IssueCanNotBeConfirmed, IssueCanNotBeMarkedAsObsolete, IssueCanNotBeRejected
-from product_catalog_context.domain.product_issue_confirmed import ProductIssueConfirmed
+from product_catalog_context.domain.issues.product_issue_confirmed import ProductIssueConfirmed
 
 
 class ProductIssue:

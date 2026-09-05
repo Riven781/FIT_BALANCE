@@ -1,4 +1,7 @@
-class EventDispatcher:
+from product_catalog_context.domain.events.event_dispatcher import AbstractEventDispatcher
+
+
+class EventDispatcher(AbstractEventDispatcher):
   def __init__(self):
     self.handlers = {}
 

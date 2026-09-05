@@ -7,7 +7,7 @@ from fastapi import Depends, HTTPException
 
 from product_catalog_context.application.command.product import PaginationFiltersCommand, ProductCommand, ProductsFiltersCommand
 from product_catalog_context.application.query.product_detail import PublicProductDetail
-from product_catalog_context.domain.product import Product
+from product_catalog_context.domain.product.product import Product
 from product_catalog_context.domain.services.text_converter import tokenize_for_search
 from product_catalog_context.infrastructure.aiosqlite_queries.product import ProductQueries
 from product_catalog_context.domain.enums import product_searching
