@@ -98,7 +98,8 @@ async def test_complete_category_assignment(category_assignment_service, db, pro
   assert task.status == CategoryAssignmentTaskStatus.COMPLETED
 
   product = await product_management_service.get(task.product_id)
-  assert product.planned_category_id == 13
+  print(product.category_assignments)
+  assert 13 in product.category_assignments.values()
 
 @pytest.mark.asyncio
 async def test_complete_category_assignment_in_active_hierarchy(category_assignment_service, db):

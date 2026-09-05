@@ -124,7 +124,8 @@ async def test_update_current_category_id(db, product_repository, hierarchy_repo
   product = await service.get(80)
   assert product.product_id == 80
   assert product.name == "Raw Dzik"
-  assert product.current_category_id == 11
+  assert len(product.category_assignments) == 1
+  assert product.category_assignments == {1:11}
 
 @pytest.mark.asyncio
 async def test_update_one_product_with_null_field(db, product_repository, hierarchy_repository, access_adapter):

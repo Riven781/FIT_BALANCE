@@ -4,8 +4,9 @@ from product_catalog_context.domain.enums.reported_field import ReportedField
 
 
 @dataclass
-class PlannedProductCategoryChanged:
+class ProductCategoryChangedInHierarchy:
   product_id: int
+  hierarchy_id: int
   old_category_id: int
   new_category_id: int
   changed_by: int

@@ -96,7 +96,7 @@ async def test_get_by_id_wrong_id(db):
 async def test_insert_product(db):
   repo = ProductRepository(db)
   
-  product = Product(name="Baton", brand_name="Auchan", planned_category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
+  product = Product(name="Baton", brand_name="Auchan", nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
   await repo.insert(product)
   await repo.commit()
 
@@ -141,7 +141,7 @@ async def test_delete_product_by_id_wrong_id(db):
 async def test_update_product_by_id(db):
   product_id = await insert_line(db)
   repo = ProductRepository(db)
-  product_update = Product(name="bakłażan", brand_name="Auchan", current_category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
+  product_update = Product(name="bakłażan", brand_name="Auchan", nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
 
   
   await repo.update(product_id, product_update)
@@ -164,14 +164,14 @@ async def test_update_product_by_id(db):
 @pytest.mark.asyncio
 async def test_update_product_tht_does_not_exist(db):
   repo = ProductRepository(db)
-  product = Product(name="Baton", brand_name="Auchan", current_category_id=10, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
+  product = Product(name="Baton", brand_name="Auchan", category_assignments={1:10}, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
   count = await repo.update(10, product)
   assert count == 0
 
 @pytest.mark.asyncio
 async def test_insert_product_category_does_not_exist(db):
   repo = ProductRepository(db)
-  product = Product(name="Baton", brand_name="Auchan", current_category_id=10, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
+  product = Product(name="Baton", brand_name="Auchan", category_assignments={1: 10}, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
   with pytest.raises(ForeignKeyViolationError):
     await repo.insert(product)
 
@@ -179,7 +179,7 @@ async def test_insert_product_category_does_not_exist(db):
 async def test_insert_product_with_existing_id(db):
   product_id = await insert_line(db)
   repo = ProductRepository(db)
-  product = Product(product_id=product_id, name="Baton", brand_name="Auchan", current_category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
+  product = Product(product_id=product_id, name="Baton", brand_name="Auchan", nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
 
   with pytest.raises(UniqueViolationError):
     await repo.insert(product)
@@ -198,7 +198,7 @@ async def test_insert_empty_product(db):
 @pytest.mark.asyncio
 async def test_insert_product_with_string_kcal_type(db):
   repo = ProductRepository(db)
-  product = Product(name="Baton", brand_name="Auchan", current_category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal="tak", nutrients=Nutrients()))
+  product = Product(name="Baton", brand_name="Auchan", nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal="tak", nutrients=Nutrients()))
 
   with pytest.raises(TypeViolationError):
     await repo.insert(product)
@@ -206,11 +206,11 @@ async def test_insert_product_with_string_kcal_type(db):
 @pytest.mark.asyncio
 async def test_update_product_category_does_not_exist(db):
   repo = ProductRepository(db)
-  product = Product(product_id=1, name="Baton", brand_name="Auchan", current_category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
+  product = Product(product_id=1, name="Baton", brand_name="Auchan",  nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
   product_id = await repo.insert(product)
   print(product_id)
   with pytest.raises(ForeignKeyViolationError):
-    await repo.update(product_id, Product(product_id=1, name="Baton", brand_name="Auchan", current_category_id=20, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients())))
+    await repo.update(product_id, Product(product_id=1, name="Baton", brand_name="Auchan", category_assignments={1:20}, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients())))
 """
 @pytest.mark.asyncio
 async def test_update_empty_product(db):
@@ -225,11 +225,11 @@ async def test_update_empty_product(db):
 @pytest.mark.asyncio
 async def test_update_product_with_string_kcal_type(db):
   repo = ProductRepository(db)
-  product = Product(name="Baton", brand_name="Auchan", current_category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
+  product = Product(name="Baton", brand_name="Auchan",  nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal=300, nutrients=Nutrients()))
 
   product_id = await repo.insert(product)
   with pytest.raises(TypeViolationError):
-    await repo.update(product_id, Product(name="Baton", brand_name="Auchan", current_category_id=None, nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal="tak", nutrients=Nutrients())))
+    await repo.update(product_id, Product(name="Baton", brand_name="Auchan",  nutrition_facts=NutritionFacts(reference_quantity=ReferenceQuantity(100, 'g'), kcal="tak", nutrients=Nutrients())))
 
 
 @pytest.mark.asyncio
@@ -276,7 +276,8 @@ async def test_copy_category_assignments(db):
 async def test_get_without_planned_category_and_task(db):
   await insert_categories_and_products(db)
   repo = ProductRepository(db)
-  products = await repo.get_without_planned_category_and_task(4, 1)
+  products = await repo.get_without_planned_category_and_assignment_task(4, 1)
+  print(products)
   assert len(products) == 3
   assert products[0].name == 'Schab Drogi'
 
@@ -284,7 +285,7 @@ async def test_get_without_planned_category_and_task(db):
 async def test_get_without_planned_category_and_task_with_limit(db):
   await insert_categories_and_products(db)
   repo = ProductRepository(db)
-  products = await repo.get_without_planned_category_and_task(4,1, limit=2)
+  products = await repo.get_without_planned_category_and_assignment_task(4,1, limit=2)
   assert len(products) == 2
   assert products[0].name == 'Schab Drogi'
 
@@ -292,7 +293,7 @@ async def test_get_without_planned_category_and_task_with_limit(db):
 async def test_get_without_planned_category_and_task_returns_empty_list(db):
   await insert_categories_and_products(db)
   repo = ProductRepository(db)
-  products = await repo.get_without_planned_category_and_task(1, 1)
+  products = await repo.get_without_planned_category_and_assignment_task(1, 1)
   assert products == []
 
 @pytest.mark.asyncio

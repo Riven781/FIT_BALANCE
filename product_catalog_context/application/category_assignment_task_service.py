@@ -52,7 +52,7 @@ class CategoryAssignmentTaskService:
     if product is None:
       raise ProductNotFoundError()
 
-    product.assign_to_planned_category(category_id)
+    product.assign_to_category(hierarchy.hierarchy_id, category_id, product_editor_id)
     task.complete()
 
     await self.product_repository.update(product.product_id, product)
@@ -71,7 +71,7 @@ class CategoryAssignmentTaskService:
     if hierarchy is None:
       return CategoryHierarchyDoesNotExist()
     hierarchy.ensure_category_assignment_allowed()
-    products = await self.product_repository.get_without_planned_category_and_task(current_category_id, hierarchy_id, limit)
+    products = await self.product_repository.get_without_planned_category_and_assignment_task(current_category_id, hierarchy_id, limit)
     tasks = []
     for product in products:
       tasks.append(CategoryAssignmentTask(product_id=product.product_id, hierarchy_id=hierarchy_id, user_id=product_editor_id, status=CategoryAssignmentTaskStatus.PENDING))

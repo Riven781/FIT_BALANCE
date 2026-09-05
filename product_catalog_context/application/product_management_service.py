@@ -45,26 +45,28 @@ class ProductManagementService():
     if product_editor is None:
       raise AccessDenied()
     
+    category_assignments={}
     if product_command.current_category_id is not None:
       active_hierarchy = await self.product_category_hierarchy_repository.get_active()
       if not active_hierarchy.contains_product_category(product_command.current_category_id):
         raise CategoryDoesNotBelongToActiveHierarchy()
+      category_assignments[active_hierarchy] = product_command.current_category_id
     if product_command.planned_category_id is not None:
       planned_hierarchy = await self.product_category_hierarchy_repository.get_planned_for_publication()
       if not planned_hierarchy:
         raise PlannedHierarchyDoesNotExist()
       if not planned_hierarchy.contains_product_category(product_command.planned_category_id):
         raise CategoryDoesNotBelongToPlannedHierarchy()
+      category_assignments[planned_hierarchy] = product_command.planned_category_id
 
     product = Product(
       name=product_command.name,
       brand_name=product_command.brand_name,
       nutrition_facts=product_command.nutrition_facts,
-      current_category_id=product_command.current_category_id,
-      planned_category_id=product_command.planned_category_id,
       ingredients=product_command.ingredients,
       allergy_recommendations=product_command.allergy_recommendations,
-      created_by=product_editor_id
+      created_by=product_editor_id,
+      category_assignments=category_assignments
     )
     try:
       id_created = await self.product_repository.insert(product)
@@ -99,17 +101,19 @@ class ProductManagementService():
     if product is None:
       raise ProductNotFoundError()
 
-    if product_command.current_category_id != product.current_category_id and product_command.current_category_id is not None:
+    if product_command.current_category_id is not None:
       active_hierarchy = await self.product_category_hierarchy_repository.get_active()
       if not active_hierarchy.contains_product_category(product_command.current_category_id):
         raise CategoryDoesNotBelongToActiveHierarchy()
+      product.assign_to_category(active_hierarchy.hierarchy_id, product_command.current_category_id, product_editor_id)
 
-    if product_command.planned_category_id != product.planned_category_id and product_command.planned_category_id is not None:
+    if product_command.planned_category_id is not None:
       planned_hierarchy = await self.product_category_hierarchy_repository.get_planned_for_publication()
       if not planned_hierarchy:
         raise PlannedHierarchyDoesNotExist()
       if not planned_hierarchy.contains_product_category(product_command.planned_category_id):
         raise CategoryDoesNotBelongToPlannedHierarchy()
+      product.assign_to_category(planned_hierarchy.hierarchy_id, product_command.planned_category_id, product_editor_id)
 
     data_dict = shallow_asdict(product_command)
     product.update_details(data_dict, product_editor_id)

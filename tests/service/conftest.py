@@ -82,7 +82,7 @@ async def fake_product_queries():
     async def get_detail_by_filters(self, **filters):
       results = list(self.products)
       if filters.get('category_id'):
-        results = [product for product in results if product.current_category_id == filters.get('category_id')]
+        results = [product for product in results if filters.get('category_id') in product.category_assignments.values()]
         print(results)
       if names := filters.get('names'):
         after_space = [f' {name}' for name in names]

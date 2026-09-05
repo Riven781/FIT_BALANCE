@@ -35,9 +35,7 @@ class ProductMapper:
     out_dict['fat'] = product.nutrition_facts.nutrients.fat
     out_dict['kcal'] = product.nutrition_facts.kcal
     out_dict['name_search_standard'] = product.name_search_standard
-    out_dict['planned_category_id'] = product.planned_category_id
-    out_dict['current_category_id'] = product.current_category_id
-
+    out_dict['category_assignments'] = product.category_assignments
     
     return out_dict
 
@@ -64,8 +62,7 @@ class ProductMapper:
       img_src=row['img_src'],
       ingredients=row['ingredients'],
       allergy_recommendations=row['allergy_recommendations'],
-      current_category_id=row['current_category_id'],
-      planned_category_id=row['planned_category_id']
+      category_assignments=row['category_assignments']
       )
 
 
