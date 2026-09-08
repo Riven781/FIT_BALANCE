@@ -2,6 +2,7 @@
 
 import aiosqlite
 from product_catalog_context.domain.product.product import Product
+from product_catalog_context.domain.product.product_assignment import CategoryAssignment
 from product_catalog_context.infrastructure.aiosqlite_repository.mapper import ProductMapper
 from product_catalog_context.infrastructure.api.rest.dependencies.filters import ProductsFilters
 from product_catalog_context.domain.enums.product_searching import NameMode, SortBy
@@ -84,14 +85,14 @@ class ProductRepository(DbRepository):
     result_dict = dict(result)
 
     get_assignments_query = """
-      SELECT node.hierarchy_id, assignment.node_id FROM ProductCategoryAssignment assignment
+      SELECT node.hierarchy_id, assignment.node_id, assignment.assigned_by, assignment.assigned_at FROM ProductCategoryAssignment assignment
       JOIN ProductCategoryNode node ON node.id = assignment.node_id
       WHERE assignment.product_id = ?
     """
     async with self.db.execute(get_assignments_query, (id,)) as cursor:
       assignments = await cursor.fetchall()
 
-    category_assignments = {assignment['hierarchy_id'] : assignment['node_id'] for assignment in assignments}
+    category_assignments = {assignment['hierarchy_id'] : CategoryAssignment(category_id=assignment['node_id'], assigned_by=assignment['assigned_by']) for assignment in assignments}
     
     result_dict['category_assignments'] = category_assignments
 
@@ -114,7 +115,7 @@ class ProductRepository(DbRepository):
     except Exception as e:
       raise map_errors(e) from e
     
-    category_nodes = list(category_assignments.values())
+    category_nodes = [assignment.category_id for assignment in category_assignments.values()]
     if category_nodes:
       placeholder = '.'.join(['(? , ?)' for _ in category_nodes])
       insert_query = f"""
@@ -157,7 +158,7 @@ class ProductRepository(DbRepository):
     if row is None:
         return 0
 
-    category_nodes = list(category_assignments.values())
+    category_nodes = [assignment.category_id for assignment in category_assignments.values()]
 
     try:
       if not category_nodes:

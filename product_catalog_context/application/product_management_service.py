@@ -20,6 +20,7 @@ from product_catalog_context.infrastructure.aiosqlite_repository.product import 
 from product_catalog_context.infrastructure.aiosqlite_repository.errors.errors import CheckViolationError, ForeignKeyViolationError, NotNullViolationError, RepositoryError, UniqueViolationError
 from product_catalog_context.application.errors.errors import  AccessDenied, CategoryDoesNotBelongToActiveHierarchy, CategoryDoesNotBelongToPlannedHierarchy, CategoryHierarchyDoesNotExist, InvalidProductCategoryId, InvalidProductDataError, PlannedHierarchyDoesNotExist, ProductNotFoundError
 from product_catalog_context.infrastructure.aiosqlite_repository.product_category_hierarchy import ProductCategoryHierarchyRepository
+from product_catalog_context.domain.product.product_assignment import CategoryAssignment
 
 
 
@@ -50,14 +51,16 @@ class ProductManagementService():
       active_hierarchy = await self.product_category_hierarchy_repository.get_active()
       if not active_hierarchy.contains_product_category(product_command.current_category_id):
         raise CategoryDoesNotBelongToActiveHierarchy()
-      category_assignments[active_hierarchy] = product_command.current_category_id
+      category_assignments[active_hierarchy] = (CategoryAssignment(category_id=product_command.current_category_id, assigned_by=product_editor_id))
+      #category_assignments[active_hierarchy] = product_command.current_category_id
     if product_command.planned_category_id is not None:
       planned_hierarchy = await self.product_category_hierarchy_repository.get_planned_for_publication()
       if not planned_hierarchy:
         raise PlannedHierarchyDoesNotExist()
       if not planned_hierarchy.contains_product_category(product_command.planned_category_id):
         raise CategoryDoesNotBelongToPlannedHierarchy()
-      category_assignments[planned_hierarchy] = product_command.planned_category_id
+      category_assignments[planned_hierarchy] = (CategoryAssignment(category_id=product_command.planned_category_id, assigned_by=product_editor_id))
+      #category_assignments[planned_hierarchy] = product_command.planned_category_id
 
     product = Product(
       name=product_command.name,

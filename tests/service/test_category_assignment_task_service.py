@@ -99,7 +99,7 @@ async def test_complete_category_assignment(category_assignment_service, db, pro
 
   product = await product_management_service.get(task.product_id)
   print(product.category_assignments)
-  assert 13 in product.category_assignments.values()
+  assert 13 in[assignment.category_id for assignment in product.category_assignments.values()]
 
 @pytest.mark.asyncio
 async def test_complete_category_assignment_in_active_hierarchy(category_assignment_service, db):

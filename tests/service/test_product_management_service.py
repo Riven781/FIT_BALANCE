@@ -5,6 +5,7 @@ from product_catalog_context.application.command.product import ProductCommand
 from product_catalog_context.application.product_management_service import ProductManagementService
 from product_catalog_context.application.errors.errors import ProductNotFoundError
 from product_catalog_context.infrastructure.aiosqlite_repository.product_category_hierarchy import ProductCategoryHierarchyRepository
+from product_catalog_context.domain.product.product_assignment import CategoryAssignment
 
 #pytest tests/service/test_product_management_service.py
 
@@ -125,7 +126,10 @@ async def test_update_current_category_id(db, product_repository, hierarchy_repo
   assert product.product_id == 80
   assert product.name == "Raw Dzik"
   assert len(product.category_assignments) == 1
-  assert product.category_assignments == {1:11}
+  
+  assert 1 in product.category_assignments.keys()
+  assert product.category_assignments[1].category_id == 11
+
 
 @pytest.mark.asyncio
 async def test_update_one_product_with_null_field(db, product_repository, hierarchy_repository, access_adapter):

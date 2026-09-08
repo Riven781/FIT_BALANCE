@@ -4,6 +4,7 @@ from product_catalog_context.domain.enums.reported_field import ReportedField
 from product_catalog_context.domain.product.events import ProductCategoryChangedInHierarchy, ProductDataChanged
 from product_catalog_context.domain.product.nutrition_facts import NutritionFacts
 from product_catalog_context.domain.category_hierarchy.product_category import ProductCategory
+from product_catalog_context.domain.product.product_assignment import CategoryAssignment
 from product_catalog_context.domain.services.text_converter import normalize_for_search
 
 class Product:
@@ -14,7 +15,7 @@ class Product:
       name, 
       brand_name, 
       nutrition_facts:NutritionFacts, 
-      product_id=None, img_src: str=None, ingredients=None, allergy_recommendations=None, name_search_standard=None, created_by=None, category_assignments: dict[int, int] = None):
+      product_id=None, img_src: str=None, ingredients=None, allergy_recommendations=None, name_search_standard=None, created_by=None, category_assignments: dict[int, CategoryAssignment] = None):
     self._product_id = product_id
     self.rename(name)
     self.change_brand_name(brand_name)
@@ -30,13 +31,14 @@ class Product:
 
 
   def assign_to_category(self, hierarchy_id, new_category_id, product_editor_id):
-    previous_category_id = self.category_assignments.get(hierarchy_id)
+    previous_category_assignment = self.category_assignments.get(hierarchy_id)
+    previous_category_id = previous_category_assignment.category_id if previous_category_assignment else None
     if previous_category_id == new_category_id:
       return
     if new_category_id is None:
       del self.category_assignments[hierarchy_id]
     else:
-      self.category_assignments[hierarchy_id] = new_category_id
+      self.category_assignments[hierarchy_id] = CategoryAssignment(category_id=new_category_id, assigned_by=product_editor_id) 
       self._events.append(ProductCategoryChangedInHierarchy(hierarchy_id=hierarchy_id, product_id=self.product_id, old_category_id=previous_category_id, new_category_id=new_category_id, changed_by=product_editor_id))
 
   @property
