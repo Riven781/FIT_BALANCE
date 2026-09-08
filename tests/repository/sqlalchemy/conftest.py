@@ -8,6 +8,7 @@ from product_catalog_context.domain.product.nutrition_facts import Nutrients, Nu
 from product_catalog_context.domain.product.product import Product
 from product_catalog_context.domain.product.product_assignment import CategoryAssignment
 from product_catalog_context.infrastructure.sql_alchemy_repository.product import SqlAlchemyProductRepository
+from product_catalog_context.infrastructure.sql_alchemy_repository.product_category_hierarchy import SqlAlchemyProductCategoryHierarchyRepository
 from shared.database.create_new_db import product_table_query, product_category_node_table_query, product_category_hierarchy_query, product_category_assignment, product_category_closure_query, product_category_assignment_task
 from shared.database.create_new_db import fields, report, report_item, issue, user, role, user_role, id_sequence, init_id_seq
 import pytest_asyncio
@@ -32,7 +33,7 @@ async def db_session():
 
 @pytest_asyncio.fixture
 async def insert_data(db_session: AsyncSession):
-  db_session.add(ProductCategoryHierarchy(status=ProductCategoryHierarchyStatus.ACTIVE, product_categories=[
+  db_session.add(ProductCategoryHierarchy(hierarchy_id=1, status=ProductCategoryHierarchyStatus.ACTIVE, product_categories=[
     ProductCategory(
       category_id = 1,
       name = 'Produkty',
@@ -59,7 +60,7 @@ async def insert_data(db_session: AsyncSession):
       parent_id=3
     )
   ]))
-  db_session.add(ProductCategoryHierarchy(status=ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION, product_categories=[
+  db_session.add(ProductCategoryHierarchy(hierarchy_id=2, status=ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION, product_categories=[
       ProductCategory(
         category_id = 6,
         name = 'Produkty',
@@ -91,7 +92,7 @@ async def insert_data(db_session: AsyncSession):
         source_node_id=5
       )
     ]))
-  db_session.add(ProductCategoryHierarchy(status=ProductCategoryHierarchyStatus.DRAFT, product_categories=[
+  db_session.add(ProductCategoryHierarchy(hierarchy_id=3, status=ProductCategoryHierarchyStatus.DRAFT, product_categories=[
       ProductCategory(
         category_id = 11,
         name = 'Produkty',
@@ -139,3 +140,6 @@ async def insert_data(db_session: AsyncSession):
 def product_repository(db_session):
   return SqlAlchemyProductRepository(db_session)
 
+@pytest_asyncio.fixture
+def product_category_hierarchy_repository(db_session):
+  return SqlAlchemyProductCategoryHierarchyRepository(db_session)

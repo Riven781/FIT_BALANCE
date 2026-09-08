@@ -1,6 +1,7 @@
-from sqlalchemy import Column, DateTime, Double, ForeignKey, Integer, PrimaryKeyConstraint, String, Table, text
+from sqlalchemy import Column, DateTime, Double, ForeignKey, Integer, PrimaryKeyConstraint, String, Table, insert, text
 from sqlalchemy.orm import attribute_mapped_collection, composite, registry, relationship
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy import event
 
 from product_catalog_context.domain.category_hierarchy.product_category import ProductCategory
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy import ProductCategoryHierarchy
@@ -179,3 +180,16 @@ product_category_assignment_task_table = Table(
 mapper_registry.map_imperatively(CategoryAssignmentTask, product_category_assignment_task_table, properties={
   "task_id" : product_category_assignment_task_table.c.id
 })
+
+@event.listens_for(ProductCategoryHierarchy, "load")
+def receive_load(hierarchy, context):
+  hierarchy._events = []
+
+
+id_seq_table = Table(
+  "IdSequence",
+  mapper_registry.metadata,
+  Column("name", String, primary_key=True, nullable=False),
+  Column("next_value", Integer, nullable=False),
+)
+
