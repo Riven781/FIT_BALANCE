@@ -7,6 +7,9 @@ from product_catalog_context.domain.category_hierarchy.product_category_hierarch
 from product_catalog_context.domain.product.nutrition_facts import Nutrients, NutritionFacts, ReferenceQuantity
 from product_catalog_context.domain.product.product import Product
 from product_catalog_context.domain.product.product_assignment import CategoryAssignment
+from product_catalog_context.domain.tasks.category_assignment_task import CategoryAssignmentTask
+from product_catalog_context.domain.tasks.category_assignment_task_status import CategoryAssignmentTaskStatus
+from product_catalog_context.infrastructure.sql_alchemy_repository.category_assignment_task import SqlAlchemyCategoryAssignmentTaskRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product import SqlAlchemyProductRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product_category_hierarchy import SqlAlchemyProductCategoryHierarchyRepository
 from shared.database.create_new_db import product_table_query, product_category_node_table_query, product_category_hierarchy_query, product_category_assignment, product_category_closure_query, product_category_assignment_task
@@ -133,6 +136,8 @@ async def insert_data(db_session: AsyncSession):
   db_session.add(Product(product_id=7, name='Boczek Cielęcy', brand_name='YYY', nutrition_facts=NutritionFacts(kcal=400, reference_quantity=ReferenceQuantity(amount=100, unit='g'), nutrients=Nutrients(fat=100)), name_search_standard='boczek cielecy', category_assignments={1:CategoryAssignment(category_id=5)}))
   db_session.add(Product(product_id=8, name='Raw Energy Baton kakaowy Bombus', brand_name='WWW', nutrition_facts=NutritionFacts(kcal=300, reference_quantity=ReferenceQuantity(amount=100, unit='g'), nutrients=Nutrients(fat=100)), name_search_standard='raw energy baton kakaowy bombus', category_assignments={1:CategoryAssignment(category_id=2)}))
 
+
+  db_session.add(CategoryAssignmentTask(task_id=1, product_id=2, hierarchy_id=3, status=CategoryAssignmentTaskStatus.PENDING, user_id=1))
   await db_session.commit()
   await db_session.close()
 
@@ -143,3 +148,8 @@ def product_repository(db_session):
 @pytest_asyncio.fixture
 def product_category_hierarchy_repository(db_session):
   return SqlAlchemyProductCategoryHierarchyRepository(db_session)
+
+
+@pytest_asyncio.fixture
+def category_assignment_task_repository(db_session):
+  return SqlAlchemyCategoryAssignmentTaskRepository(db_session)

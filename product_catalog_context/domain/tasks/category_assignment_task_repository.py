@@ -24,8 +24,7 @@ class CategoryAssignmentTaskRepository(ABC):
   @abstractmethod
   async def delete_by_hierarchy(self, hierarchy_id):
     pass
-  
+
   @abstractmethod
   async def save(self, task: CategoryAssignmentTask):
     pass
-  
