@@ -1,0 +1,181 @@
+from sqlalchemy import Column, DateTime, Double, ForeignKey, Integer, PrimaryKeyConstraint, String, Table, text
+from sqlalchemy.orm import attribute_mapped_collection, composite, registry, relationship
+from sqlalchemy.ext.associationproxy import association_proxy
+
+from product_catalog_context.domain.category_hierarchy.product_category import ProductCategory
+from product_catalog_context.domain.category_hierarchy.product_category_hierarchy import ProductCategoryHierarchy
+from product_catalog_context.domain.product.nutrition_facts import Nutrients, NutritionFacts, ReferenceQuantity
+from product_catalog_context.domain.product.product import Product
+from product_catalog_context.domain.product.product_assignment import CategoryAssignment
+from product_catalog_context.domain.tasks.category_assignment_task import CategoryAssignmentTask
+
+
+mapper_registry = registry()
+
+product_table = Table(
+  "Product",
+  mapper_registry.metadata,
+  Column("id", Integer, primary_key=True, autoincrement=True),
+  Column("name", String, nullable=False),
+  Column("brand_name", String),
+  Column("kcal", Double, nullable=False),
+  Column("fat", Double),
+  Column("saturates", Double),
+  Column("carbohydrates", Double),
+  Column("sugars", Double),
+  Column("protein", Double),
+  Column("salt", Double),
+  Column("fiber", Double),
+  Column("ingredients", String),
+  Column("allergy_recommendations", String),
+  Column("reference_amount", Integer),
+  Column("reference_unit", String),
+  Column("img_src", String),
+  Column("name_search_standard", String),
+  Column("created_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
+  Column("created_by", String),
+  Column("version", Integer, default=0)
+)
+
+product_category_hierarchy_table = Table(
+  "ProductCategoryHierarchy",
+  mapper_registry.metadata,
+  Column("id", Integer, primary_key=True, autoincrement=True),
+  Column("version", Integer, nullable=False, default=0),
+  Column("status", String),
+  Column("created_by", Integer),
+  Column("created_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
+  Column("published_by", Integer),
+  Column("published_at", DateTime)
+)
+
+product_category_node_table = Table(
+  "ProductCategoryNode",
+  mapper_registry.metadata,
+  Column("id", Integer, primary_key=True, autoincrement=True),
+  Column("name", String, nullable=False),
+  Column("parent_id", Integer, ForeignKey("ProductCategoryNode.id", ondelete="SET NULL")),
+  Column("hierarchy_id", Integer, ForeignKey("ProductCategoryHierarchy.id", ondelete="CASCADE"), nullable=False),
+  Column("source_node_id", Integer, ForeignKey("ProductCategoryNode.id", ondelete="SET NULL"))
+)
+
+product_category_assignment_table = Table(
+  "ProductCategoryAssignment",
+  mapper_registry.metadata,
+  Column("product_id", Integer, ForeignKey("Product.id", ondelete="CASCADE"), nullable=False),
+  Column("node_id", Integer, ForeignKey("ProductCategoryNode.id", ondelete="CASCADE"), nullable=False),
+  Column("assigned_by", Integer),
+  Column("assigned_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
+  PrimaryKeyConstraint("product_id", "node_id")
+)
+
+class ProductCategoryAssignmentModel:
+  def __init__(self, product_id, node_id, assigned_by=None,  node=None):
+    self.assigned_by = assigned_by
+    self.product_id = product_id
+    self.node_id = node_id
+    self.node = node
+  @property
+  def hierarchy_id(self):
+    return self.node.hierarchy_id
+  @property
+  def category_assignment(self):
+    return CategoryAssignment(category_id=self.node_id, assigned_by=self.assigned_by)
+
+  @category_assignment.setter
+  def category_assignment(self, value:CategoryAssignment):
+    self.node_id = value.category_id
+    self.assigned_by = value.assigned_by
+    #self.assigned_at = value.assigned_at
+
+mapper_registry.map_imperatively(ProductCategory, product_category_node_table, properties={
+  "category_id" : product_category_node_table.c.id
+})
+
+mapper_registry.map_imperatively(ProductCategoryHierarchy, product_category_hierarchy_table, properties={
+  "hierarchy_id" : product_category_hierarchy_table.c.id,
+  "product_categories" : relationship(ProductCategory, cascade="all, delete-orphan", lazy='selectin')
+})
+
+mapper_registry.map_imperatively(ProductCategoryAssignmentModel, product_category_assignment_table, properties={
+  "node" : relationship(ProductCategory, lazy='joined', viewonly=True)
+})
+
+def nutrition_facts_factory(kcal, reference_amount, reference_unit, fat, saturates, carbohydrates, sugars, protein, salt, fiber):
+  return NutritionFacts(
+    reference_quantity=ReferenceQuantity(amount=reference_amount, unit=reference_unit),
+    nutrients=Nutrients(
+      fat=fat,
+      saturates=saturates,
+      carbohydrates=carbohydrates,
+      sugars=sugars,
+      protein=protein,
+      salt=salt,
+      fiber=fiber
+    ),
+    kcal=kcal
+  )
+
+def nutrition_facts_composite_value(self:  NutritionFacts):
+  return (
+    self.kcal,
+    self.reference_quantity.amount,
+    self.reference_quantity.unit,
+    self.nutrients.fat,
+    self.nutrients.saturates,
+    self.nutrients.carbohydrates,
+    self.nutrients.sugars,
+    self.nutrients.protein,
+    self.nutrients.salt,
+    self.nutrients.fiber,
+  )
+
+NutritionFacts.__composite_values__ = nutrition_facts_composite_value
+
+nutrition_facts_composite = composite(
+  nutrition_facts_factory,
+  product_table.c.kcal,
+  product_table.c.reference_amount,
+  product_table.c.reference_unit,
+  product_table.c.fat,
+  product_table.c.saturates,
+  product_table.c.carbohydrates,
+  product_table.c.sugars,
+  product_table.c.protein,
+  product_table.c.salt,
+  product_table.c.fiber,
+)
+
+
+mapper_registry.map_imperatively(Product, product_table, properties={
+  "_product_id" : product_table.c.id,
+  "_nutrition_facts" : nutrition_facts_composite,
+  "_category_assignments": relationship(ProductCategoryAssignmentModel, collection_class=attribute_mapped_collection("hierarchy_id"), cascade="all, delete-orphan", lazy='selectin'),
+  "_name" : product_table.c.name,
+})
+
+def product_category_assignment_creator(hierarchy_id, category_assignment: CategoryAssignment):
+  #print(f"hierarchy: {hierarchy_id}, node_id: {category_assignment}")
+  return ProductCategoryAssignmentModel(
+    product_id=None, 
+    node_id=category_assignment.category_id,
+    assigned_by=category_assignment.assigned_by)
+
+Product.category_assignments = association_proxy("_category_assignments", "category_assignment", creator= product_category_assignment_creator)
+
+
+
+product_category_assignment_task_table = Table(
+  "ProductCategoryAssignmentTask",
+  mapper_registry.metadata,
+  Column("id", Integer, primary_key=True, nullable=False),
+  Column("product_id", Integer, ForeignKey("Product.id", ondelete="CASCADE"), nullable=False),
+  Column("hierarchy_id", Integer, ForeignKey("ProductCategoryHierarchy.id", ondelete="CASCADE"), nullable=False),
+  Column("user_id", Integer),
+  Column("status", String),
+  Column("created_at", DateTime, server_default=text("CURRENT_TIMESTAMP"))
+)
+
+mapper_registry.map_imperatively(CategoryAssignmentTask, product_category_assignment_task_table, properties={
+  "task_id" : product_category_assignment_task_table.c.id
+})
