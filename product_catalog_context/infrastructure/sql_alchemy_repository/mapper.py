@@ -239,7 +239,7 @@ ProductReportItem.reported_field = association_proxy("_issue", "reported_field",
 
 mapper_registry.map_imperatively(ProductReport, product_report_table, properties={
   "report_id" : product_report_table.c.id,
-  "reported_items" : relationship(ProductReportItem)
+  "reported_items" : relationship(ProductReportItem, lazy='selectin', cascade='all, delete-orphan')
 })
 
 

@@ -10,12 +10,15 @@ from product_catalog_context.domain.issues.product_issue_status import ProductIs
 from product_catalog_context.domain.product.nutrition_facts import Nutrients, NutritionFacts, ReferenceQuantity
 from product_catalog_context.domain.product.product import Product
 from product_catalog_context.domain.product.product_assignment import CategoryAssignment
+from product_catalog_context.domain.reports.product_report import ProductReport
+from product_catalog_context.domain.reports.product_report_item import ProductReportItem
 from product_catalog_context.domain.tasks.category_assignment_task import CategoryAssignmentTask
 from product_catalog_context.domain.tasks.category_assignment_task_status import CategoryAssignmentTaskStatus
 from product_catalog_context.infrastructure.sql_alchemy_repository.category_assignment_task import SqlAlchemyCategoryAssignmentTaskRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product import SqlAlchemyProductRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product_category_hierarchy import SqlAlchemyProductCategoryHierarchyRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product_issue import SqlAlchemyProductIssueRepository
+from product_catalog_context.infrastructure.sql_alchemy_repository.product_report import SqlAlchemyProductReport
 from shared.database.create_new_db import product_table_query, product_category_node_table_query, product_category_hierarchy_query, product_category_assignment, product_category_closure_query, product_category_assignment_task
 from shared.database.create_new_db import fields, report, report_item, issue, user, role, user_role, id_sequence, init_id_seq
 import pytest_asyncio
@@ -148,6 +151,14 @@ async def insert_data(db_session: AsyncSession):
   db_session.add(ProductIssue(issue_id=3, product_id=1, reported_field=ReportedField.SUGARS, status=ProductIssueStatus.PENDING))
   db_session.add(ProductIssue(issue_id=4, product_id=2, reported_field=ReportedField.FAT, status=ProductIssueStatus.PENDING))
 
+  db_session.add(ProductReport(report_id=1, product_id=1, reported_items=[
+    ProductReportItem(reported_field=ReportedField.KCAL, proposed_value=120, issue_id=1),
+    ProductReportItem(reported_field=ReportedField.FAT, issue_id=2)
+    ], user_id=20))
+  db_session.add(ProductReport(report_id=2, product_id=1, reported_items=[
+    ProductReportItem(reported_field=ReportedField.KCAL, proposed_value=120, issue_id=1)
+    ], user_id=10))
+
   await db_session.commit()
   await db_session.close()
 
@@ -167,3 +178,7 @@ def category_assignment_task_repository(db_session):
 @pytest_asyncio.fixture
 def product_issue_repository(db_session):
   return SqlAlchemyProductIssueRepository(db_session)
+
+@pytest_asyncio.fixture
+def product_report_repository(db_session):
+  return SqlAlchemyProductReport(db_session)
