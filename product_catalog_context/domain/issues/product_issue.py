@@ -5,7 +5,7 @@ from product_catalog_context.domain.issues.product_issue_confirmed import Produc
 
 
 class ProductIssue:
-  def __init__(self, product_id, reported_field: ReportedField, status: ProductIssueStatus, resolved_value = None, issue_id = None, resolved_by=None):
+  def __init__(self, product_id, reported_field: ReportedField, status: ProductIssueStatus=ProductIssueStatus.PENDING, resolved_value = None, issue_id = None, resolved_by=None):
     self.issue_id = issue_id
     self.product_id = product_id
     self.reported_field = reported_field
