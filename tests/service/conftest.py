@@ -10,6 +10,7 @@ from identity_and_access_context.infrastructure.sql_alchemy_repository.user_role
 from identity_and_access_context.public.adapters.fastapi.dependencies.get_access_api import get_access_api
 from identity_and_access_context.public.api.access_api import AccessApi
 from product_catalog_context.application.category_assignment_task_service import CategoryAssignmentTaskService
+from product_catalog_context.application.category_hierarchy_management_service import CategoryHierarchyManagementService
 from product_catalog_context.application.product_issue_service import ProductIssueService
 from product_catalog_context.application.product_management_service import ProductManagementService
 from product_catalog_context.application.product_report_service import ProductReportService
@@ -202,6 +203,7 @@ async def db_session(db_engine):
   async with SessionTest() as session:
     yield session
 
+
 @pytest_asyncio.fixture
 async def insert_data(db_session: AsyncSession):
   db_session.add(ProductCategoryHierarchy(hierarchy_id=1, status=ProductCategoryHierarchyStatus.ACTIVE, product_categories=[
@@ -263,38 +265,6 @@ async def insert_data(db_session: AsyncSession):
         source_node_id=5
       )
     ]))
-  db_session.add(ProductCategoryHierarchy(hierarchy_id=3, status=ProductCategoryHierarchyStatus.DRAFT, product_categories=[
-      ProductCategory(
-        category_id = 11,
-        name = 'Produkty',
-        parent_id=None,
-        source_node_id=1
-      ),
-      ProductCategory(
-        category_id=12,
-        name = 'Roślinnopodobne',
-        parent_id=11,
-        source_node_id=2
-      ),
-      ProductCategory(
-        category_id=13,
-        name = 'Zwierzęce',
-        parent_id=11,
-        source_node_id=3
-      ),
-      ProductCategory(
-        category_id=14,
-        name = 'Schabik',
-        parent_id=13,
-        source_node_id=4
-      ),
-      ProductCategory(
-        category_id=15,
-        name = 'Boczek',
-        parent_id=13,
-        source_node_id=5
-      )
-    ])) 
   db_session.add(Product(product_id=1, name='Schab Drogi', brand_name='Auchan', nutrition_facts=NutritionFacts(kcal=300, reference_quantity=ReferenceQuantity(amount=100, unit='g'), nutrients=Nutrients(fat=100)), name_search_standard='schab drogi', category_assignments={1:CategoryAssignment(category_id=4), 2:CategoryAssignment(category_id=9)}))
   db_session.add(Product(product_id=2, name='Schab Tani', brand_name='Rambert', nutrition_facts=NutritionFacts(kcal=250, reference_quantity=ReferenceQuantity(amount=100, unit='g'), nutrients=Nutrients(fat=120)), name_search_standard='schab tani', category_assignments={1:CategoryAssignment(category_id=4)}))
   db_session.add(Product(product_id=3, name='Schab Średni', brand_name='XYZ', nutrition_facts=NutritionFacts(kcal=400, reference_quantity=ReferenceQuantity(amount=100, unit='g'), nutrients=Nutrients(fat=90)), name_search_standard='schab sredni', category_assignments={1:CategoryAssignment(category_id=4)}))
@@ -324,6 +294,44 @@ async def insert_data(db_session: AsyncSession):
 
   await db_session.commit()
   await db_session.close()
+
+@pytest_asyncio.fixture
+async def insert_draft(db_session: AsyncSession):
+  db_session.add(ProductCategoryHierarchy(hierarchy_id=3, status=ProductCategoryHierarchyStatus.DRAFT, product_categories=[
+    ProductCategory(
+      category_id = 11,
+      name = 'Produkty',
+      parent_id=None,
+      source_node_id=1
+    ),
+    ProductCategory(
+      category_id=12,
+      name = 'Roślinnopodobne',
+      parent_id=11,
+      source_node_id=2
+    ),
+    ProductCategory(
+      category_id=13,
+      name = 'Zwierzęce',
+      parent_id=11,
+      source_node_id=3
+    ),
+    ProductCategory(
+      category_id=14,
+      name = 'Schabik',
+      parent_id=13,
+      source_node_id=4
+    ),
+    ProductCategory(
+      category_id=15,
+      name = 'Boczek',
+      parent_id=13,
+      source_node_id=5
+    )
+  ])) 
+  await db_session.commit()
+  await db_session.close()
+
 
 # Opcjonalnie: jeśli nadal potrzebujesz bezpośredniego dostępu do surowego aiosqlite connection
 @pytest_asyncio.fixture
@@ -377,6 +385,10 @@ async def fake_access_adapter(access_api):
 @pytest_asyncio.fixture
 async def category_assignment_service(fake_access_adapter, unit_of_work) -> CategoryAssignmentTaskService:
   return CategoryAssignmentTaskService(unit_of_work=unit_of_work, access_adapter=fake_access_adapter)
+
+@pytest_asyncio.fixture
+async def category_hierarchy_management_service(unit_of_work, fake_access_adapter):
+  return CategoryHierarchyManagementService(unit_of_work, fake_access_adapter)
 
 @pytest_asyncio.fixture
 async def alchemy_product_repository(db_session) -> CategoryAssignmentTaskService:

@@ -43,7 +43,7 @@ class SqlAlchemyProductCategoryHierarchyRepository(ProductCategoryHierarchyRepos
       sqlite.insert(id_seq_table)
       .values(
         name = 'product_category',
-        next_value=2
+        next_value=100
       ).on_conflict_do_update(
         index_elements=[id_seq_table.c.name],
         set_= {

@@ -1,6 +1,7 @@
 from httpx import delete
 
 from product_catalog_context.application.errors.errors import CategoryHierarchyDoesNotExist, DraftCategoryHierarchyExists, CategoryDoesNotBelongToHierarchy, AccessDenied
+from product_catalog_context.application.unit_of_work import UnitOfWork
 from product_catalog_context.infrastructure.adapters.event_dispatcher import EventDispatcher
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy import ProductCategoryHierarchy
 from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
@@ -15,88 +16,82 @@ class CategoryHierarchyManagementService():
 
   def __init__(
       self,
-      product_category_hierarchy_repository : ProductCategoryHierarchyRepository,
+      unit_of_work: UnitOfWork,
       access_adapter: AccessAdapter,
-      product_repository : ProductRepository = None,
       event_dispatcher: EventDispatcher = None
   ):
+    self.unit_of_work = unit_of_work
     self.access_adapter = access_adapter
-    self.product_category_hierarchy_repository = product_category_hierarchy_repository
-    self.product_repository = product_repository
     self.event_dispatcher = event_dispatcher
 
   async def get_hierarchy(self, hierarchy_id) -> ProductCategoryHierarchy:
-    return await self.product_category_hierarchy_repository.get_by_id(hierarchy_id)
+    return await self.unit_of_work.product_category_hierarchies.get_by_id(hierarchy_id)
 
   async def edit_hierarchy(self, hierarchy_id: int, product_categories: list[ProductCategory | ProductCategoryDraft], catalog_manager_id):
     catalog_manager = await self.access_adapter.get_catalog_manager_for(catalog_manager_id)
     if catalog_manager is None:
       raise AccessDenied()
-    
-    hierarchy : ProductCategoryHierarchy = await self.product_category_hierarchy_repository.get_by_id(hierarchy_id)
-    if hierarchy is None:
-      raise CategoryHierarchyDoesNotExist()
+    async with self.unit_of_work as uow:
+      hierarchy : ProductCategoryHierarchy = await uow.product_category_hierarchies.get_by_id(hierarchy_id)
+      if hierarchy is None:
+        raise CategoryHierarchyDoesNotExist()
 
-    existing_product_categories = [category for category in product_categories if type(category) is ProductCategory]
+      existing_product_categories = [category for category in product_categories if type(category) is ProductCategory]
+      
+      are_in_hierarchy = hierarchy.contains_all_product_categories(existing_product_categories)
+      if not are_in_hierarchy:
+        raise CategoryDoesNotBelongToHierarchy()
+      
+      draft_product_categories = [category for category in product_categories if type(category) is ProductCategoryDraft]
+      temp_to_id = {draft_category.temp_id: await uow.product_category_hierarchies.next_category_id() for draft_category in draft_product_categories}
+      new_categories = [ProductCategory(name=item.name, category_id=temp_to_id[item.temp_id], parent_id=temp_to_id[item.parent_id] if item.parent_id in temp_to_id else item.parent_id) for item in draft_product_categories]
+      categories = existing_product_categories + new_categories
     
-    are_in_hierarchy = hierarchy.contains_all_product_categories(existing_product_categories)
-    if not are_in_hierarchy:
-      raise CategoryDoesNotBelongToHierarchy()
-    
-    draft_product_categories = [category for category in product_categories if type(category) is ProductCategoryDraft]
-    temp_to_id = {draft_category.temp_id: await self.product_category_hierarchy_repository.next_category_id() for draft_category in draft_product_categories}
-    new_categories = [ProductCategory(name=item.name, category_id=temp_to_id[item.temp_id], parent_id=temp_to_id[item.parent_id] if item.parent_id in temp_to_id else item.parent_id) for item in draft_product_categories]
-    categories = existing_product_categories + new_categories
-   
-    hierarchy.update_categories(categories)
-
-    await self.product_category_hierarchy_repository.update(hierarchy.hierarchy_id, hierarchy)
+      hierarchy.update_categories(categories)
+      await uow.product_category_hierarchies.save(hierarchy)
     return hierarchy
 
   async def create_draft(self, hierarchy_id, catalog_manager_id): #TODO: event, event handler
     catalog_manager = await self.access_adapter.get_catalog_manager_for(catalog_manager_id)
     if catalog_manager is None:
       raise AccessDenied()
-    
-    draft_hierarchy = await self.product_category_hierarchy_repository.get_draft()
-    if draft_hierarchy is not None:
-      raise DraftCategoryHierarchyExists()
-    hierarchy = await self.product_category_hierarchy_repository.get_by_id(hierarchy_id)
-    hierarchy.ensure_draft_be_created()
+    async with self.unit_of_work as uow:
+      draft_hierarchy = await uow.product_category_hierarchies.get_draft()
+      if draft_hierarchy is not None:
+        raise DraftCategoryHierarchyExists()
+      hierarchy = await uow.product_category_hierarchies.get_by_id(hierarchy_id)
+      hierarchy.ensure_draft_be_created()
 
-    ids = [await self.product_category_hierarchy_repository.next_category_id() for _ in range(hierarchy.product_categories_len())]
+      ids = [await uow.product_category_hierarchies.next_category_id() for _ in range(hierarchy.product_categories_len())]
 
-    new_hierarchy = hierarchy.create_draft_based_on_hierarchy(ids, catalog_manager_id) #it should generate event: HierarchyDraftCreated
+      new_hierarchy = hierarchy.create_draft_based_on_hierarchy(ids, catalog_manager_id) #it should generate event: HierarchyDraftCreated
+      await uow.product_category_hierarchies.save(new_hierarchy)
     
-    hierarchy_id = await self.product_category_hierarchy_repository.insert(new_hierarchy)
-    new_hierarchy.hierarchy_id = hierarchy_id
-  
-    await self.product_repository.copy_category_assignments(hierarchy.hierarchy_id, hierarchy_id) #it should be done in handler
+      await uow.products.copy_category_assignments(hierarchy.hierarchy_id, new_hierarchy.hierarchy_id) #it should be done in handler
     return new_hierarchy
 
   async def delete_draft(self, hierarchy_id, catalog_manager_id):
     catalog_manager = await self.access_adapter.get_catalog_manager_for(catalog_manager_id)
     if catalog_manager is None:
       raise AccessDenied()
-    
-    draft_hierarchy = await self.product_category_hierarchy_repository.get_by_id(hierarchy_id)
-    if draft_hierarchy is None:
-      raise CategoryHierarchyDoesNotExist()
-    draft_hierarchy.ensure_draft_be_deleted()
-    await self.product_category_hierarchy_repository.delete(draft_hierarchy.hierarchy_id)
+    async with self.unit_of_work as uow:
+      draft_hierarchy = await uow.product_category_hierarchies.get_by_id(hierarchy_id)
+      if draft_hierarchy is None:
+        raise CategoryHierarchyDoesNotExist()
+      draft_hierarchy.ensure_draft_be_deleted()
+      await uow.product_category_hierarchies.delete(draft_hierarchy)
 
   async def revert_to_draft(self, hierarchy_id, catalog_manager_id):
     catalog_manager = await self.access_adapter.get_catalog_manager_for(catalog_manager_id)
     if catalog_manager is None:
       raise AccessDenied()
-    hierarchy = await self.product_category_hierarchy_repository.get_by_id(hierarchy_id)
-    hierarchy.revert_to_draft()
-    await self.product_category_hierarchy_repository.update(hierarchy.hierarchy_id,hierarchy)
-    events = hierarchy.pull_events()
-    #without uow:
+    async with self.unit_of_work as uow:
+      hierarchy = await uow.product_category_hierarchies.get_by_id(hierarchy_id)
+      hierarchy.revert_to_draft()
+      await uow.product_category_hierarchies.save(hierarchy)
+      events = hierarchy.pull_events()
     if self.event_dispatcher:
       self.event_dispatcher.dispatch(events)
-
     return hierarchy
 
 
@@ -104,11 +99,12 @@ class CategoryHierarchyManagementService():
     catalog_manager = await self.access_adapter.get_catalog_manager_for(catalog_manager_id)
     if catalog_manager is None:
       raise AccessDenied()
-    hierarchy = await self.product_category_hierarchy_repository.get_by_id(hierarchy_id)
-    hierarchy.publish(catalog_manager_id)
-    await self.product_category_hierarchy_repository.delete_active()
-    await self.product_category_hierarchy_repository.update(hierarchy.hierarchy_id,hierarchy)
-    events = hierarchy.pull_events()
+    async with self.unit_of_work as uow:
+      hierarchy = await uow.product_category_hierarchies.get_by_id(hierarchy_id)
+      await uow.product_category_hierarchies.delete_active()
+      hierarchy.publish(catalog_manager_id)
+      await uow.product_category_hierarchies.save(hierarchy)
+      events = hierarchy.pull_events()
     #without uow:
     if self.event_dispatcher:
       self.event_dispatcher.dispatch(events)
@@ -118,10 +114,11 @@ class CategoryHierarchyManagementService():
     catalog_manager = await self.access_adapter.get_catalog_manager_for(catalog_manager_id)
     if catalog_manager is None:
       raise AccessDenied()
-    hierarchy = await self.product_category_hierarchy_repository.get_by_id(hierarchy_id)
-    hierarchy.plan_for_publication()  #generate event HierarchyPlannedForPublication
-    await self.product_category_hierarchy_repository.update(hierarchy_id, hierarchy)
-    category_ids = hierarchy.get_non_leaf_category_ids()  #in handler
-    await self.product_repository.delete_category_assignments_by_category_id(category_ids)
+    async with self.unit_of_work as uow:
+      hierarchy = await  uow.product_category_hierarchies.get_by_id(hierarchy_id)
+      hierarchy.plan_for_publication()  #generate event HierarchyPlannedForPublication
+      await uow.product_category_hierarchies.save(hierarchy)
+      category_ids = hierarchy.get_non_leaf_category_ids()  #in handler
+      await uow.products.delete_category_assignments_by_category_id(category_ids)
     return hierarchy
 
