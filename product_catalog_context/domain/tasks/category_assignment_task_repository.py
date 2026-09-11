@@ -14,6 +14,10 @@ class CategoryAssignmentTaskRepository(ABC):
     pass
 
   @abstractmethod
+  async def get_total_in_hierarchy(self, hierarchy_id) -> int:
+    pass
+
+  @abstractmethod
   async def insert_tasks_for_unassigned_products(self, user_id, hierarchy_id, limit):
     pass
 

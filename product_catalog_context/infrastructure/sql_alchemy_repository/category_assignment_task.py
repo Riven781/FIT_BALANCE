@@ -1,4 +1,4 @@
-from sqlalchemy import delete, exists, insert, literal, select
+from sqlalchemy import delete, exists, insert, literal, select, func
 
 from product_catalog_context.domain.tasks.category_assignment_task import CategoryAssignmentTask
 from product_catalog_context.domain.tasks.category_assignment_task_repository import CategoryAssignmentTaskRepository
@@ -17,6 +17,14 @@ class SqlAlchemyCategoryAssignmentTaskRepository(CategoryAssignmentTaskRepositor
     query = select(CategoryAssignmentTask).where(CategoryAssignmentTask.product_id == product_id, CategoryAssignmentTask.hierarchy_id == hierarchy_id)
     result = await self.session.execute(query)
     return result.scalar_one_or_none()
+
+  async def get_total_in_hierarchy(self, hierarchy_id) -> int:
+    stmt = select(
+      func.count(product_category_assignment_task_table.c.product_id.distinct())
+    ).where(
+      product_category_assignment_task_table.c.hierarchy_id == hierarchy_id
+    )
+    return await self.session.scalar(stmt)
 
   async def insert_tasks_for_unassigned_products(self, user_id, hierarchy_id, limit):
     task_exists = select(1).select_from(product_category_assignment_task_table).where(
