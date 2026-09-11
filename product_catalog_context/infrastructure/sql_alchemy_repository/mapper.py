@@ -156,6 +156,7 @@ mapper_registry.map_imperatively(Product, product_table, properties={
   "_nutrition_facts" : nutrition_facts_composite,
   "_category_assignments": relationship(ProductCategoryAssignmentModel, collection_class=attribute_mapped_collection("hierarchy_id"), cascade="all, delete-orphan", lazy='selectin'),
   "_name" : product_table.c.name,
+  "_brand_name" : product_table.c.brand_name,
 })
 
 def product_category_assignment_creator(hierarchy_id, category_assignment: CategoryAssignment):

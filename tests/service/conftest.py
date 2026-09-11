@@ -395,10 +395,8 @@ async def alchemy_product_repository(db_session) -> CategoryAssignmentTaskServic
   return SqlAlchemyProductRepository(db_session)
 
 @pytest_asyncio.fixture
-async def product_management_service(db, alchemy_product_repository, fake_access_adapter) -> CategoryAssignmentTaskService:
-  hierarchy_repo = ProductCategoryHierarchyRepository(db)
-  product_repo = ProductRepository(db)
-  return ProductManagementService(product_repository=alchemy_product_repository, product_category_hierarchy_repository=hierarchy_repo, access_adapter=fake_access_adapter)
+async def product_management_service( unit_of_work, fake_access_adapter) -> ProductManagementService:
+  return ProductManagementService(unit_of_work, fake_access_adapter)
 
 @pytest_asyncio.fixture
 async def product_repository(db) -> CategoryAssignmentTaskService:
