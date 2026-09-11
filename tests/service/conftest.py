@@ -405,27 +405,8 @@ async def product_repository(db) -> CategoryAssignmentTaskService:
 
 
 @pytest_asyncio.fixture
-async def product_report_service(db, access_adapter) -> ProductReportService:
-  async with db.executescript(
-    """  
-    INSERT INTO User(id, username, email, hashed_password) VALUES 
-      (1, 'ZYZ','xyz@gm.c','xyz');
-
-    INSERT INTO Product (id, name, brand_name, kcal, reference_amount, reference_unit, name_search_standard)
-    VALUES 
-    (1, "Schab Drogi", "Auchan", 300, 100, "g","schab drogi");
-    
-    INSERT INTO ProductIssue (id, product_id, status, reported_field)
-    VALUES
-    (99, 1, 'rejected', 'sugars'),
-    (100, 1, 'pending', 'sugars')
-    
-    """
-  ) as cursor:
-    pass
-  report_repo = ProductReportRepository(db)
-  issue_repo = ProductIssueRepository(db)
-  return ProductReportService(report_repo, issue_repo, access_adapter)
+async def product_report_service( unit_of_work, fake_access_adapter) -> ProductReportService:
+  return ProductReportService(unit_of_work, fake_access_adapter)
 
 @pytest_asyncio.fixture
 async def product_issue_service(unit_of_work, fake_access_adapter) -> ProductReportService:
