@@ -34,16 +34,32 @@ async def test_insert_tasks_for_unassigned_products(category_assignment_task_rep
   assert task.status == CategoryAssignmentTaskStatus.PENDING
 
 @pytest.mark.asyncio
-async def test_delete_by_user(category_assignment_task_repository: CategoryAssignmentTaskRepository):
-  await category_assignment_task_repository.delete_by_user(user_id=1)
+async def test_delete(category_assignment_task_repository: CategoryAssignmentTaskRepository, db_session):
+  task = await category_assignment_task_repository.get_by_id(task_id=1)
+  await category_assignment_task_repository.delete(task)
+  await db_session.flush()
   task = await category_assignment_task_repository.get_by_id(task_id=1)
   assert task is None
+
+@pytest.mark.asyncio
+async def test_delete_by_user(category_assignment_task_repository: CategoryAssignmentTaskRepository):
+  count = await category_assignment_task_repository.delete_by_user(user_id=1)
+  task = await category_assignment_task_repository.get_by_id(task_id=1)
+  assert task is None
+  assert count == 1
 
 @pytest.mark.asyncio
 async def test_delete_by_hierarchy(category_assignment_task_repository: CategoryAssignmentTaskRepository):
   await category_assignment_task_repository.delete_by_hierarchy(hierarchy_id=3)
   task = await category_assignment_task_repository.get_by_id(task_id=1)
   assert task is None
+
+@pytest.mark.asyncio
+async def test_delete_by_user_and_product(category_assignment_task_repository: CategoryAssignmentTaskRepository):
+  count = await category_assignment_task_repository.delete_by_user_and_product(user_id=1, product_id=2)
+  task = await category_assignment_task_repository.get_by_id(task_id=1)
+  assert task is None
+  assert count == 1
 
 @pytest.mark.asyncio
 async def test_save_new_task(category_assignment_task_repository: CategoryAssignmentTaskRepository):
@@ -66,3 +82,16 @@ async def test_save_existing_task(category_assignment_task_repository: CategoryA
   assert task.product_id == 2
   assert updated_task.status == CategoryAssignmentTaskStatus.COMPLETED
   assert updated_task.user_id == 1
+
+@pytest.mark.asyncio
+async def test_insert_all(category_assignment_task_repository: CategoryAssignmentTaskRepository):
+  await category_assignment_task_repository.insert_all([
+    CategoryAssignmentTask(product_id=4, hierarchy_id=1, user_id=10, status=CategoryAssignmentTaskStatus.PENDING),
+    CategoryAssignmentTask(product_id=5, hierarchy_id=1, user_id=10, status=CategoryAssignmentTaskStatus.COMPLETED),
+  ])
+  task_1 = await category_assignment_task_repository.get_by_product_and_hierarchy(4, 1)
+  assert task_1.user_id == 10
+  assert task_1.status == CategoryAssignmentTaskStatus.PENDING
+  task_2 = await category_assignment_task_repository.get_by_product_and_hierarchy(5, 1)
+  assert task_2.user_id == 10
+  assert task_2.status == CategoryAssignmentTaskStatus.COMPLETED

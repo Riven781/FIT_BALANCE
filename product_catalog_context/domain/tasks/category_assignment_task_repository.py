@@ -18,7 +18,15 @@ class CategoryAssignmentTaskRepository(ABC):
     pass
 
   @abstractmethod
+  async def delete(self, task: CategoryAssignmentTask):
+    pass
+
+  @abstractmethod
   async def delete_by_user(self, user_id):
+    pass
+
+  @abstractmethod
+  async def delete_by_user_and_product(self, user_id, product_id):
     pass
 
   @abstractmethod
@@ -27,4 +35,8 @@ class CategoryAssignmentTaskRepository(ABC):
 
   @abstractmethod
   async def save(self, task: CategoryAssignmentTask):
+    pass
+
+  @abstractmethod
+  async def insert_all(self, tasks: list[CategoryAssignmentTask]):
     pass

@@ -53,11 +53,24 @@ class SqlAlchemyCategoryAssignmentTaskRepository(CategoryAssignmentTaskRepositor
 
   async def delete_by_user(self, user_id):
     query = delete(CategoryAssignmentTask).where(CategoryAssignmentTask.user_id == user_id)
-    await self.session.execute(query)
+    result = await self.session.execute(query)
+    return result.rowcount
+
+  async def delete_by_user_and_product(self, user_id, product_id):
+    query = delete(CategoryAssignmentTask).where(CategoryAssignmentTask.user_id == user_id, CategoryAssignmentTask.product_id == product_id)
+    result = await self.session.execute(query)
+    return result.rowcount
 
   async def delete_by_hierarchy(self, hierarchy_id):
     query = delete(CategoryAssignmentTask).where(CategoryAssignmentTask.hierarchy_id == hierarchy_id)
     await self.session.execute(query)
 
+  async def delete(self, task: CategoryAssignmentTask):
+    await self.session.delete(task)
+
   async def save(self, task: CategoryAssignmentTask):
     await self._save(task)
+
+  async def insert_all(self, tasks: list[CategoryAssignmentTask]):
+    data = [{k : v for k, v in task.__dict__.items() if not k.startswith('_')} for task in tasks]
+    result = await self.session.execute(insert(CategoryAssignmentTask), data)
