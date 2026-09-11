@@ -3,7 +3,7 @@ from product_catalog_context.domain.reports.product_report_repository import Pro
 from product_catalog_context.infrastructure.sql_alchemy_repository.sqlalchemy_repository import BaseSqlAlchemyRepository
 
 
-class SqlAlchemyProductReport(ProductReportRepository, BaseSqlAlchemyRepository):
+class SqlAlchemyProductReportRepository(ProductReportRepository, BaseSqlAlchemyRepository):
   def __init__(self, session):
     super().__init__(session)
 

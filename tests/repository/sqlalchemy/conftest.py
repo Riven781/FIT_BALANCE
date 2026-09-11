@@ -18,7 +18,7 @@ from product_catalog_context.infrastructure.sql_alchemy_repository.category_assi
 from product_catalog_context.infrastructure.sql_alchemy_repository.product import SqlAlchemyProductRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product_category_hierarchy import SqlAlchemyProductCategoryHierarchyRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product_issue import SqlAlchemyProductIssueRepository
-from product_catalog_context.infrastructure.sql_alchemy_repository.product_report import SqlAlchemyProductReport
+from product_catalog_context.infrastructure.sql_alchemy_repository.product_report import SqlAlchemyProductReportRepository
 from shared.database.create_new_db import product_table_query, product_category_node_table_query, product_category_hierarchy_query, product_category_assignment, product_category_closure_query, product_category_assignment_task
 from shared.database.create_new_db import fields, report, report_item, issue, user, role, user_role, id_sequence, init_id_seq
 import pytest_asyncio
@@ -181,4 +181,4 @@ def product_issue_repository(db_session):
 
 @pytest_asyncio.fixture
 def product_report_repository(db_session):
-  return SqlAlchemyProductReport(db_session)
+  return SqlAlchemyProductReportRepository(db_session)
