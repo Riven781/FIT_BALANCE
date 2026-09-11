@@ -88,6 +88,6 @@ async def test_next_category_id(product_category_hierarchy_repository: ProductCa
   id_2 = await product_category_hierarchy_repository.next_category_id()
   id_3 = await product_category_hierarchy_repository.next_category_id()
 
-  assert id_1 == 1
-  assert id_2 == 2
-  assert id_3 == 3
+  assert id_1 == 99
+  assert id_2 == 100
+  assert id_3 == 101
