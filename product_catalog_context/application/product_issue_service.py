@@ -1,4 +1,5 @@
 from product_catalog_context.application.errors.errors import AccessDenied, IssueNotFoundError
+from product_catalog_context.application.unit_of_work import UnitOfWork
 from product_catalog_context.infrastructure.adapters.event_dispatcher import EventDispatcher
 from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
 from product_catalog_context.infrastructure.aiosqlite_repository.product_issue_repository import ProductIssueRepository
@@ -6,8 +7,8 @@ from product_catalog_context.infrastructure.aiosqlite_repository.product_report_
 
 
 class ProductIssueService:
-  def __init__(self, product_issue_repository: ProductIssueRepository, access_adapter: AccessAdapter, event_dispatcher: EventDispatcher = None):
-    self.product_issue_repository = product_issue_repository
+  def __init__(self, unit_of_work: UnitOfWork, access_adapter: AccessAdapter, event_dispatcher: EventDispatcher = None):
+    self.unit_of_work = unit_of_work
     self.access_adapter = access_adapter
     self.event_dispatcher = event_dispatcher
 
@@ -15,13 +16,14 @@ class ProductIssueService:
     moderator = await self.access_adapter.get_moderator_for(moderator_id)
     if moderator is None:
       raise AccessDenied()
-    product_issue = await self.product_issue_repository.get_by_id(issue_id)
-    if product_issue is None:
-      raise IssueNotFoundError()
-    product_issue.confirm(resolved_value, moderator_id)
-    await self.product_issue_repository.update(product_issue.issue_id, product_issue)
+    async with self.unit_of_work as uow:
+      product_issue = await uow.product_issues.get_by_id(issue_id)
+      if product_issue is None:
+        raise IssueNotFoundError()
+      product_issue.confirm(resolved_value, moderator_id)
+      await uow.product_issues.save(product_issue)
 
-    events = product_issue.pull_events()
+      events = product_issue.pull_events()
 
     if self.event_dispatcher:
       await self.event_dispatcher.dispatch(events) # not in uow
@@ -32,9 +34,10 @@ class ProductIssueService:
     moderator = await self.access_adapter.get_moderator_for(moderator_id)
     if moderator is None:
       raise AccessDenied()
-    product_issue = await self.product_issue_repository.get_by_id(issue_id)
-    if product_issue is None:
-      raise IssueNotFoundError()
-    product_issue.reject(moderator_id)
-    await self.product_issue_repository.update(product_issue.issue_id, product_issue)
+    async with self.unit_of_work as uow:
+      product_issue = await uow.product_issues.get_by_id(issue_id)
+      if product_issue is None:
+        raise IssueNotFoundError()
+      product_issue.reject(moderator_id)
+      await uow.product_issues.save(product_issue)
     return product_issue

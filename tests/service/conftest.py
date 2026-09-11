@@ -282,7 +282,7 @@ async def insert_data(db_session: AsyncSession):
   db_session.add(ProductIssue(issue_id=1, product_id=1, reported_field=ReportedField.KCAL, status=ProductIssueStatus.PENDING))
   db_session.add(ProductIssue(issue_id=2, product_id=1, reported_field=ReportedField.FAT, status=ProductIssueStatus.CONFIRMED, resolved_value=120))
   db_session.add(ProductIssue(issue_id=3, product_id=1, reported_field=ReportedField.SUGARS, status=ProductIssueStatus.PENDING))
-  db_session.add(ProductIssue(issue_id=4, product_id=2, reported_field=ReportedField.FAT, status=ProductIssueStatus.PENDING))
+  db_session.add(ProductIssue(issue_id=4, product_id=2, reported_field=ReportedField.FAT, status=ProductIssueStatus.REJECTED))
 
   db_session.add(ProductReport(report_id=1, product_id=1, reported_items=[
     ProductReportItem(reported_field=ReportedField.KCAL, proposed_value=120, issue_id=1),
@@ -430,34 +430,5 @@ async def product_report_service(db, access_adapter) -> ProductReportService:
   return ProductReportService(report_repo, issue_repo, access_adapter)
 
 @pytest_asyncio.fixture
-async def product_issue_service(db, access_adapter) -> ProductReportService:
-  async with db.executescript(
-    """
-    INSERT INTO User(id, username, email, hashed_password) VALUES 
-      (1, 'ZYZ','xyz@gm.c','xyz'), 
-      (2, 'ABC','abc@gm.c','abc');
-    
-    INSERT INTO UserRoles(user_id, version) VALUES 
-      (1, 1), 
-      (2, 1);
-    
-    INSERT INTO UserRole(user_id, role) VALUES 
-      (1, 'moderator'),
-      (1, 'catalog_manager'),
-      (2, 'product_editor');
-
-    INSERT INTO Product (id, name, brand_name, kcal, reference_amount, reference_unit, name_search_standard)
-    VALUES 
-    (1, "Schab Drogi", "Auchan", 300, 100, "g","schab drogi");
-    
-    INSERT INTO ProductIssue (id, product_id, status, reported_field)
-    VALUES
-    (99, 1, 'rejected', 'sugars'),
-    (100, 1, 'pending', 'sugars'),
-    (101, 1, 'pending', 'fat'),(102, 1, 'confirmed', 'fat');
-    
-    """
-  ) as cursor:
-    pass
-  issue_repo = ProductIssueRepository(db)
-  return ProductIssueService(issue_repo, access_adapter)
+async def product_issue_service(unit_of_work, fake_access_adapter) -> ProductReportService:
+  return ProductIssueService(unit_of_work, fake_access_adapter)
