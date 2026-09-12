@@ -4,9 +4,22 @@ from product_catalog_context.infrastructure.aiosqlite_repository.errors_mapper i
 from product_catalog_context.domain.enums.product_searching import NameMode, SortBy
 
 
+from product_catalog_context.application.query.category_path_item import CategoryPathItem
+from product_catalog_context.application.query.product_detail import PublicProductDetail
+from product_catalog_context.domain.product.nutrition_facts import Nutrients, NutritionFacts, ReferenceQuantity
+
+
+#def to_category_path_item():
+#  pass
+
+
+
+
 class ProductQueries:
   def __init__(self, db : aiosqlite.Connection):
     self.db = db
+
+
 
   def _translate_filters_to_query(self, category_id = None, names = None):
     conditions = []
@@ -14,13 +27,13 @@ class ProductQueries:
     arguments = []
     if category_id is not None:
       inner_query += """
-        JOIN ProductCategoryAssignment assignment ON assignment.product_id = prod.id
-        JOIN ProductCategoryClosure prodcc ON assignment.node_id = prodcc.subcategory_id
+        JOIN ProductCategoryAssignment as assignment_2 ON assignment_2.product_id = product.id
+        JOIN ProductCategoryClosure AS closure_2  ON assignment_2.node_id = closure_2.subcategory_id AND closure_2.supercategory_id = ?
       """
-      conditions.append('prodcc.supercategory_id = ?') 
+      #conditions.append('closure_2.supercategory_id = ?') 
       arguments.append(category_id)
     if names is not None:
-      name_query = f"({' AND '.join(['(prod.name_search_standard LIKE ? OR prod.name_search_standard LIKE ?)' for _ in range(len(names))])})"
+      name_query = f"({' AND '.join(['(product.name_search_standard LIKE ? OR product.name_search_standard LIKE ?)' for _ in range(len(names))])})"
       conditions.append(name_query)
 
       for name in names:
@@ -49,78 +62,72 @@ class ProductQueries:
       
     return total_row['total']
 
-  def _convert_category(self, result_dict):
-    if result_dict['category_str'] is not None:
-      category_ids_str, category_names_str = result_dict['category_str'].split(':')
-      category_ids = category_ids_str.split('|')
-      category_names = category_names_str.split('|')
-      result_dict['category'] = [{"id":id, "name":name} for id, name in zip(category_ids, category_names)]
-    else:
-      result_dict['category'] = []
+
 
   async def get_detail_by_filters(self, category_id=None, names=None, sort_by=SortBy.KCAL, order="ASC", page=1, limit=20):
     offset = (page - 1) * limit
     inner_query, where_query, arguments = self._translate_filters_to_query(category_id, names)
 
     get_by_filters_query = f"""
-    SELECT prod.*, (
-        SELECT GROUP_CONCAT(category_id, '|') || ':' || GROUP_CONCAT(category_name, '|') as category FROM (
-          SELECT node.id AS category_id, node.name AS category_name 
-            FROM ProductCategoryClosure AS pcc
-            JOIN ProductCategoryAssignment assignment ON assignment.node_id = pcc.subcategory_id
-            JOIN ProductCategoryNode AS node ON node.id = pcc.supercategory_id
-            WHERE assignment.product_id = prod.id
-            ORDER BY pcc.depth DESC
-        )
-      ) AS category_str 
-      FROM Product as prod
-      {inner_query}
-      {where_query if where_query is not None else " "}
-      ORDER BY {sort_by.value} {order}
-      LIMIT ?
-      OFFSET ?
+      SELECT product.*, node.id as category_id, node.name as category_name FROM (
+        SELECT product.* FROM Product as product
+        {inner_query}
+        {where_query if where_query is not None else " "}
+        ORDER BY product.{sort_by.value} {order}, product.id ASC
+        LIMIT ?
+        OFFSET ?
+      ) as product
+      LEFT JOIN ProductCategoryAssignment as assignment ON assignment.product_id = product.id
+      LEFT JOIN ProductCategoryClosure as closure ON closure.subcategory_id = assignment.node_id
+      LEFT JOIN ProductCategoryNode as node ON closure.supercategory_id = node.id
+      ORDER BY product.{sort_by.value} {order}, product.id ASC, closure.depth DESC;
+
     """
     try:
       async with self.db.execute(get_by_filters_query, (*arguments, limit, offset)) as cursor:
-        result = await cursor.fetchall()
+        results = await cursor.fetchall()
     except Exception as e:
       print(e)
       raise map_errors(e) from e
     
-    if result is None:
+    if results is None:
       return None  
-    output_list = []
+    output_by_id = {}
 
-    for row in result:
-      row_dict = dict(row)
-      #self._convert_category(row_dict)
-      product = to_product_detail(row_dict)
-      output_list.append(product)
-    return output_list
+    for row in results:
+      if row['id'] not in output_by_id:
+        if row['category_id'] is not None:
+          categories = [CategoryPathItem(row['category_id'], row['category_name'])]
+        else:
+          categories = []
+        output_by_id[row['id']] = to_product_detail(row, categories) 
+      else:
+        if row['category_id'] is not None:
+          output_by_id[row['id']].category_path.append(CategoryPathItem(row['category_id'], row['category_name']))
 
+      
+    return list(output_by_id.values())
   
+
+
   async def get_detail_by_id(self, id):
     get_query = """
-      SELECT prod.*, (
-        SELECT  GROUP_CONCAT(category_id, '|') || ':' || GROUP_CONCAT(category_name, '|') as category FROM 
-          (SELECT node.id AS category_id, node.name AS category_name FROM ProductCategoryClosure as pcc
-            JOIN ProductCategoryAssignment assignment ON assignment.node_id = pcc.subcategory_id
-            JOIN ProductCategoryNode AS node ON node.id = pcc.supercategory_id
-            WHERE assignment.product_id = prod.id
-            ORDER BY pcc.depth DESC)
-      ) AS category_str FROM Product as prod WHERE id = ?
+      SELECT product.*, node.id as category_id, node.name as category_name FROM Product as product
+      LEFT JOIN ProductCategoryAssignment as assignment ON assignment.product_id = product.id
+      LEFT JOIN ProductCategoryClosure as closure ON closure.subcategory_id = assignment.node_id
+      LEFT JOIN ProductCategoryNode as node ON closure.supercategory_id = node.id
+      WHERE product.id = ?
+      ORDER BY product.id, closure.depth DESC;
     """
     try:
       async with self.db.execute(get_query, (id,)) as cursor:
-        result = await cursor.fetchone()
+        results = await cursor.fetchall()
     except Exception as e:
       raise map_errors(e) from e
     
-    if result is None:
+    if not results:
       return None
-    result_dict = dict(result)
-    #self._convert_category(result_dict)
+    
+    categories = [CategoryPathItem(row['category_id'], row['category_name']) for row in results if row['category_id']is not None]
 
-    product_detail = to_product_detail(result_dict)
-
-    return product_detail
+    return to_product_detail(results[0], categories) 

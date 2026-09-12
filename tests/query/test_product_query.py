@@ -39,7 +39,8 @@ async def insert_categories_and_products(db):
                                                               
     (6, "Boczek Kaszubski", "WWW", 500, 100, "g", "boczek kaszubski"),
     (7, "Boczek Cielęcy", "YYY", 400, 100, "g", "boczek cielecy"),
-    (8, "Raw Energy Baton kakaowy Bombus", "BB", 300, 100, "g", "raw energy baton kakaowy bombus");
+    (8, "Raw Energy Baton kakaowy Bombus", "BB", 300, 100, "g", "raw energy baton kakaowy bombus"),
+    (9, "Coca cola", "BB", 300, 100, "g", "cocacola");
 
     INSERT INTO ProductCategoryAssignment (product_id, node_id) VALUES
       (1, 4),
@@ -63,7 +64,20 @@ async def test_get_by_filters_names(db):
   products = await query.get_detail_by_filters(names=['schab'])
   assert len(products) == 3
 
+@pytest.mark.asyncio
+async def test_get_by_filters_names_with_limit(db):
+  await insert_categories_and_products(db)
+  query = ProductQueries(db)
+  products = await query.get_detail_by_filters(names=['schab'], limit=2)
+  assert len(products) == 2
 
+
+@pytest.mark.asyncio
+async def test_get_by_filters_names_with_limit_and_page(db):
+  await insert_categories_and_products(db)
+  query = ProductQueries(db)
+  products = await query.get_detail_by_filters(names=['schab'], limit=2, page=2)
+  assert len(products) == 1
 
 @pytest.mark.asyncio
 async def test_get_by_filters_convert_polish_chars(db):
@@ -147,7 +161,7 @@ async def test_get_by_filters_category_all(db):
   await insert_categories_and_products(db)
   query = ProductQueries(db)
   products = await query.get_detail_by_filters()
-  assert len(products) == 8
+  assert len(products) == 9
 
 @pytest.mark.asyncio
 async def test_get_by_filters_category_mixed_parts(db):
@@ -177,6 +191,13 @@ async def test_get_by_id(db):
   product = await query.get_detail_by_id(product_id)
   assert product.name == "Karmel" and product.brand_name == "Auchan" and product.nutrition_facts.kcal == 300
 
+@pytest.mark.asyncio
+async def test_get_by_id_product_without_category_assignment(db):
+  await insert_categories_and_products(db)
+  query = ProductQueries(db)
+  product = await query.get_detail_by_id(9)
+  assert product.name == "Coca cola"
+  assert product.category_path == []
 
 @pytest.mark.asyncio
 async def test_get_by_id_product_in_hierarchy(db):
