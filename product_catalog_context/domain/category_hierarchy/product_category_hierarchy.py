@@ -31,11 +31,13 @@ class ProductCategoryHierarchy:
     self._validate_hierarchy(new_product_category_nodes)
     self.product_categories = new_product_category_nodes
     #save -> update hierarchy
-  """
-  def ensure_can_be_edited(self):
+
+  def ensure_can_be_edited(self, existing_product_categories):
     if self.status not in [ProductCategoryHierarchyStatus.DRAFT]:
       raise CategoryHierarchyCannotBeEdited()
-  """
+    if not self.contains_all_product_categories(existing_product_categories):
+      raise CategoryDoesNotBelongToHierarchy()
+
   def ensure_draft_be_created(self):
     if self.status != ProductCategoryHierarchyStatus.ACTIVE:
       raise DraftCategoryHierarchyCannotBeCreated()
