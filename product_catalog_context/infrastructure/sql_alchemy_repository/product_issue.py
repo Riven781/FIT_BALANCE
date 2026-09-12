@@ -14,7 +14,7 @@ class SqlAlchemyProductIssueRepository(ProductIssueRepository, BaseSqlAlchemyRep
 
   async def get_pending_issue(self, product_id, reported_field) -> ProductIssue | None:
     query = select(ProductIssue).where(ProductIssue.product_id == product_id, ProductIssue.reported_field == reported_field)
-    result = await self.session.execute(query)
+    result = await self._execute(query)
     return result.scalar_one_or_none()
 
   async def save(self, product_issue: ProductIssue):

@@ -1,3 +1,6 @@
+import sqlalchemy
+import sqlalchemy.exc
+
 from product_catalog_context.application.unit_of_work import UnitOfWork
 from sqlalchemy.ext.asyncio import AsyncSession
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy_repository import ProductCategoryHierarchyRepository
@@ -5,6 +8,7 @@ from product_catalog_context.domain.issues.product_issue_repository import Produ
 from product_catalog_context.domain.product.product_repository import ProductRepository
 from product_catalog_context.domain.reports.product_report_repository import ProductReportRepository
 from product_catalog_context.domain.tasks.category_assignment_task_repository import CategoryAssignmentTaskRepository
+from product_catalog_context.infrastructure.aiosqlite_repository.errors_mapper import mapped_error
 from product_catalog_context.infrastructure.sql_alchemy_repository.category_assignment_task import SqlAlchemyCategoryAssignmentTaskRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product import SqlAlchemyProductRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product_category_hierarchy import SqlAlchemyProductCategoryHierarchyRepository
@@ -28,8 +32,14 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
   async def __aexit__(self, exc_type, exc, tb):
     if exc is not None:
       await self.rollback()
+      if isinstance(exc, sqlalchemy.exc.SQLAlchemyError):
+        raise mapped_error(exc) from exc
     else:
-      await self.commit()
+      try:
+        await self.commit()
+      except sqlalchemy.exc.SQLAlchemyError as e:
+        await self.rollback()
+        raise mapped_error(e) from e
 
   async def commit(self):
     await self.session.commit()

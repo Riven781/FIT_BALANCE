@@ -3,6 +3,7 @@ from product_catalog_context.domain.product.product_repository import ProductRep
 from product_catalog_context.domain.product.nutrition_facts import Nutrients, NutritionFacts, ReferenceQuantity
 from product_catalog_context.domain.product.product import Product
 from product_catalog_context.domain.product.product_assignment import CategoryAssignment
+from product_catalog_context.domain.repository.errors import CheckViolationError, ForeignKeyViolationError, NotNullViolationError, RepositoryError, RepositoryIntegrityError, RepositoryProgrammingError, RepositoryUnavailableError, TypeViolationError, UniqueViolationError, UnknownRepositoryError
 
 
 pytestmark = pytest.mark.usefixtures("insert_data")
@@ -42,6 +43,16 @@ async def test_save_insert_new_product(product_repository: ProductRepository, db
   assert product.name == 'Jabłko'
   assert product.category_assignments == {1: CategoryAssignment(category_id=2)}
 
+@pytest.mark.asyncio
+async def test_save_insert_new_product_with_not_existing_category(product_repository: ProductRepository, db_session):
+  new_product = Product(name='Jabłko', brand_name='Auchan', nutrition_facts=NutritionFacts(kcal=70, reference_quantity=ReferenceQuantity(amount=100, unit='g'), nutrients=Nutrients(fat=10)), name_search_standard='jablko', category_assignments={1:CategoryAssignment(category_id=200)})
+  with pytest.raises(ForeignKeyViolationError):
+    await product_repository.save(new_product)
+
+@pytest.mark.asyncio  #hierarchy_id as key os fiction
+async def test_save_insert_new_product_with_not_existing_hierarchy(product_repository: ProductRepository, db_session):
+  new_product = Product(name='Jabłko', brand_name='Auchan', nutrition_facts=NutritionFacts(kcal=70, reference_quantity=ReferenceQuantity(amount=100, unit='g'), nutrients=Nutrients(fat=10)), name_search_standard='jablko', category_assignments={199:CategoryAssignment(category_id=2)})
+  await product_repository.save(new_product)
 
 @pytest.mark.asyncio
 async def test_save_update_product(product_repository: ProductRepository, db_session):

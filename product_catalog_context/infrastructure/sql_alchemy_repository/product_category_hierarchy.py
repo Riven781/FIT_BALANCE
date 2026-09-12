@@ -15,17 +15,17 @@ class SqlAlchemyProductCategoryHierarchyRepository(ProductCategoryHierarchyRepos
 
   async def get_draft(self) -> ProductCategoryHierarchy | None:
     query = select(ProductCategoryHierarchy).where(ProductCategoryHierarchy.status == ProductCategoryHierarchyStatus.DRAFT)
-    result = await self.session.execute(query)
+    result = await self._execute(query)
     return result.scalar_one_or_none()
 
   async def get_planned_for_publication(self) -> ProductCategoryHierarchy | None:
     query = select(ProductCategoryHierarchy).where(ProductCategoryHierarchy.status == ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION)
-    result = await self.session.execute(query)
+    result = await self._execute(query)
     return result.scalar_one_or_none()
 
   async def get_active(self) -> ProductCategoryHierarchy | None:
     query = select(ProductCategoryHierarchy).where(ProductCategoryHierarchy.status == ProductCategoryHierarchyStatus.ACTIVE)
-    result = await self.session.execute(query)
+    result = await self._execute(query)
     return result.scalar_one_or_none()
 
   async def save(self, hierarchy: ProductCategoryHierarchy):
@@ -54,5 +54,5 @@ class SqlAlchemyProductCategoryHierarchyRepository(ProductCategoryHierarchyRepos
         (id_seq_table.c.next_value - 1).label('id')
       )
     )
-    result = await self.session.execute(query)
+    result = await self._execute(query)
     return result.scalar_one()

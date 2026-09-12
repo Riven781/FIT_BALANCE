@@ -1,6 +1,8 @@
 import aiosqlite
+import sqlalchemy
+import sqlalchemy.exc
 
-from product_catalog_context.infrastructure.aiosqlite_repository.errors.errors import CheckViolationError, ForeignKeyViolationError, NotNullViolationError, RepositoryError, RepositoryIntegrityError, RepositoryProgrammingError, RepositoryUnavailableError, TypeViolationError, UniqueViolationError, UnknownRepositoryError
+from product_catalog_context.domain.repository.errors import CheckViolationError, ForeignKeyViolationError, NotNullViolationError, RepositoryError, RepositoryIntegrityError, RepositoryProgrammingError, RepositoryUnavailableError, TypeViolationError, UniqueViolationError, UnknownRepositoryError
 
 def map_errors(e):
   if isinstance(e, aiosqlite.Error):
@@ -28,4 +30,9 @@ def map_errors(e):
     return RepositoryError()
   else:
     return UnknownRepositoryError()
-    
+
+def mapped_error(exc):
+  sqlite_exc = exc.orig
+  return map_errors(sqlite_exc)
+
+

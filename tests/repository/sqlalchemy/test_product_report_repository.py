@@ -3,7 +3,7 @@ from product_catalog_context.domain.reports.product_report_repository import Pro
 from product_catalog_context.domain.enums.reported_field import ReportedField
 from product_catalog_context.domain.reports.product_report import ProductReport
 from product_catalog_context.domain.reports.product_report_item import ProductReportItem
-
+from product_catalog_context.domain.repository.errors import CheckViolationError, ForeignKeyViolationError
 
 pytestmark = pytest.mark.usefixtures('insert_data')
 
@@ -41,6 +41,12 @@ async def test_save_new_report(product_report_repository: ProductReportRepositor
   assert item_1.issue_id == 3
   assert item_1.reported_field == ReportedField.SUGARS
   assert item_1.proposed_value is None
+
+@pytest.mark.asyncio
+async def test_save_new_report_with_not_existing_issue(product_report_repository: ProductReportRepository):
+  new_report = ProductReport(product_id=1, reported_items=[ProductReportItem(reported_field=ReportedField.SUGARS, issue_id=300)], user_id=6)
+  with pytest.raises(ForeignKeyViolationError):
+    await product_report_repository.save(new_report)
 
 @pytest.mark.asyncio
 async def test_save_existing_report(product_report_repository: ProductReportRepository):

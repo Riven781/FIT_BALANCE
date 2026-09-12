@@ -37,7 +37,7 @@ class SqlAlchemyProductRepository(ProductRepository, BaseSqlAlchemyRepository):
     ).where(
       ~exists(subquery)
     )
-    result = await self.session.execute(query)
+    result = await self._execute(query)
     return result.scalar_one()
 
   async def get_without_planned_category_and_assignment_task(self, category_id, hierarchy_id, limit= 20) -> list[Product]:  #by active category
@@ -58,7 +58,8 @@ class SqlAlchemyProductRepository(ProductRepository, BaseSqlAlchemyRepository):
     ).where(
       product_category_assignment_table.c.node_id == category_id, ~exists(subquery_1), ~exists(subquery_2)
     ).limit(limit)
-    result = await self.session.execute(query)
+    result = await self._execute(query)
+
     return list(result.scalars().all())
 
   async def copy_category_assignments(self, active_hierarchy_id, draft_hierarchy_id):
@@ -84,8 +85,9 @@ class SqlAlchemyProductRepository(ProductRepository, BaseSqlAlchemyRepository):
       select_query
     )
 
-    await self.session.execute(query)
+    await self._execute(query)
+
 
   async def delete_category_assignments_by_category_id(self, category_ids):
     delete_query = delete(product_category_assignment_table).where(product_category_assignment_table.c.node_id.in_(category_ids))
-    await self.session.execute(delete_query)
+    await self._execute(delete_query)
