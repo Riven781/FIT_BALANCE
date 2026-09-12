@@ -1,7 +1,7 @@
 import pytest
 from product_catalog_context.application.errors.errors import TaskNotFoundError, CategoryDoesNotBelongToHierarchy, CategoryHierarchyDoesNotExist, ProductNotFoundError, TaskDoesNotExist, TaskNotFoundError, TasksBelongToDifferentHierarchies, UserIdRequired
 from product_catalog_context.domain.tasks.category_assignment_task_status import CategoryAssignmentTaskStatus
-from product_catalog_context.domain.errors import CategoryAssignmentNotAllowed, DraftCategoryHierarchyCannotBeDeleted, CategoryHierarchyCannotBeRevertedToDraft,ParentCategoryNotInHierarchy, CategoryHierarchyIsNotDraft,CategoryHierarchyCannotBePublished, OnlyDraftHierarchyCanBeUpdated, DraftCategoryHierarchyCannotBeCreated, DraftCategoryIdCountMismatch
+from product_catalog_context.domain.errors import CategoryAssignmentTaskNotAllowed, DraftCategoryHierarchyCannotBeDeleted, CategoryHierarchyCannotBeRevertedToDraft,ParentCategoryNotInHierarchy, CategoryHierarchyIsNotDraft,CategoryHierarchyCannotBePublished, OnlyDraftHierarchyCanBeUpdated, DraftCategoryHierarchyCannotBeCreated, DraftCategoryIdCountMismatch
 from product_catalog_context.application.category_assignment_task_service import CategoryAssignmentTaskService
 
 pytestmark = pytest.mark.usefixtures('insert_data')
@@ -32,7 +32,7 @@ async def test_complete_category_assignment(category_assignment_service : Catego
 
 @pytest.mark.asyncio
 async def test_complete_category_assignment_in_active_hierarchy(category_assignment_service, db):
-  with pytest.raises(CategoryAssignmentNotAllowed):
+  with pytest.raises(CategoryAssignmentTaskNotAllowed):
     await category_assignment_service.complete_category_assignment(task_id=2, category_id=1, product_editor_id=3)
 
 @pytest.mark.asyncio
@@ -62,7 +62,7 @@ async def test_assign_tasks_for_user_by_active_category_id_with_limit(category_a
 
 @pytest.mark.asyncio
 async def test_assign_tasks_for_users(category_assignment_service, db):
-  await category_assignment_service.assign_tasks_for_users(product_editor_ids=[2, 3], hierarchy_id=2, catalog_manager_id=1)
+  await category_assignment_service.allocate_tasks_for_users(product_editor_ids=[2, 3], hierarchy_id=2, catalog_manager_id=1)
   cursor = await db.execute("""
     SELECT product_id, hierarchy_id, user_id, status
     FROM ProductCategoryAssignmentTask

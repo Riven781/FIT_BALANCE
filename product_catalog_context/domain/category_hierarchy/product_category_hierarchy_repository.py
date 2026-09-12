@@ -5,7 +5,7 @@ from product_catalog_context.domain.category_hierarchy.product_category_hierarch
 
 class ProductCategoryHierarchyRepository(ABC):
   @abstractmethod
-  async def get_by_id(self, hierarchy_id):
+  async def get_by_id(self, hierarchy_id) -> ProductCategoryHierarchy | None:
     pass
 
   @abstractmethod

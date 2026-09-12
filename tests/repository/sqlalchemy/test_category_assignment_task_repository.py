@@ -75,7 +75,7 @@ async def test_save_new_task(category_assignment_task_repository: CategoryAssign
 @pytest.mark.asyncio
 async def test_save_existing_task(category_assignment_task_repository: CategoryAssignmentTaskRepository):
   task = await category_assignment_task_repository.get_by_id(1)
-  task.complete()
+  task.complete(1)
   await category_assignment_task_repository.save(task)
   updated_task = await category_assignment_task_repository.get_by_id(task_id=1)
   assert task.hierarchy_id == 3

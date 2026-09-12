@@ -1,6 +1,18 @@
 class DomainError(Exception):
   pass
 
+class CategoryDoesNotBelongToHierarchy(DomainError):
+  pass
+
+class CategoryAssignmentTaskBelongsToAnotherUser(DomainError): #tasks
+  pass
+
+class CategoryAssignmentTaskNotAllowed(DomainError): #tasks
+  pass
+
+class UserIdRequired(DomainError): #task
+  pass
+
 class CategoryHierarchyIsNotDraft(DomainError):
   pass
 
@@ -28,8 +40,7 @@ class ParentCategoryNotInHierarchy(DomainError):
 class DraftCategoryHierarchyCannotBeDeleted(DomainError):
   pass
 
-class CategoryAssignmentNotAllowed(DomainError):
-  pass
+
 
 class CategoryHierarchyCannotBeEdited(DomainError):
   pass

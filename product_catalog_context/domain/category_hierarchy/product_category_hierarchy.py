@@ -1,4 +1,4 @@
-from product_catalog_context.domain.errors import CategoryAssignmentNotAllowed, CategoryHierarchyCannotBeEdited, DraftCategoryHierarchyCannotBeDeleted, CategoryHierarchyCannotBeRevertedToDraft,ParentCategoryNotInHierarchy, CategoryHierarchyIsNotDraft,CategoryHierarchyCannotBePublished, OnlyDraftHierarchyCanBeUpdated, DraftCategoryHierarchyCannotBeCreated, DraftCategoryIdCountMismatch
+from product_catalog_context.domain.errors import CategoryAssignmentTaskNotAllowed, CategoryDoesNotBelongToHierarchy, CategoryHierarchyCannotBeEdited, DraftCategoryHierarchyCannotBeDeleted, CategoryHierarchyCannotBeRevertedToDraft,ParentCategoryNotInHierarchy, CategoryHierarchyIsNotDraft,CategoryHierarchyCannotBePublished, OnlyDraftHierarchyCanBeUpdated, DraftCategoryHierarchyCannotBeCreated, DraftCategoryIdCountMismatch
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy_status import ProductCategoryHierarchyStatus
 from product_catalog_context.domain.category_hierarchy.product_category import ProductCategory, ProductCategoryDraft, ProductCategoryNode
 from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, ProductCategoryHierarchyRevertedToDraft
@@ -49,9 +49,19 @@ class ProductCategoryHierarchy:
 
   def ensure_category_assignment_allowed(self): #planned_assignment
     if self.status != ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION:
-      raise CategoryAssignmentNotAllowed()
+      raise CategoryAssignmentTaskNotAllowed()
   
+  def ensure_can_complete_task(self, category_id): #planned_assignment
+    if self.status != ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION:
+      raise CategoryAssignmentTaskNotAllowed()
+    if not self.contains_product_category(category_id):
+      raise CategoryDoesNotBelongToHierarchy()
 
+  def ensure_can_assign_tasks(self): #planned_assignment
+    if self.status != ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION:
+      raise CategoryAssignmentTaskNotAllowed()
+
+    
   def create_draft_based_on_hierarchy(self, ids, user_id):
     if len(ids) != len(self.product_categories):
       return DraftCategoryIdCountMismatch()

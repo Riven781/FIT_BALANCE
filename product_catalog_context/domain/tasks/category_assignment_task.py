@@ -1,5 +1,5 @@
 from product_catalog_context.domain.tasks.category_assignment_task_status import CategoryAssignmentTaskStatus
-from product_catalog_context.domain.errors import TaskCannotBeCompleted, TaskCannotBeCancelled
+from product_catalog_context.domain.errors import CategoryAssignmentTaskBelongsToAnotherUser, TaskCannotBeCompleted, TaskCannotBeCancelled
 
 
 class CategoryAssignmentTask:
@@ -10,7 +10,9 @@ class CategoryAssignmentTask:
     self.user_id = user_id
     self.status = status
 
-  def complete(self):
+  def complete(self, product_editor_id):
+    if product_editor_id != self.user_id:
+      raise CategoryAssignmentTaskBelongsToAnotherUser()
     if self.status != CategoryAssignmentTaskStatus.PENDING:
       raise TaskCannotBeCompleted()
     self.status = CategoryAssignmentTaskStatus.COMPLETED
