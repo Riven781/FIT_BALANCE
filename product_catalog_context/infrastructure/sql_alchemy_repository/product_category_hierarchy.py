@@ -34,8 +34,10 @@ class SqlAlchemyProductCategoryHierarchyRepository(ProductCategoryHierarchyRepos
   async def delete(self, hierarchy: ProductCategoryHierarchy):
     await self.session.delete(hierarchy)
 
-  async def delete_active(self):
+  async def delete_active(self, except_hierarchy_id=None):
     query = delete(ProductCategoryHierarchy).where(ProductCategoryHierarchy.status == ProductCategoryHierarchyStatus.ACTIVE)
+    if except_hierarchy_id is not None:
+      query = query.where(ProductCategoryHierarchy.hierarchy_id != except_hierarchy_id)
     await self.session.execute(query)
 
   async def next_category_id(self):

@@ -13,9 +13,6 @@ class ProductCategoryHierarchy:
     self.published_by = published_by
     self._events = []
 
-
-  #def is_hierarchy_structure_correct(self, product_categories: list[ProductCategory]):
-
   def _validate_hierarchy(self, categories):
     ids = [category.category_id for category in categories]
     for category in categories:
@@ -47,16 +44,6 @@ class ProductCategoryHierarchy:
     self.product_categories = new_product_category_nodes
     #save -> update hierarchy
 
-
-  def ensure_can_be_edited(self, existing_product_categories):
-    if self.status not in [ProductCategoryHierarchyStatus.DRAFT]:
-      raise CategoryHierarchyCannotBeEdited()
-
-
-  def ensure_draft_be_created(self):
-    if self.status != ProductCategoryHierarchyStatus.ACTIVE:
-      raise DraftCategoryHierarchyCannotBeCreated()
-
   def ensure_draft_be_deleted(self):
     if self.status != ProductCategoryHierarchyStatus.DRAFT:
       raise DraftCategoryHierarchyCannotBeDeleted()
@@ -64,10 +51,6 @@ class ProductCategoryHierarchy:
   def get_non_leaf_category_ids(self):
     return list({category.parent_id for category in self.product_categories if category.parent_id is not None})
 
-  def ensure_category_assignment_allowed(self): #planned_assignment
-    if self.status != ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION:
-      raise CategoryAssignmentTaskNotAllowed()
-  
   def ensure_can_complete_task(self, category_id): #planned_assignment
     if self.status != ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION:
       raise CategoryAssignmentTaskNotAllowed()
@@ -80,6 +63,8 @@ class ProductCategoryHierarchy:
 
     
   def create_draft_based_on_hierarchy(self, ids, user_id):
+    if self.status != ProductCategoryHierarchyStatus.ACTIVE:
+      raise DraftCategoryHierarchyCannotBeCreated()
     if len(ids) != len(self.product_categories):
       return DraftCategoryIdCountMismatch()
     new_id_by_old_id = {category.category_id : ids[i] for i, category in enumerate(self.product_categories)}
@@ -94,8 +79,6 @@ class ProductCategoryHierarchy:
 
   def contains_all_product_categories(self, product_category_ids):
     return all(self.contains_product_category(category_id) for category_id in product_category_ids)
-
-
 
 
   def publish(self, user_id):

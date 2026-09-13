@@ -58,7 +58,6 @@ class CategoryHierarchyManagementService():
       if draft_hierarchy is not None:
         raise DraftCategoryHierarchyExists()
       hierarchy = await uow.product_category_hierarchies.get_by_id(hierarchy_id)
-      hierarchy.ensure_draft_be_created()
 
       ids = [await uow.product_category_hierarchies.next_category_id() for _ in range(hierarchy.product_categories_len())]
 
@@ -85,6 +84,8 @@ class CategoryHierarchyManagementService():
       raise AccessDenied()
     async with self.unit_of_work as uow:
       hierarchy = await uow.product_category_hierarchies.get_by_id(hierarchy_id)
+      if hierarchy is None:
+        raise CategoryHierarchyDoesNotExist()
       hierarchy.revert_to_draft()
       await uow.product_category_hierarchies.save(hierarchy)
       events = hierarchy.pull_events()
@@ -99,8 +100,10 @@ class CategoryHierarchyManagementService():
       raise AccessDenied()
     async with self.unit_of_work as uow:
       hierarchy = await uow.product_category_hierarchies.get_by_id(hierarchy_id)
-      await uow.product_category_hierarchies.delete_active()
+      if hierarchy is None:
+        raise CategoryHierarchyDoesNotExist()
       hierarchy.publish(catalog_manager_id)
+      await uow.product_category_hierarchies.delete_active(except_hierarchy_id=hierarchy.hierarchy_id)
       await uow.product_category_hierarchies.save(hierarchy)
       events = hierarchy.pull_events()
     if self.event_dispatcher:
@@ -113,6 +116,8 @@ class CategoryHierarchyManagementService():
       raise AccessDenied()
     async with self.unit_of_work as uow:
       hierarchy = await  uow.product_category_hierarchies.get_by_id(hierarchy_id)
+      if hierarchy is None:
+        raise CategoryHierarchyDoesNotExist()
       hierarchy.plan_for_publication()  #generate event HierarchyPlannedForPublication
       await uow.product_category_hierarchies.save(hierarchy)
       category_ids = hierarchy.get_non_leaf_category_ids()  #in handler

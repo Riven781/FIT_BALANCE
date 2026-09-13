@@ -29,7 +29,7 @@ class ProductCategoryHierarchyRepository(ABC):
     pass
 
   @abstractmethod
-  async def delete_active(self):
+  async def delete_active(self, except_hierarchy_id=None):
     pass
 
   @abstractmethod
