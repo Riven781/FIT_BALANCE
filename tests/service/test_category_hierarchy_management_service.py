@@ -1,12 +1,13 @@
 from aiosqlite import cursor
 import pytest
-from product_catalog_context.domain.errors import CategoryHierarchyIsNotDraft, OnlyDraftHierarchyCanBeUpdated
+from product_catalog_context.domain.errors import CategoryHierarchyIsNotDraft, OnlyDraftHierarchyCanBeUpdated, CategoryHierarchyCannotBeEdited
+from product_catalog_context.application.command.category_hierarchy import EditHierarchyCommand, ProductCategoryDraftDTO, ProductCategoryDTO
 
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy_status import ProductCategoryHierarchyStatus
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy import ProductCategoryHierarchy
 from product_catalog_context.infrastructure.aiosqlite_repository.product_category_hierarchy import ProductCategoryHierarchyRepository
 from product_catalog_context.application.category_hierarchy_management_service import CategoryHierarchyManagementService
-from product_catalog_context.application.errors.errors import DraftCategoryHierarchyExists
+from product_catalog_context.application.errors.errors import DraftCategoryHierarchyExists, CategoryHierarchyDoesNotExist
 from product_catalog_context.domain.category_hierarchy.product_category import ProductCategory, ProductCategoryDraft, ProductCategoryItem
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
 from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
@@ -49,13 +50,15 @@ async def test_plan_for_publication_active_hierarchy(category_hierarchy_manageme
 
 @pytest.mark.asyncio
 async def test_edit_hierarchy(category_hierarchy_management_service: CategoryHierarchyManagementService, insert_draft):
-  categories = [
-    ProductCategory(name='Produkty', parent_id=None, category_id=11, source_node_id=1),
-    ProductCategory(name='Roślinne', parent_id=11, category_id=12, source_node_id=2),
-    ProductCategory(name='Zwierzęce', parent_id=11, category_id=13, source_node_id = 3),
-    ProductCategoryDraft(name='Kurczak', parent_id=13, temp_id="temp-1")
+  existing_categories = [
+    ProductCategoryDTO(name='Produkty', parent_id=None, category_id=11, source_node_id=1),
+    ProductCategoryDTO(name='Roślinne', parent_id=11, category_id=12, source_node_id=2),
+    ProductCategoryDTO(name='Zwierzęce', parent_id=11, category_id=13, source_node_id = 3),
   ]
-  hierarchy = await category_hierarchy_management_service.edit_hierarchy(3, categories, 1)
+  draft_categories = [
+    ProductCategoryDraftDTO(name='Kurczak', parent_id=13, temp_id="temp-1")
+  ]
+  hierarchy = await category_hierarchy_management_service.edit_hierarchy(EditHierarchyCommand(3, existing_categories, draft_categories, 1))
   assert len(hierarchy.product_categories) == 4
   assert hierarchy.status == ProductCategoryHierarchyStatus.DRAFT
   assert hierarchy.product_categories[0].category_id == 11 and hierarchy.product_categories[0].name == 'Produkty' and hierarchy.product_categories[0].parent_id == None and hierarchy.product_categories[0].source_node_id == 1
@@ -65,9 +68,8 @@ async def test_edit_hierarchy(category_hierarchy_management_service: CategoryHie
 
 @pytest.mark.asyncio
 async def test_edit_active_hierarchy(category_hierarchy_management_service: CategoryHierarchyManagementService):
-  categories = []
-  with pytest.raises(OnlyDraftHierarchyCanBeUpdated):
-    hierarchy = await category_hierarchy_management_service.edit_hierarchy(1, categories, 1)
+  with pytest.raises(CategoryHierarchyCannotBeEdited):
+    hierarchy = await category_hierarchy_management_service.edit_hierarchy(EditHierarchyCommand(1, [], [], 1))
 
 
 @pytest.mark.asyncio
@@ -75,8 +77,9 @@ async def test_publish(category_hierarchy_management_service: CategoryHierarchyM
   hierarchy = await category_hierarchy_management_service.publish_hierarchy(2, 1)
   assert hierarchy.status == ProductCategoryHierarchyStatus.ACTIVE
   assert hierarchy.published_by == 1
-  hierarchy = await category_hierarchy_management_service.get_hierarchy(1)
-  assert hierarchy is None
+  with pytest.raises(CategoryHierarchyDoesNotExist):
+    hierarchy = await category_hierarchy_management_service.get_hierarchy(1)
+
 
 @pytest.mark.asyncio
 async def test_revert_to_draft(category_hierarchy_management_service: CategoryHierarchyManagementService):
@@ -86,6 +89,6 @@ async def test_revert_to_draft(category_hierarchy_management_service: CategoryHi
 @pytest.mark.asyncio
 async def test_delete_draft(category_hierarchy_management_service: CategoryHierarchyManagementService, insert_draft):
   await category_hierarchy_management_service.delete_draft(3, 1)
-  hierarchy = await category_hierarchy_management_service.get_hierarchy(3)
-  assert hierarchy is None
+  with pytest.raises(CategoryHierarchyDoesNotExist):
+    hierarchy = await category_hierarchy_management_service.get_hierarchy(3)
 

@@ -1,5 +1,6 @@
 from httpx import delete
 
+from product_catalog_context.application.command.category_hierarchy import EditHierarchyCommand
 from product_catalog_context.application.errors.errors import CategoryHierarchyDoesNotExist, DraftCategoryHierarchyExists, CategoryDoesNotBelongToHierarchy, AccessDenied
 from product_catalog_context.application.unit_of_work import UnitOfWork
 from product_catalog_context.infrastructure.adapters.event_dispatcher import EventDispatcher
@@ -30,31 +31,22 @@ class CategoryHierarchyManagementService():
       raise CategoryHierarchyDoesNotExist()
     return hierarchy
 
-  async def edit_hierarchy(self, hierarchy_id: int, product_categories: list[ProductCategory | ProductCategoryDraft], catalog_manager_id):
-    catalog_manager = await self.access_adapter.get_catalog_manager_for(catalog_manager_id)
+  async def edit_hierarchy(self, command: EditHierarchyCommand):
+    catalog_manager = await self.access_adapter.get_catalog_manager_for(command.catalog_manager_id)
     if catalog_manager is None:
       raise AccessDenied()
     
     async with self.unit_of_work as uow:
-      hierarchy : ProductCategoryHierarchy = await uow.product_category_hierarchies.get_by_id(hierarchy_id)
+      hierarchy : ProductCategoryHierarchy = await uow.product_category_hierarchies.get_by_id(command.hierarchy_id)
       if hierarchy is None:
         raise CategoryHierarchyDoesNotExist()
-
-      existing_product_categories = [category for category in product_categories if isinstance(category, ProductCategory)]
-      
-      hierarchy.ensure_can_be_edited(existing_product_categories)
-      
-      draft_categories = [category for category in product_categories if isinstance(category, ProductCategoryDraft)]
-      new_categories = self._create_new_categories(uow, draft_categories)
-  
-      hierarchy.update_categories(existing_product_categories + new_categories)
+      existing_categories = [ProductCategory(category_id=category.category_id, name=category.name, parent_id=category.parent_id, source_node_id=category.source_node_id) for category in command.existing_categories]
+      draft_categories = [ProductCategoryDraft(temp_id=category.temp_id, name=category.name, parent_id=category.parent_id) for category in command.draft_categories]
+      ids = [await uow.product_category_hierarchies.next_category_id() for _ in command.draft_categories]
+      hierarchy.edit(existing_categories, draft_categories, ids)
       await uow.product_category_hierarchies.save(hierarchy)
     return hierarchy
 
-  async def _create_new_categories(self, uow, draft_categories):
-    temp_to_id = {draft_category.temp_id: await uow.product_category_hierarchies.next_category_id() for draft_category in draft_categories}
-    new_categories = [ProductCategory(name=item.name, category_id=temp_to_id[item.temp_id], parent_id=temp_to_id[item.parent_id] if item.parent_id in temp_to_id else item.parent_id) for item in draft_categories]
-    return new_categories
 
   async def create_draft(self, hierarchy_id, catalog_manager_id): #TODO: event, event handler
     catalog_manager = await self.access_adapter.get_catalog_manager_for(catalog_manager_id)
