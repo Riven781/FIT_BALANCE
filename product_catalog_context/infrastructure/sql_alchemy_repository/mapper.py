@@ -247,3 +247,14 @@ mapper_registry.map_imperatively(ProductReport, product_report_table, properties
 @event.listens_for(ProductIssue, "load")
 def receive_load(issue, context):
   issue._events = []
+
+
+outbox_message_table = Table(
+  "OutboxMessage",
+  mapper_registry.metadata,
+  Column("id", Integer, primary_key=True, nullable=False, autoincrement=True),
+  Column("event_type", String, nullable=False),
+  Column("payload", String, nullable=False),
+  Column("occurred_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
+  Column("processed_at", DateTime)
+)

@@ -4,10 +4,10 @@ from config import DB_PATH
 
 sqlite_engine = create_async_engine(f'sqlite+aiosqlite:///{DB_PATH}')
 
-SessionLocal = async_sessionmaker(sqlite_engine, class_=AsyncSession, expire_on_commit=False)
+session_factory = async_sessionmaker(sqlite_engine, class_=AsyncSession, expire_on_commit=False)
 
 async def get_session():
-  async with SessionLocal() as session:
+  async with session_factory() as session:
     yield session
 
 @listens_for(sqlite_engine.sync_engine, 'connect')

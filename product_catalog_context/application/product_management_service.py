@@ -11,7 +11,7 @@ from product_catalog_context.application.command.product import PaginationFilter
 from product_catalog_context.application.query.product_detail import PublicProductDetail
 from product_catalog_context.application.unit_of_work import UnitOfWork
 from product_catalog_context.application.utils.shallow_asdict import shallow_asdict
-from product_catalog_context.infrastructure.adapters.event_dispatcher import EventDispatcher
+from product_catalog_context.domain.events.domain_event_publisher import DomainEventPublisher
 from product_catalog_context.domain.product.product import Product
 from product_catalog_context.domain.services.text_converter import tokenize_for_search
 from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
@@ -26,10 +26,10 @@ from product_catalog_context.domain.product.product_assignment import CategoryAs
 
 
 class ProductManagementService():
-  def __init__(self, unit_of_work: UnitOfWork, access_adapter: AccessAdapter, event_dispatcher: EventDispatcher=None):
+  def __init__(self, unit_of_work: UnitOfWork, access_adapter: AccessAdapter, event_publisher: DomainEventPublisher=None):
     self.unit_of_work = unit_of_work
     self.access_adapter = access_adapter
-    self.event_dispatcher = event_dispatcher
+    self.event_publisher = event_publisher
   
 
   async def create(self, product_command: ProductCommand, product_editor_id):
@@ -110,8 +110,8 @@ class ProductManagementService():
       await uow.products.save(product)
       events = product.pull_events()
 
-    if self.event_dispatcher:
-      self.event_dispatcher.dispatch(events) #not in the same transaction!
+    if self.event_publisher:
+      self.event_publisher.publish(events) #not in the same transaction!
 
     return product
 

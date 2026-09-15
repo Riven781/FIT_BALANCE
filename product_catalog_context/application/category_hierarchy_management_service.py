@@ -3,7 +3,7 @@ from httpx import delete
 from product_catalog_context.application.command.category_hierarchy import EditHierarchyCommand
 from product_catalog_context.application.errors.errors import CategoryHierarchyDoesNotExist, DraftCategoryHierarchyExists, CategoryDoesNotBelongToHierarchy, AccessDenied
 from product_catalog_context.application.unit_of_work import UnitOfWork
-from product_catalog_context.infrastructure.adapters.event_dispatcher import EventDispatcher
+from product_catalog_context.domain.events.domain_event_publisher import DomainEventPublisher
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy import ProductCategoryHierarchy
 from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
 from product_catalog_context.infrastructure.aiosqlite_queries.product import ProductQueries
@@ -19,11 +19,11 @@ class CategoryHierarchyManagementService():
       self,
       unit_of_work: UnitOfWork,
       access_adapter: AccessAdapter,
-      event_dispatcher: EventDispatcher = None
+      event_publisher: DomainEventPublisher = None
   ):
     self.unit_of_work = unit_of_work
     self.access_adapter = access_adapter
-    self.event_dispatcher = event_dispatcher
+    self.event_publisher = event_publisher
 
   async def get_hierarchy(self, hierarchy_id) -> ProductCategoryHierarchy:
     hierarchy = await self.unit_of_work.product_category_hierarchies.get_by_id(hierarchy_id)
@@ -89,8 +89,8 @@ class CategoryHierarchyManagementService():
       hierarchy.revert_to_draft()
       await uow.product_category_hierarchies.save(hierarchy)
       events = hierarchy.pull_events()
-    if self.event_dispatcher:
-      self.event_dispatcher.dispatch(events)
+    if self.event_publisher:
+      self.event_publisher.publish(events)
     return hierarchy
 
 
@@ -106,8 +106,8 @@ class CategoryHierarchyManagementService():
       await uow.product_category_hierarchies.delete_active(except_hierarchy_id=hierarchy.hierarchy_id)
       await uow.product_category_hierarchies.save(hierarchy)
       events = hierarchy.pull_events()
-    if self.event_dispatcher:
-      self.event_dispatcher.dispatch(events)
+    if self.event_publisher:
+      self.event_publisher.publish(events)
     return hierarchy
 
   async def plan_for_publication(self, hierarchy_id, catalog_manager_id):#TODO: event, event handler

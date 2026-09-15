@@ -1,6 +1,7 @@
 from dataclasses import dataclass
+from typing import ClassVar
 
 
 @dataclass
 class DomainEvent:
-  pass
+  event_type: ClassVar[str]
