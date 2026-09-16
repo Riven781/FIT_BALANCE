@@ -10,7 +10,7 @@ class OutboxMessage:
   processed_at: datetime | None
   attempts : int
 
-  def __init__(self, message_id, event_type, payload,  occurred_at, processed_at, attempts):
+  def __init__(self, event_type, payload,  occurred_at, processed_at = None, attempts = 0, message_id = None):
     self.message_id = message_id
     self.event_type = event_type
     self.payload = payload

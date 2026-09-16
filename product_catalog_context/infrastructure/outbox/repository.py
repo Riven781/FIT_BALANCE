@@ -48,3 +48,6 @@ class OutboxDAO():
       processed_at=datetime.now(timezone.utc)
     )
     await self.session.execute(query)
+
+  async def insert(self, outbox_message):
+    self.session.add(outbox_message)
