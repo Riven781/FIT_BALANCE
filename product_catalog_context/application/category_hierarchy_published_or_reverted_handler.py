@@ -1,10 +1,11 @@
+from product_catalog_context.application.unit_of_work import UnitOfWork
 from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, ProductCategoryHierarchyRevertedToDraft
-from product_catalog_context.infrastructure.aiosqlite_repository.category_assignment_task_repository import CategoryAssignmentTaskRepository
 
 
 class CategoryHierarchyPublishedOrRevertedHandler:
-  def __init__(self, category_assignment_task_repository: CategoryAssignmentTaskRepository):
-    self.category_assignment_task_repository = category_assignment_task_repository
+  def __init__(self, unit_of_work: UnitOfWork):
+    self.unit_of_work = unit_of_work
 
   async def handler(self, event: ProductCategoryHierarchyPublished | ProductCategoryHierarchyRevertedToDraft):
-    await self.category_assignment_task_repository.delete_by_hierarchy_id(event.hierarchy_id)
+    async with self.unit_of_work as uow:
+      await uow.category_assignment_tasks.delete_by_hierarchy(event.hierarchy_id) #idempotent operation
