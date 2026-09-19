@@ -18,11 +18,11 @@ payload = {
 json_payload = json.dumps(payload)
 
 insert_ = """
-  INSERT INTO OutboxMessage (event_type, payload)  VALUES 
-  (?, ?);
+  INSERT INTO OutboxMessage (message_type, message_name, payload)  VALUES 
+  (?, ?, ?);
 """
 
 if __name__ == '__main__':
-  cursor.execute(insert_, ['product_category_changed_in_hierarchy', json_payload])
+  cursor.execute(insert_, ['event', 'product_category_changed_in_hierarchy', json_payload])
 conn.commit()
 conn.close()

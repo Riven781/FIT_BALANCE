@@ -3,8 +3,8 @@ from httpx import delete
 from product_catalog_context.application.command.category_hierarchy import EditHierarchyCommand
 from product_catalog_context.application.errors.errors import CategoryHierarchyDoesNotExist, DraftCategoryHierarchyExists, CategoryDoesNotBelongToHierarchy, AccessDenied
 from product_catalog_context.application.unit_of_work import UnitOfWork
-from product_catalog_context.domain.events.domain_event_publisher import DomainEventPublisher
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy import ProductCategoryHierarchy
+from product_catalog_context.domain.messages.domain_message_publisher import DomainMessagePublisher
 from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
 from product_catalog_context.infrastructure.aiosqlite_queries.product import ProductQueries
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
@@ -19,7 +19,7 @@ class CategoryHierarchyManagementService():
       self,
       unit_of_work: UnitOfWork,
       access_adapter: AccessAdapter,
-      event_publisher: DomainEventPublisher = None
+      event_publisher: DomainMessagePublisher = None
   ):
     self.unit_of_work = unit_of_work
     self.access_adapter = access_adapter

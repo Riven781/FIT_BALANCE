@@ -192,14 +192,18 @@ async def db_engine():
   await engine.dispose()
 
 @pytest_asyncio.fixture
-async def db_session(db_engine):
-  SessionTest = async_sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+async def session_factory(db_engine):
+  session_factory = async_sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+  return session_factory
+
+@pytest_asyncio.fixture
+async def db_session(db_engine, session_factory):
   @event.listens_for(db_engine.sync_engine, 'connect')
   def set_sqlite_pragma(dbapi_connection, connection_record):
     cursor = dbapi_connection.cursor()
     cursor.execute('PRAGMA foreign_keys=ON')
     cursor.close()
-  async with SessionTest() as session:
+  async with session_factory() as session:
     yield session
 
 
@@ -361,8 +365,8 @@ async def access_adapter(access_api):
 
 
 @pytest_asyncio.fixture
-def unit_of_work(db_session):
-  return SqlAlchemyUnitOfWork(session=db_session)
+def unit_of_work(session_factory):
+  return SqlAlchemyUnitOfWork(session_factory=session_factory)
 
 class FakeAccessAdapter:
   def __init__(self, access_api: AccessApi):

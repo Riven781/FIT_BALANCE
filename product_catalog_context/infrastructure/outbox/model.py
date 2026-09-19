@@ -4,19 +4,21 @@ from datetime import datetime, timezone
 
 class OutboxMessage:
   message_id: int
-  event_type: str
+  message_type: str #event or command
+  message_name: str
   payload: str
   occurred_at: datetime
   processed_at: datetime | None
-  attempts : int
+  retry_count : int
 
-  def __init__(self, event_type, payload,  occurred_at, processed_at = None, attempts = 0, message_id = None):
+  def __init__(self, message_type, message_name, payload,  occurred_at, processed_at = None, retry_count = 0, message_id = None):
     self.message_id = message_id
-    self.event_type = event_type
+    self.message_type = message_type
+    self.message_name = message_name
     self.payload = payload
     self.occurred_at = occurred_at
     self.processed_at = processed_at
-    self.attempts = attempts
+    self.retry_count = retry_count
 
   def process(self):
     self.processed_at = datetime.now(timezone.utc)

@@ -17,16 +17,22 @@ from product_catalog_context.infrastructure.sql_alchemy_repository.product_repor
 
 
 class SqlAlchemyUnitOfWork(UnitOfWork):
-  def __init__(self, session: AsyncSession):
-    self.session = session
+  def __init__(self, session_factory):
+    self.session_factory = session_factory
     self._products = None
     self._product_category_hierarchies = None
     self._category_assignment_tasks = None
     self._product_issues = None
     self._product_reports = None
+    self._session = None
 
 
   async def __aenter__(self):
+    self._products = None
+    self._product_category_hierarchies = None
+    self._category_assignment_tasks = None
+    self._product_issues = None
+    self._product_reports = None
     return self
 
   async def __aexit__(self, exc_type, exc, tb):
@@ -40,12 +46,22 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
       except sqlalchemy.exc.SQLAlchemyError as e:
         await self.rollback()
         raise mapped_error(e) from e
+      finally:
+        if self._session is not None:
+          await self._session.close()
+          self._session = None
 
   async def commit(self):
     await self.session.commit()
 
   async def rollback(self):
     await self.session.rollback()
+
+  @property
+  def session(self) -> ProductRepository:
+    if self._session is None:
+      self._session = self.session_factory()
+    return self._session
 
   @property
   def products(self) -> ProductRepository:

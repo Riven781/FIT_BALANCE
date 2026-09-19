@@ -10,11 +10,12 @@ outbox_message_table = Table(
   "OutboxMessage",
   outbox_mapper_registry.metadata,
   Column("id", Integer, primary_key=True, nullable=False, autoincrement=True),
-  Column("event_type", String, nullable=False),
+  Column("message_type", String, nullable=False),
+  Column("message_name", String, nullable=False),
   Column("payload", String, nullable=False),
   Column("occurred_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
   Column("processed_at", DateTime),
-  Column('attempts', Integer, default=0)
+  Column('retry_count', Integer, default=0)
 )
 
 

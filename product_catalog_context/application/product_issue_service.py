@@ -1,13 +1,13 @@
 from product_catalog_context.application.errors.errors import AccessDenied, IssueNotFoundError
 from product_catalog_context.application.unit_of_work import UnitOfWork
-from product_catalog_context.domain.events.domain_event_publisher import DomainEventPublisher
+from product_catalog_context.domain.messages.domain_message_publisher import DomainMessagePublisher
 from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
 from product_catalog_context.infrastructure.aiosqlite_repository.product_issue_repository import ProductIssueRepository
 from product_catalog_context.infrastructure.aiosqlite_repository.product_report_repository import ProductReportRepository
 
 
 class ProductIssueService:
-  def __init__(self, unit_of_work: UnitOfWork, access_adapter: AccessAdapter, event_publisher: DomainEventPublisher = None):
+  def __init__(self, unit_of_work: UnitOfWork, access_adapter: AccessAdapter, event_publisher: DomainMessagePublisher = None):
     self.unit_of_work = unit_of_work
     self.access_adapter = access_adapter
     self.event_publisher = event_publisher

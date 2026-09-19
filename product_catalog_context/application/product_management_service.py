@@ -11,7 +11,7 @@ from product_catalog_context.application.command.product import PaginationFilter
 from product_catalog_context.application.query.product_detail import PublicProductDetail
 from product_catalog_context.application.unit_of_work import UnitOfWork
 from product_catalog_context.application.utils.shallow_asdict import shallow_asdict
-from product_catalog_context.domain.events.domain_event_publisher import DomainEventPublisher
+from product_catalog_context.domain.messages.domain_message_publisher import DomainMessagePublisher
 from product_catalog_context.domain.product.product import Product
 from product_catalog_context.domain.services.text_converter import tokenize_for_search
 from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
@@ -26,7 +26,7 @@ from product_catalog_context.domain.product.product_assignment import CategoryAs
 
 
 class ProductManagementService():
-  def __init__(self, unit_of_work: UnitOfWork, access_adapter: AccessAdapter, event_publisher: DomainEventPublisher=None):
+  def __init__(self, unit_of_work: UnitOfWork, access_adapter: AccessAdapter, event_publisher: DomainMessagePublisher=None):
     self.unit_of_work = unit_of_work
     self.access_adapter = access_adapter
     self.event_publisher = event_publisher

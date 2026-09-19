@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import ClassVar
-from product_catalog_context.domain.events.event import DomainEvent
 from product_catalog_context.domain.enums.reported_field import ReportedField
+from product_catalog_context.domain.messages.message import DomainEvent
 
 
 @dataclass

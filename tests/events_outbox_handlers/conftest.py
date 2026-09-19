@@ -1,4 +1,9 @@
-from product_catalog_context.infrastructure.outbox.dispatcher import OutboxEventDispatcher
+from product_catalog_context.application.handlers.category_hierarchy_published_or_reverted_handler import CategoryHierarchyPublishedOrRevertedHandler
+from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, ProductCategoryHierarchyRevertedToDraft
+from product_catalog_context.domain.messages.event_bus import EventBus
+from product_catalog_context.domain.messages.message_registry import MessageRegistry
+from product_catalog_context.domain.messages.message_serializer import MessageSerializer
+from product_catalog_context.infrastructure.outbox.event_dispatcher import OutboxEventDispatcher
 from product_catalog_context.infrastructure.outbox.repository import OutboxDAO
 from product_catalog_context.infrastructure.outbox.subscriber import OutboxSubscriber
 from product_catalog_context.infrastructure.sql_alchemy_repository.mapper import mapper_registry
@@ -17,6 +22,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy import event
 import pytest_asyncio
 from sqlalchemy.pool import StaticPool
+
+from product_catalog_context.infrastructure.sql_alchemy_repository.unit_of_work import SqlAlchemyUnitOfWork
 
 @pytest_asyncio.fixture
 async def engine():
@@ -169,3 +176,28 @@ async def outbox_handler(db_session, outbox_dao):
 @pytest_asyncio.fixture
 def outbox_subscriber(outbox_dao):
   return OutboxSubscriber(outbox_dao)
+
+
+
+
+@pytest_asyncio.fixture
+def message_registry():
+  registry = MessageRegistry()
+  registry.register('product_category_hierarchy_reverted_to_draft', ProductCategoryHierarchyRevertedToDraft)
+  registry.register('product_category_hierarchy_published', ProductCategoryHierarchyPublished)
+  return registry
+
+@pytest_asyncio.fixture
+def message_serializer(message_registry):
+  serializer = MessageSerializer(message_registry)
+  return serializer
+
+@pytest_asyncio.fixture
+def event_bus(session_factory):
+  bus = EventBus()
+  bus.subscribe(ProductCategoryHierarchyRevertedToDraft, CategoryHierarchyPublishedOrRevertedHandler(unit_of_work=SqlAlchemyUnitOfWork(session_factory)))
+  return bus
+
+@pytest_asyncio.fixture
+def outbox_event_dispatcher(session_factory, event_bus, message_serializer):
+  return OutboxEventDispatcher(session_factory, event_bus, message_serializer, test=True)

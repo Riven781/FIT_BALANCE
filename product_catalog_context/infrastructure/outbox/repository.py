@@ -10,13 +10,13 @@ class OutboxDAO():
   def __init__(self, session):
     self.session = session
 
-  async def get_unprocessed_message_ids(self, event_type, limit):
+  async def get_unprocessed_message_ids_by_event_type(self, event_type, limit):
     query = select(
       OutboxMessage.message_id
     ).where(
-      OutboxMessage.event_type == event_type, 
+      OutboxMessage.message_name == event_type, 
       OutboxMessage.processed_at.is_(None),
-      OutboxMessage.attempts < 5
+      OutboxMessage.retry_count < 5
     ).order_by(
       OutboxMessage.occurred_at.asc()
     ).limit(
@@ -25,17 +25,61 @@ class OutboxDAO():
     result = await self.session.scalars(query)
     return result.all()
 
+  async def get_unprocessed_message_ids(self, limit):
+    query = select(
+      OutboxMessage.message_id
+    ).where(
+      OutboxMessage.processed_at.is_(None),
+      OutboxMessage.retry_count < 5
+    ).order_by(
+      OutboxMessage.occurred_at.asc()
+    ).limit(
+      limit=limit
+    )
+    result = await self.session.scalars(query)
+    return result.all()
+
+  async def get_unprocessed_command_ids(self, limit):
+    query = select(
+      OutboxMessage.message_id
+    ).where(
+      OutboxMessage.message_type == 'command',
+      OutboxMessage.processed_at.is_(None),
+      OutboxMessage.retry_count < 5
+    ).order_by(
+      OutboxMessage.occurred_at.asc()
+    ).limit(
+      limit=limit
+    )
+    result = await self.session.scalars(query)
+    return result.all()
+
+  async def get_unprocessed_event_ids(self, limit):
+    query = select(
+      OutboxMessage.message_id
+    ).where(
+      OutboxMessage.message_type == 'event',
+      OutboxMessage.processed_at.is_(None),
+      OutboxMessage.retry_count < 5
+    ).order_by(
+      OutboxMessage.occurred_at.asc()
+    ).limit(
+      limit=limit
+    )
+    result = await self.session.scalars(query)
+    return result.all()
+  
   async def get_by_id(self, message_id) -> OutboxMessage:
     return await self.session.get(OutboxMessage, message_id)
 
 
-  async def increase_attempt(self, message_id):
+  async def increase_retry_count(self, message_id):
     query = update(
       OutboxMessage
     ).where(
       OutboxMessage.message_id == message_id
     ).values(
-      attempts=OutboxMessage.attempts + 1
+      retry_count=OutboxMessage.retry_count + 1
     )
     await self.session.execute(query)
 

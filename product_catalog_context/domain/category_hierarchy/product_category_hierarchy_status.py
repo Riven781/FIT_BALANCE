@@ -3,5 +3,6 @@ from enum import StrEnum
 
 class ProductCategoryHierarchyStatus(StrEnum):
   ACTIVE = 'ACTIVE'
+  PLANNING_FOR_PUBLICATION = 'PLANNING_FOR_PUBLICATION'
   PLANNED_FOR_PUBLICATION = 'PLANNED_FOR_PUBLICATION'
   DRAFT = 'DRAFT'
