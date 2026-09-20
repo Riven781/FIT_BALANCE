@@ -1,9 +1,16 @@
+import argparse
+import asyncio
+
+from product_catalog_context.application.handlers.product_issue_confirmed_handler import ProductIssueConfirmedHandler
+from product_catalog_context.domain.issues.product_issue_confirmed import ProductIssueConfirmed
 from product_catalog_context.domain.messages.event_bus import EventBus
+from product_catalog_context.domain.messages.message_registry import MessageRegistry
 from product_catalog_context.domain.messages.message_serializer import MessageSerializer
 from product_catalog_context.infrastructure.outbox.message_dispatcher import MessageOutboxDispatcher
 from product_catalog_context.infrastructure.outbox.repository import OutboxDAO
-
-
+from product_catalog_context.infrastructure.outbox.test_session_factory import get_session_factory
+from product_catalog_context.infrastructure.sql_alchemy_repository.unit_of_work import SqlAlchemyUnitOfWork, SqlAlchemyUnitOfWorkFactory
+#python -m product_catalog_context.infrastructure.outbox.event_dispatcher
 class OutboxEventDispatcher(MessageOutboxDispatcher):
   def __init__(self, session_factory, event_bus: EventBus, message_serializer: MessageSerializer, test=False):
     super().__init__(session_factory, test)
@@ -27,3 +34,17 @@ class OutboxEventDispatcher(MessageOutboxDispatcher):
       await self._handle_errors(message_id=message_id, e=e)
       return
     await self._process_message(message_id)
+
+def parse_args():
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--database-url', required=True)
+  return parser.parse_args()
+
+if __name__ == '__main__':
+  args = parse_args()
+  event_bus = EventBus()
+  event_bus.subscribe(ProductIssueConfirmed, ProductIssueConfirmedHandler(SqlAlchemyUnitOfWorkFactory(get_session_factory(args.database_url))))
+  registry = MessageRegistry()
+  registry.register('product_issue_confirmed', ProductIssueConfirmed)
+  dispatcher = OutboxEventDispatcher(get_session_factory(args.database_url), event_bus, MessageSerializer(registry))
+  asyncio.run(dispatcher.run())

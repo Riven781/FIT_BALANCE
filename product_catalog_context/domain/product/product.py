@@ -108,7 +108,7 @@ class Product:
     return events
 
   def resolve_issue(self, reported_field: ReportedField, new_value):
-    setattr(self, reported_field.value, new_value)
+    setattr(self, reported_field, new_value)
 
 #normalized_name better
 

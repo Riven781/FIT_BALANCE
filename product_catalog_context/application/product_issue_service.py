@@ -25,8 +25,8 @@ class ProductIssueService:
 
       events = product_issue.pull_events()
 
-    if self.event_publisher:
-      await self.event_publisher.publish(events) # not in uow
+      if self.event_publisher:
+        await self.event_publisher.publish(events, uow_context=uow.context())
 
     return product_issue
 

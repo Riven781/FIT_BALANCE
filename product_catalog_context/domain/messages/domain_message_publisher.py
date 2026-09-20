@@ -17,10 +17,10 @@ class DomainMessagePublisher():
   def global_subscribe(self, subscriber: DomainMessageSubscriber):
     self.global_subscribers.append(subscriber)
 
-  async def publish(self, messages: list[DomainMessage]):
+  async def publish(self, messages: list[DomainMessage], uow_context=None):
     for message in messages:
       for global_subscriber in self.global_subscribers:
-        await global_subscriber.handle(message)
+        await global_subscriber.handle(message, uow_context)
       subscribers_to_event = self.subscribers.get(type(message), [])
       for subscriber in subscribers_to_event:
-        await subscriber.handle(message)
+        await subscriber.handle(message, uow_context)
