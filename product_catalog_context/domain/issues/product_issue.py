@@ -20,7 +20,7 @@ class ProductIssue:
     self.resolved_value = resolved_value
     self.status = ProductIssueStatus.CONFIRMED
     self.resolved_by = user_id
-    self._events.append(ProductIssueConfirmed(product_id=self.product_id, reported_field=ReportedField, resolved_value=resolved_value))
+    self._events.append(ProductIssueConfirmed(product_id=self.product_id, reported_field=self.reported_field, resolved_value=resolved_value))
 
   def reject(self, user_id):
     if self.status != ProductIssueStatus.PENDING:
@@ -29,6 +29,8 @@ class ProductIssue:
     self.resolved_by = user_id
 
   def mark_as_obsolete(self):
+    if self.status == ProductIssueStatus.OBSOLETE:
+      return
     if self.status != ProductIssueStatus.PENDING:
       raise IssueCanNotBeMarkedAsObsolete()
     self.status = ProductIssueStatus.OBSOLETE
