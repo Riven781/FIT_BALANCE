@@ -117,10 +117,11 @@ class ProductManagementService():
 
 
   async def get(self, product_id):
-    product = await self.unit_of_work.products.get_by_id(product_id)
-    if product is None:
-      raise ProductNotFoundError()
-    return product
+    async with self.unit_of_work as uow:
+      product = await uow.products.get_by_id(product_id)
+      if product is None:
+        raise ProductNotFoundError()
+      return product
 
   """ 
   async def assign_planned_category(self, product_id, alternative_category_id):

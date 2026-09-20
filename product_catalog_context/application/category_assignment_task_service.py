@@ -20,12 +20,13 @@ class CategoryAssignmentTaskService:
     self.access_adapter = access_adapter
 
   async def get_task(self, task_id):
-    task = await self.unit_of_work.category_assignment_tasks.get_by_id(task_id)
-    if task is None:
-      raise TaskDoesNotExist()
-    return task
+    async with self.unit_of_work as uow:
+      task = await uow.category_assignment_tasks.get_by_id(task_id)
+      if task is None:
+        raise TaskDoesNotExist()
+      return task
 
-  async def complete_category_assignment(self, task_id, category_id, product_editor_id): #TODO: apply events in the future
+  async def complete_category_assignment(self, task_id, category_id, product_editor_id): #TODO: apply events in the future #modification 2 aggregate in 1 tranaction
     product_editor = await self.access_adapter.get_product_editor_for(product_editor_id)
     if product_editor is None:
       raise AccessDenied()
@@ -39,7 +40,7 @@ class CategoryAssignmentTaskService:
       if hierarchy is None:
         raise CategoryHierarchyDoesNotExist()
       
-      product : Product = await uow.products.get_by_id(task.product_id)  #it should be at event handler in the future
+      product : Product = await uow.products.get_by_id(task.product_id)
       if product is None:
         raise ProductNotFoundError()
 

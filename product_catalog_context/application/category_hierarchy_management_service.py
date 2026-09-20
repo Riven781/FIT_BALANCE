@@ -26,10 +26,11 @@ class CategoryHierarchyManagementService():
     self.event_publisher = event_publisher
 
   async def get_hierarchy(self, hierarchy_id) -> ProductCategoryHierarchy:
-    hierarchy = await self.unit_of_work.product_category_hierarchies.get_by_id(hierarchy_id)
-    if hierarchy is None:
-      raise CategoryHierarchyDoesNotExist()
-    return hierarchy
+    async with self.unit_of_work as uow:
+      hierarchy = await self.unit_of_work.product_category_hierarchies.get_by_id(hierarchy_id)
+      if hierarchy is None:
+        raise CategoryHierarchyDoesNotExist()
+      return hierarchy
 
   async def edit_hierarchy(self, command: EditHierarchyCommand):
     catalog_manager = await self.access_adapter.get_catalog_manager_for(command.catalog_manager_id)
@@ -64,7 +65,7 @@ class CategoryHierarchyManagementService():
       new_hierarchy = hierarchy.create_draft_based_on_hierarchy(ids, catalog_manager_id) #it should generate event: HierarchyDraftCreated
       await uow.product_category_hierarchies.save(new_hierarchy)
     
-      await uow.products.copy_category_assignments(hierarchy.hierarchy_id, new_hierarchy.hierarchy_id) #it should be done in handler
+      #await uow.products.copy_category_assignments(hierarchy.hierarchy_id, new_hierarchy.hierarchy_id) #it should be done in handler it will be in publishing
     return new_hierarchy
 
   async def delete_draft(self, hierarchy_id, catalog_manager_id):

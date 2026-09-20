@@ -1,7 +1,8 @@
 import sqlalchemy
 import sqlalchemy.exc
 
-from product_catalog_context.application.unit_of_work import UnitOfWork
+from product_catalog_context.application.ports.message_writer import MessageWriter
+from product_catalog_context.application.unit_of_work import UnitOfWork, UnitOfWorkFactory
 from sqlalchemy.ext.asyncio import AsyncSession
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy_repository import ProductCategoryHierarchyRepository
 from product_catalog_context.domain.issues.product_issue_repository import ProductIssueRepository
@@ -9,6 +10,7 @@ from product_catalog_context.domain.product.product_repository import ProductRep
 from product_catalog_context.domain.reports.product_report_repository import ProductReportRepository
 from product_catalog_context.domain.tasks.category_assignment_task_repository import CategoryAssignmentTaskRepository
 from product_catalog_context.infrastructure.aiosqlite_repository.errors_mapper import mapped_error
+from product_catalog_context.infrastructure.outbox.message_writer import SqlAlchemyOutboxMessageWriter
 from product_catalog_context.infrastructure.sql_alchemy_repository.category_assignment_task import SqlAlchemyCategoryAssignmentTaskRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product import SqlAlchemyProductRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product_category_hierarchy import SqlAlchemyProductCategoryHierarchyRepository
@@ -24,15 +26,18 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
     self._category_assignment_tasks = None
     self._product_issues = None
     self._product_reports = None
-    self._session = None
+    self._message_writer = None
+    self.session = None
 
 
   async def __aenter__(self):
+    self.session = self.session_factory()
     self._products = None
     self._product_category_hierarchies = None
     self._category_assignment_tasks = None
     self._product_issues = None
     self._product_reports = None
+    self._message_writer = None
     return self
 
   async def __aexit__(self, exc_type, exc, tb):
@@ -47,9 +52,8 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
         await self.rollback()
         raise mapped_error(e) from e
       finally:
-        if self._session is not None:
-          await self._session.close()
-          self._session = None
+        await self.session.close()
+        self.session = None
 
   async def commit(self):
     await self.session.commit()
@@ -57,11 +61,6 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
   async def rollback(self):
     await self.session.rollback()
 
-  @property
-  def session(self) -> ProductRepository:
-    if self._session is None:
-      self._session = self.session_factory()
-    return self._session
 
   @property
   def products(self) -> ProductRepository:
@@ -92,3 +91,17 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
     if self._product_reports is None:
       self._product_reports = SqlAlchemyProductReportRepository(self.session)
     return self._product_reports
+  
+  @property
+  def message_writer(self) -> MessageWriter:
+    if self._message_writer is None:
+      self._message_writer = SqlAlchemyOutboxMessageWriter(self.session)
+    return self._message_writer
+
+
+class SqlAlchemyUnitOfWorkFactory(UnitOfWorkFactory):
+  def __init__(self, session_factory):
+    self.session_factory = session_factory
+
+  def create(self):
+    return SqlAlchemyUnitOfWork(session_factory=self.session_factory)
