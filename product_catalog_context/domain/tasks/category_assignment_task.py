@@ -13,11 +13,15 @@ class CategoryAssignmentTask:
   def complete(self, product_editor_id):
     if product_editor_id != self.user_id:
       raise CategoryAssignmentTaskBelongsToAnotherUser()
+    if self.status == CategoryAssignmentTaskStatus.COMPLETED:
+      return
     if self.status != CategoryAssignmentTaskStatus.PENDING:
       raise TaskCannotBeCompleted()
     self.status = CategoryAssignmentTaskStatus.COMPLETED
 
   def cancel(self):
+    if self.status == CategoryAssignmentTaskStatus.CANCELLED:
+      return
     if self.status != CategoryAssignmentTaskStatus.PENDING:
       raise TaskCannotBeCancelled()
     self.status = CategoryAssignmentTaskStatus.CANCELLED
