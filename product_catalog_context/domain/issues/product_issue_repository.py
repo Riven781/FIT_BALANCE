@@ -9,7 +9,7 @@ class ProductIssueRepository(ABC):
     pass
 
   @abstractmethod
-  async def get_pending_issue(self, product_id, reported_field):
+  async def get_pending_issue(self, product_id, reported_field) -> ProductIssue:
     pass
 
   @abstractmethod

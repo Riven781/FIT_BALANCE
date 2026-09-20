@@ -1,10 +1,12 @@
+from dataclasses import fields
 from re import L
 
 from product_catalog_context.domain.enums.reported_field import ReportedField
 from product_catalog_context.domain.product.events import ProductCategoryChangedInHierarchy, ProductDataChanged
-from product_catalog_context.domain.product.nutrition_facts import NutritionFacts
+from product_catalog_context.domain.product.nutrition_facts import Nutrients, NutritionFacts
 from product_catalog_context.domain.category_hierarchy.product_category import ProductCategory
 from product_catalog_context.domain.product.product_assignment import CategoryAssignment
+from product_catalog_context.domain.product.product_details import ProductDetails
 from product_catalog_context.domain.services.text_converter import normalize_for_search
 
 class Product:
@@ -87,17 +89,33 @@ class Product:
   def generate_search_name(self):
     self.name_search_standard = normalize_for_search(self.name)
 
-  def update_details(self, data: dict, product_editor_id):
-    changed_fields =[]
-    if 'name' in data and data['name'] != self.name:
-      changed_fields.append(ReportedField('name'))
-      self.rename(data['name'])
+  def _get_changed_nutrients(self, old: Nutrients, new: Nutrients):
+    return [ReportedField(field.name) for field in fields(Nutrients) if getattr(old, field.name) != getattr(new, field.name)]
 
-    for key, value in data.items():
-      if key not in self.PROTECTED_FIELDS and hasattr(self, key):
-        setattr(self, key, value)
-      if key in [field.value for field in ReportedField]:
-        changed_fields.append(ReportedField(key))
+  def get_changed_fields(self, details: ProductDetails):
+    changed_fields = []
+    if details.name != self.name:
+      changed_fields.append(ReportedField('name'))
+    if details.nutrition_facts.kcal != self.nutrition_facts.kcal:
+      changed_fields.append(ReportedField('kcal'))
+    changed_fields.extend(self._get_changed_nutrients(self.nutrition_facts.nutrients, details.nutrition_facts.nutrients))
+    return changed_fields
+
+  def update_details(self, details: ProductDetails, product_editor_id):
+    changed_fields = self.get_changed_fields(details)
+    if self.name != details.name:
+      self.rename(details.name)
+    if self.brand_name != details.brand_name:
+      self.change_brand_name(details.brand_name)
+    if self.nutrition_facts != details.nutrition_facts:
+      self.change_nutrients(details.nutrition_facts)
+    if self.img_src != details.img_src:
+      self.img_src = details.img_src
+    if self.ingredients != details.ingredients:
+      self.ingredients = details.ingredients
+    if self.allergy_recommendations != details.allergy_recommendations:
+      self.allergy_recommendations = details.allergy_recommendations
+
     if changed_fields:
       self._events.append(ProductDataChanged(product_id=self.product_id, fields=changed_fields))
 

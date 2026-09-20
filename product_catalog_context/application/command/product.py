@@ -3,6 +3,7 @@ from typing import Literal
 
 from product_catalog_context.domain.enums.product_searching import SortBy
 from product_catalog_context.domain.product.nutrition_facts import NutritionFacts
+from product_catalog_context.domain.product.product_details import ProductDetails
 
 
 @dataclass
@@ -15,6 +16,16 @@ class ProductCommand:
   planned_category_id: int | None = None
   ingredients: str | None = None
   allergy_recommendations: str | None = None
+
+  def to_details(self) -> ProductDetails:
+    return ProductDetails(
+      name=self.name,
+      brand_name=self.brand_name,
+      nutrition_facts=self.nutrition_facts,
+      img_src=self.img_src,
+      ingredients=self.ingredients,
+      allergy_recommendations=self.allergy_recommendations
+    )
 
 @dataclass
 class PaginationFiltersCommand:

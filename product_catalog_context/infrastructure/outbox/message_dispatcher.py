@@ -18,6 +18,8 @@ class MessageOutboxDispatcher(ABC):
 
   async def _handle_errors(self, message_id, e):
     print('ERROR')
+    print(type(e))
+    print(repr(e))
     print(e)
     async with self.session_factory() as session:
       outbox_repository = OutboxDAO(session=session)

@@ -103,15 +103,14 @@ class ProductManagementService():
           raise CategoryDoesNotBelongToPlannedHierarchy()
         product.assign_to_category(planned_hierarchy.hierarchy_id, product_command.planned_category_id, product_editor_id)
 
-      data_dict = shallow_asdict(product_command)
-      product.update_details(data_dict, product_editor_id)
+      product.update_details(product_command.to_details(), product_editor_id)
 
 
       await uow.products.save(product)
       events = product.pull_events()
 
-    if self.event_publisher:
-      self.event_publisher.publish(events) #not in the same transaction!
+      if self.event_publisher:
+        await self.event_publisher.publish(events, uow_context=uow.context())
 
     return product
 

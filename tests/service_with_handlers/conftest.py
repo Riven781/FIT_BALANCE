@@ -8,6 +8,7 @@ from identity_and_access_context.infrastructure.sql_alchemy_repository.user_role
 from identity_and_access_context.public.api.access_api import AccessApi
 from product_catalog_context.application.handlers.category_hierarchy_published_or_reverted_handler import CategoryHierarchyPublishedOrRevertedHandler
 from product_catalog_context.application.product_issue_service import ProductIssueService
+from product_catalog_context.application.product_management_service import ProductManagementService
 from product_catalog_context.application.unit_of_work import UnitOfWork
 from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, ProductCategoryHierarchyRevertedToDraft
 from product_catalog_context.domain.enums.reported_field import ReportedField
@@ -41,6 +42,7 @@ import pytest_asyncio
 from sqlalchemy.pool import StaticPool
 
 from product_catalog_context.infrastructure.sql_alchemy_repository.product import SqlAlchemyProductRepository
+from product_catalog_context.infrastructure.sql_alchemy_repository.product_issue import SqlAlchemyProductIssueRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.unit_of_work import SqlAlchemyUnitOfWork
 
 @pytest_asyncio.fixture
@@ -259,7 +261,7 @@ async def outbox_handler(db_session, outbox_dao):
 
 
 @pytest_asyncio.fixture
-async def message_publisher(outbox_dao):
+async def message_publisher():
   subscriber = OutboxSubscriber()
   publisher = DomainMessagePublisher()
   publisher.global_subscribe(subscriber)
@@ -273,6 +275,14 @@ def unit_of_work(session_factory):
 @pytest_asyncio.fixture
 def product_issue_service(unit_of_work, fake_access_adapter, message_publisher):
   return ProductIssueService(unit_of_work, fake_access_adapter, message_publisher)
+
+@pytest_asyncio.fixture
+def product_issue_repository(db_session):
+  return SqlAlchemyProductIssueRepository(db_session)
+
+@pytest_asyncio.fixture
+def product_management_service(unit_of_work, fake_access_adapter, message_publisher):
+  return ProductManagementService(unit_of_work, fake_access_adapter, message_publisher)
 
 @pytest_asyncio.fixture
 def category_assignment_task_repository(db_session):

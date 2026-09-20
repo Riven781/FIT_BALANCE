@@ -25,7 +25,7 @@ async def test_confirm_2_issues(product_issue_service: ProductIssueService, prod
   await product_issue_service.confirm_issue(issue_id=3, resolved_value=10, moderator_id=100)
   await db_session.commit()
   
-  await asyncio.sleep(10)
+  await asyncio.sleep(1)
   product = await product_repository.get_by_id(1)
   
   assert product.kcal == 120
