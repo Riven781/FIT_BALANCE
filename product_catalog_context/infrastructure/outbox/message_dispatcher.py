@@ -5,9 +5,10 @@ from product_catalog_context.infrastructure.outbox.repository import OutboxDAO
 
 
 class MessageOutboxDispatcher(ABC):
-  def __init__(self, session_factory, test):
+  def __init__(self, session_factory, test, sync=False):
     self.session_factory = session_factory
     self.test = test
+    self.sync = sync
   @abstractmethod
   async def pull_messages(self):
     pass
@@ -41,7 +42,11 @@ class MessageOutboxDispatcher(ABC):
           return
         await asyncio.sleep(1)
         continue
-      tasks = [self.handle(message_id) for message_id in unprocessed_message_ids]
-      await asyncio.gather(*tasks)
+      if not self.sync:
+        tasks = [self.handle(message_id) for message_id in unprocessed_message_ids]
+        await asyncio.gather(*tasks)
+      else:
+        for message_id in unprocessed_message_ids:
+          await self.handle(message_id)
       if self.test:
         return

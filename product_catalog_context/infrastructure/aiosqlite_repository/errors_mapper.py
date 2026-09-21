@@ -1,8 +1,8 @@
 import aiosqlite
 import sqlalchemy
-import sqlalchemy.exc
+from sqlalchemy.orm.exc import StaleDataError
 
-from product_catalog_context.domain.repository.errors import CheckViolationError, ForeignKeyViolationError, NotNullViolationError, RepositoryError, RepositoryIntegrityError, RepositoryProgrammingError, RepositoryUnavailableError, TypeViolationError, UniqueViolationError, UnknownRepositoryError
+from product_catalog_context.domain.repository.errors import CheckViolationError, ConcurrentModification, ForeignKeyViolationError, NotNullViolationError, RepositoryError, RepositoryIntegrityError, RepositoryProgrammingError, RepositoryUnavailableError, TypeViolationError, UniqueViolationError, UnknownRepositoryError
 
 def map_errors(e):
   if isinstance(e, aiosqlite.Error):
@@ -32,7 +32,13 @@ def map_errors(e):
     return UnknownRepositoryError()
 
 def mapped_error(exc):
-  sqlite_exc = exc.orig
-  return map_errors(sqlite_exc)
+  orig = getattr(exc, 'orig', None)
+  if orig is not None:
+    sqlite_exc = exc.orig
+    return map_errors(sqlite_exc)
+  else:
+    if isinstance(exc, StaleDataError):
+      return ConcurrentModification()
+  return exc
 
 

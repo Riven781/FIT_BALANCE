@@ -6,6 +6,7 @@ import sys
 from identity_and_access_context.application.access_service import AccessService
 from identity_and_access_context.infrastructure.sql_alchemy_repository.user_roles_repository import SqlAlchemyUserRolesRepository
 from identity_and_access_context.public.api.access_api import AccessApi
+from product_catalog_context.application.category_hierarchy_management_service import CategoryHierarchyManagementService
 from product_catalog_context.application.handlers.delete_category_assignment_tasks import DeleteCategoryAssignmentTasks
 from product_catalog_context.application.product_issue_service import ProductIssueService
 from product_catalog_context.application.product_management_service import ProductManagementService
@@ -202,6 +203,10 @@ async def insert_data(db_session: AsyncSession):
 
   db_session.add(CategoryAssignmentTask(task_id=1, product_id=2, hierarchy_id=3, status=CategoryAssignmentTaskStatus.PENDING, user_id=1))
   db_session.add(CategoryAssignmentTask(task_id=2, product_id=3, hierarchy_id=3, status=CategoryAssignmentTaskStatus.PENDING, user_id=2))
+
+  db_session.add(CategoryAssignmentTask(task_id=3, product_id=2, hierarchy_id=2, status=CategoryAssignmentTaskStatus.PENDING, user_id=1))
+  db_session.add(CategoryAssignmentTask(task_id=4, product_id=3, hierarchy_id=2, status=CategoryAssignmentTaskStatus.PENDING, user_id=2))
+
   await db_session.flush()
 
   db_session.add(ProductIssue(issue_id=1, product_id=1, reported_field=ReportedField.KCAL, status=ProductIssueStatus.PENDING))
@@ -273,6 +278,7 @@ async def message_publisher():
 def unit_of_work(session_factory):
   return SqlAlchemyUnitOfWork(session_factory)
 
+
 @pytest_asyncio.fixture
 def product_issue_service(unit_of_work, fake_access_adapter, message_publisher):
   return ProductIssueService(unit_of_work, fake_access_adapter, message_publisher)
@@ -284,6 +290,10 @@ def product_issue_repository(db_session):
 @pytest_asyncio.fixture
 def product_management_service(unit_of_work, fake_access_adapter, message_publisher):
   return ProductManagementService(unit_of_work, fake_access_adapter, message_publisher)
+
+@pytest_asyncio.fixture
+def product_hierarchy_management_service(unit_of_work, fake_access_adapter, message_publisher):
+  return CategoryHierarchyManagementService(unit_of_work, fake_access_adapter, message_publisher)
 
 @pytest_asyncio.fixture
 def category_assignment_task_repository(db_session):

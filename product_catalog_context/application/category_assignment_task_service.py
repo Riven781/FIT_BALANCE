@@ -26,7 +26,7 @@ class CategoryAssignmentTaskService:
         raise TaskDoesNotExist()
       return task
 
-  async def complete_category_assignment(self, task_id, category_id, product_editor_id): #TODO: apply events in the future #modification 2 aggregate in 1 tranaction
+  async def complete_category_assignment(self, task_id, category_id, product_editor_id):
     product_editor = await self.access_adapter.get_product_editor_for(product_editor_id)
     if product_editor is None:
       raise AccessDenied()

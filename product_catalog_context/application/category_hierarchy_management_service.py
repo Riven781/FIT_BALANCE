@@ -90,8 +90,8 @@ class CategoryHierarchyManagementService():
       hierarchy.revert_to_draft()
       await uow.product_category_hierarchies.save(hierarchy)
       events = hierarchy.pull_events()
-    if self.event_publisher:
-      self.event_publisher.publish(events)
+      if self.event_publisher:
+        await self.event_publisher.publish(events, uow_context=uow.context())
     return hierarchy
 
 
@@ -107,8 +107,8 @@ class CategoryHierarchyManagementService():
       await uow.product_category_hierarchies.delete_active(except_hierarchy_id=hierarchy.hierarchy_id)
       await uow.product_category_hierarchies.save(hierarchy)
       events = hierarchy.pull_events()
-    if self.event_publisher:
-      self.event_publisher.publish(events)
+      if self.event_publisher:
+        await self.event_publisher.publish(events, uow_context=uow.context())
     return hierarchy
 
   async def plan_for_publication(self, hierarchy_id, catalog_manager_id):#TODO: event, event handler

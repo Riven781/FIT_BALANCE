@@ -1,21 +1,24 @@
 import argparse
 import asyncio
 
+from product_catalog_context.application.handlers.delete_category_assignment_tasks import DeleteCategoryAssignmentTasks
 from product_catalog_context.application.handlers.mark_affected_product_issue_as_obsolete import MarkAffectedProductIssueAsObsolete
 from product_catalog_context.application.handlers.apply_resolved_value_to_product import ApplyResolvedValueToProduct
+from product_catalog_context.application.handlers.resolve_category_assignment_task import ResolveCategoryAssignmentTask
+from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, ProductCategoryHierarchyRevertedToDraft
 from product_catalog_context.domain.issues.product_issue_confirmed import ProductIssueConfirmed
 from product_catalog_context.domain.messages.event_bus import EventBus
 from product_catalog_context.domain.messages.message_registry import MessageRegistry
 from product_catalog_context.domain.messages.message_serializer import MessageSerializer
-from product_catalog_context.domain.product.events import ProductDataChanged
+from product_catalog_context.domain.product.events import ProductCategoryChangedInHierarchy, ProductDataChanged
 from product_catalog_context.infrastructure.outbox.message_dispatcher import MessageOutboxDispatcher
 from product_catalog_context.infrastructure.outbox.repository import OutboxDAO
 from product_catalog_context.infrastructure.outbox.test_session_factory import get_session_factory
 from product_catalog_context.infrastructure.sql_alchemy_repository.unit_of_work import SqlAlchemyUnitOfWork, SqlAlchemyUnitOfWorkFactory
 #python -m product_catalog_context.infrastructure.outbox.event_dispatcher
 class OutboxEventDispatcher(MessageOutboxDispatcher):
-  def __init__(self, session_factory, event_bus: EventBus, message_serializer: MessageSerializer, test=False):
-    super().__init__(session_factory, test)
+  def __init__(self, session_factory, event_bus: EventBus, message_serializer: MessageSerializer, test=False, sync=False):
+    super().__init__(session_factory, test, sync)
     self.event_bus = event_bus
     self.message_serializer = message_serializer
 
@@ -48,10 +51,19 @@ if __name__ == '__main__':
   event_bus = EventBus()
   event_bus.subscribe(ProductIssueConfirmed, ApplyResolvedValueToProduct(SqlAlchemyUnitOfWorkFactory(get_session_factory(args.database_url))))
   event_bus.subscribe(ProductDataChanged, MarkAffectedProductIssueAsObsolete(SqlAlchemyUnitOfWorkFactory(get_session_factory(args.database_url))))
+  event_bus.subscribe(ProductCategoryHierarchyPublished, DeleteCategoryAssignmentTasks(SqlAlchemyUnitOfWorkFactory(get_session_factory(args.database_url))))
+  event_bus.subscribe(ProductCategoryHierarchyRevertedToDraft, DeleteCategoryAssignmentTasks(SqlAlchemyUnitOfWorkFactory(get_session_factory(args.database_url))))
+  event_bus.subscribe(ProductCategoryChangedInHierarchy, ResolveCategoryAssignmentTask(SqlAlchemyUnitOfWorkFactory(get_session_factory(args.database_url))))
+
+
 
   registry = MessageRegistry()
   registry.register('product_issue_confirmed', ProductIssueConfirmed)
   registry.register(ProductDataChanged.event_type, ProductDataChanged)
+  registry.register(ProductCategoryHierarchyPublished.event_type, ProductCategoryHierarchyPublished)
+  registry.register(ProductCategoryHierarchyRevertedToDraft.event_type, ProductCategoryHierarchyRevertedToDraft)
+  registry.register(ProductCategoryChangedInHierarchy.event_type, ProductCategoryChangedInHierarchy)
 
-  dispatcher = OutboxEventDispatcher(get_session_factory(args.database_url), event_bus, MessageSerializer(registry))
+
+  dispatcher = OutboxEventDispatcher(get_session_factory(args.database_url), event_bus, MessageSerializer(registry), sync=False)
   asyncio.run(dispatcher.run())

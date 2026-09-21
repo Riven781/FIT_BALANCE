@@ -1,5 +1,5 @@
 from sqlalchemy import delete, exists, insert, literal, select, func
-
+from sqlalchemy.orm.exc import StaleDataError
 from product_catalog_context.domain.tasks.category_assignment_task import CategoryAssignmentTask
 from product_catalog_context.domain.tasks.category_assignment_task_repository import CategoryAssignmentTaskRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.sqlalchemy_repository import BaseSqlAlchemyRepository
@@ -79,6 +79,8 @@ class SqlAlchemyCategoryAssignmentTaskRepository(CategoryAssignmentTaskRepositor
 
   async def save(self, task: CategoryAssignmentTask):
     await self._save(task)
+
+
 
   async def insert_all(self, tasks: list[CategoryAssignmentTask]):
     data = [{k : v for k, v in task.__dict__.items() if not k.startswith('_')} for task in tasks]
