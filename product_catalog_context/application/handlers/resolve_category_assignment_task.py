@@ -2,7 +2,7 @@ from product_catalog_context.application.unit_of_work import UnitOfWork, UnitOfW
 from product_catalog_context.domain.product.events import ProductCategoryChangedInHierarchy
 from product_catalog_context.infrastructure.aiosqlite_repository.category_assignment_task_repository import CategoryAssignmentTaskRepository
 
-class ProductCategoryChangedHandler:
+class ResolveCategoryAssignmentTask:
   def __init__(self, unit_of_work_factory: UnitOfWorkFactory):
     self.unit_of_work_factory = unit_of_work_factory
 

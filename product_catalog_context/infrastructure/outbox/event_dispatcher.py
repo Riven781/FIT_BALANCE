@@ -1,8 +1,8 @@
 import argparse
 import asyncio
 
-from product_catalog_context.application.handlers.product_data_changed_handler import ProductDataChangedHandler
-from product_catalog_context.application.handlers.product_issue_confirmed_handler import ProductIssueConfirmedHandler
+from product_catalog_context.application.handlers.mark_affected_product_issue_as_obsolete import MarkAffectedProductIssueAsObsolete
+from product_catalog_context.application.handlers.apply_resolved_value_to_product import ApplyResolvedValueToProduct
 from product_catalog_context.domain.issues.product_issue_confirmed import ProductIssueConfirmed
 from product_catalog_context.domain.messages.event_bus import EventBus
 from product_catalog_context.domain.messages.message_registry import MessageRegistry
@@ -46,8 +46,8 @@ def parse_args():
 if __name__ == '__main__':
   args = parse_args()
   event_bus = EventBus()
-  event_bus.subscribe(ProductIssueConfirmed, ProductIssueConfirmedHandler(SqlAlchemyUnitOfWorkFactory(get_session_factory(args.database_url))))
-  event_bus.subscribe(ProductDataChanged, ProductDataChangedHandler(SqlAlchemyUnitOfWorkFactory(get_session_factory(args.database_url))))
+  event_bus.subscribe(ProductIssueConfirmed, ApplyResolvedValueToProduct(SqlAlchemyUnitOfWorkFactory(get_session_factory(args.database_url))))
+  event_bus.subscribe(ProductDataChanged, MarkAffectedProductIssueAsObsolete(SqlAlchemyUnitOfWorkFactory(get_session_factory(args.database_url))))
 
   registry = MessageRegistry()
   registry.register('product_issue_confirmed', ProductIssueConfirmed)

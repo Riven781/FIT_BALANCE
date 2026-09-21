@@ -2,10 +2,10 @@ import argparse
 import json
 import sys
 import asyncio
-from product_catalog_context.application.handlers.category_hierarchy_published_or_reverted_handler import CategoryHierarchyPublishedOrRevertedHandler
-from product_catalog_context.application.handlers.product_category_changed_handler import ProductCategoryChangedHandler
-from product_catalog_context.application.handlers.product_data_changed_handler import ProductDataChangedHandler
-from product_catalog_context.application.handlers.product_issue_confirmed_handler import ProductIssueConfirmedHandler
+from product_catalog_context.application.handlers.delete_category_assignment_tasks import DeleteCategoryAssignmentTasks
+from product_catalog_context.application.handlers.resolve_category_assignment_task import ResolveCategoryAssignmentTask
+from product_catalog_context.application.handlers.mark_affected_product_issue_as_obsolete import MarkAffectedProductIssueAsObsolete
+from product_catalog_context.application.handlers.apply_resolved_value_to_product import ApplyResolvedValueToProduct
 from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, ProductCategoryHierarchyRevertedToDraft
 from product_catalog_context.domain.issues.product_issue_confirmed import ProductIssueConfirmed
 from product_catalog_context.domain.product.events import ProductCategoryChangedInHierarchy, ProductDataChanged
@@ -16,11 +16,11 @@ from shared.database.session import get_session, session_factory
 #eariel add events in outbox.py:    python shared/database/outbox.py    
 #python -m product_catalog_context.infrastructure.outbox.dispatcher product_category_changed_in_hierarchy
 handler_by_event_type = {
-  'product_category_hierarchy_published': CategoryHierarchyPublishedOrRevertedHandler,
-  'product_category_hierarchy_reverted_to_draft': CategoryHierarchyPublishedOrRevertedHandler,
-  'product_category_changed_in_hierarchy' : ProductCategoryChangedHandler,
-  'product_data_changed' : ProductDataChangedHandler,
-  'product_issue_confirmed': ProductIssueConfirmedHandler
+  'product_category_hierarchy_published': DeleteCategoryAssignmentTasks,
+  'product_category_hierarchy_reverted_to_draft': DeleteCategoryAssignmentTasks,
+  'product_category_changed_in_hierarchy' : ResolveCategoryAssignmentTask,
+  'product_data_changed' : MarkAffectedProductIssueAsObsolete,
+  'product_issue_confirmed': ApplyResolvedValueToProduct
 }
 
 event_by_type = {

@@ -3,7 +3,7 @@ from product_catalog_context.domain.errors import IssueCanNotBeMarkedAsObsolete
 from product_catalog_context.domain.product.events import ProductDataChanged
 from product_catalog_context.infrastructure.aiosqlite_repository.product_issue_repository import ProductIssueRepository
 
-class ProductDataChangedHandler:
+class MarkAffectedProductIssueAsObsolete:
   def __init__(self, unit_of_work_factory: UnitOfWorkFactory):
     self.unit_of_work_factory = unit_of_work_factory
 

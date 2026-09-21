@@ -1,6 +1,6 @@
 import pytest
 
-from product_catalog_context.application.handlers.category_hierarchy_published_or_reverted_handler import CategoryHierarchyPublishedOrRevertedHandler
+from product_catalog_context.application.handlers.delete_category_assignment_tasks import DeleteCategoryAssignmentTasks
 from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyRevertedToDraft
 from product_catalog_context.domain.tasks.category_assignment_task_repository import CategoryAssignmentTaskRepository
 from product_catalog_context.infrastructure.outbox.one_event_dispatcher import OutboxEventDispatcherPerEvent
@@ -22,7 +22,7 @@ async def test_one_event(
   dispatcher = OutboxEventDispatcherPerEvent(
     session_factory, 
     'product_category_hierarchy_reverted_to_draft',
-    CategoryHierarchyPublishedOrRevertedHandler,
+    DeleteCategoryAssignmentTasks,
     ProductCategoryHierarchyRevertedToDraft, test=True)
   await outbox_subscriber.handle(
     ProductCategoryHierarchyRevertedToDraft(hierarchy_id=3)

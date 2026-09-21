@@ -2,7 +2,7 @@ from product_catalog_context.application.unit_of_work import UnitOfWork, UnitOfW
 from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, ProductCategoryHierarchyRevertedToDraft
 
 
-class CategoryHierarchyPublishedOrRevertedHandler:
+class DeleteCategoryAssignmentTasks:
   def __init__(self, unit_of_work_factory: UnitOfWorkFactory):
     self.unit_of_work_factory = unit_of_work_factory
 
