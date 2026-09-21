@@ -39,7 +39,7 @@ async def test_update_product_data_2_pending_issue(
   nutrition_facts = NutritionFacts(reference_quantity=ReferenceQuantity(amount=100, unit='g'), kcal=210, nutrients=Nutrients(fat=200, sugars=10))
   new_info_about_product = ProductCommand(name="Schab Drogi", brand_name="Auchan", current_category_id=4, planned_category_id=9, nutrition_facts=nutrition_facts, img_src=None)
   await product_management_service.update(product_id=1, product_command=new_info_about_product, product_editor_id=10)
-  await asyncio.sleep(10)
+  await asyncio.sleep(1)
   product = await product_management_service.get(1)
   assert product.kcal == 210
   issue_kcal = await product_issue_repository.get_by_id(1)

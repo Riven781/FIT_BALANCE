@@ -125,8 +125,14 @@ class Product:
     self._events = []
     return events
 
-  def resolve_issue(self, reported_field: ReportedField, new_value):
-    setattr(self, reported_field, new_value)
+  def resolve_issue(self, reported_field: ReportedField, new_value):#but str is given as reported field so without .value
+    if reported_field == ReportedField.NAME:
+      self.rename(new_value)
+    elif reported_field == ReportedField.KCAL:
+      self._nutrition_facts = self.nutrition_facts.with_updates(kcal=new_value)
+    else:
+      self._nutrition_facts = self.nutrition_facts.with_updates(nutrients={reported_field:new_value})
+
 
 #normalized_name better
 

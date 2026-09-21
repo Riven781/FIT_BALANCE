@@ -208,6 +208,7 @@ async def insert_data(db_session: AsyncSession):
   db_session.add(ProductIssue(issue_id=2, product_id=1, reported_field=ReportedField.FAT, status=ProductIssueStatus.CONFIRMED, resolved_value=120))
   db_session.add(ProductIssue(issue_id=3, product_id=1, reported_field=ReportedField.SUGARS, status=ProductIssueStatus.PENDING))
   db_session.add(ProductIssue(issue_id=4, product_id=2, reported_field=ReportedField.FAT, status=ProductIssueStatus.REJECTED))
+  db_session.add(ProductIssue(issue_id=5, product_id=2, reported_field=ReportedField.NAME, status=ProductIssueStatus.PENDING))
 
   db_session.add(ProductReport(report_id=1, product_id=1, reported_items=[
     ProductReportItem(reported_field=ReportedField.KCAL, proposed_value=120, issue_id=1),
