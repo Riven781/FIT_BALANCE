@@ -5,6 +5,7 @@ from sqlalchemy import event
 
 from product_catalog_context.domain.category_hierarchy.product_category import ProductCategory
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy import ProductCategoryHierarchy
+from product_catalog_context.domain.issues.confirmation_saga.product_issue_confirmation_saga import ProductIssueConfirmationSaga
 from product_catalog_context.domain.issues.product_issue import ProductIssue
 from product_catalog_context.domain.product.nutrition_facts import Nutrients, NutritionFacts, ReferenceQuantity
 from product_catalog_context.domain.product.product import Product
@@ -185,6 +186,8 @@ product_category_assignment_task_table = Table(
   Column("created_at", DateTime, server_default=text("CURRENT_TIMESTAMP"))
 )
 
+
+
 mapper_registry.map_imperatively(CategoryAssignmentTask, product_category_assignment_task_table, properties={
   "task_id" : product_category_assignment_task_table.c.id
 })
@@ -216,9 +219,24 @@ product_issue_table = Table(
   Column("product_id", Integer, ForeignKey("Product.id", ondelete="CASCADE"), nullable=False),
   Column("status", String),
   Column("reported_field", String),
+  Column("old_value", String),
   Column("resolved_value", String),
-  Column("resolved_by", Integer)
+  Column("resolved_by", Integer),
+  Column("version", Integer, nullable=False, default=0),
 )
+
+product_issue_confirmation_saga_table = Table(
+  "ProductIssueConfirmationSaga",
+  mapper_registry.metadata,
+  Column("id", Integer, primary_key=True, nullable=False),
+  Column("issue_id", Integer, ForeignKey("ProductIssue.id", ondelete="CASCADE"), nullable=False, unique=True),
+  Column("status", String)
+)
+
+mapper_registry.map_imperatively(ProductIssueConfirmationSaga, product_issue_confirmation_saga_table, properties={
+  "saga_id" : product_issue_confirmation_saga_table.c.id
+})
+
 
 product_report_item_table = Table(
   "ProductReportItem",
@@ -230,8 +248,9 @@ product_report_item_table = Table(
 )
 
 mapper_registry.map_imperatively(ProductIssue, product_issue_table, properties={
-  "issue_id" : product_issue_table.c.id
-})
+  "issue_id" : product_issue_table.c.id,
+  "_old_value": product_issue_table.c.old_value
+}, version_id_col = product_issue_table.c.version)
 
 
 
@@ -252,4 +271,8 @@ mapper_registry.map_imperatively(ProductReport, product_report_table, properties
 def receive_load(issue, context):
   issue._events = []
 
+
+@event.listens_for(ProductIssueConfirmationSaga, "load")
+def receive_load(saga, context):
+  saga._commands = []
 

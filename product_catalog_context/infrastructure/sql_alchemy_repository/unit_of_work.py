@@ -5,6 +5,7 @@ from product_catalog_context.application.ports.message_writer import MessageWrit
 from product_catalog_context.application.unit_of_work import UnitOfWork, UnitOfWorkFactory
 from sqlalchemy.ext.asyncio import AsyncSession
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy_repository import ProductCategoryHierarchyRepository
+from product_catalog_context.domain.issues.confirmation_saga.product_issue_confirmation_saga_repository import ProductIssueConfirmationSagaRepository
 from product_catalog_context.domain.issues.product_issue_repository import ProductIssueRepository
 from product_catalog_context.domain.product.product_repository import ProductRepository
 from product_catalog_context.domain.reports.product_report_repository import ProductReportRepository
@@ -15,6 +16,7 @@ from product_catalog_context.infrastructure.sql_alchemy_repository.category_assi
 from product_catalog_context.infrastructure.sql_alchemy_repository.product import SqlAlchemyProductRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product_category_hierarchy import SqlAlchemyProductCategoryHierarchyRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product_issue import SqlAlchemyProductIssueRepository
+from product_catalog_context.infrastructure.sql_alchemy_repository.product_issue_confirmation_saga_repository import SqlAlchemyProductIssueConfirmationSagaRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product_report import SqlAlchemyProductReportRepository
 
 
@@ -27,6 +29,7 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
     self._product_issues = None
     self._product_reports = None
     self._message_writer = None
+    self._product_issues_confirmation_sagas = None
     self.session = None
 
 
@@ -37,6 +40,7 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
     self._category_assignment_tasks = None
     self._product_issues = None
     self._product_reports = None
+    self._product_issues_confirmation_sagas = None
     self._message_writer = None
     return self
 
@@ -93,6 +97,12 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
     if self._product_reports is None:
       self._product_reports = SqlAlchemyProductReportRepository(self.session)
     return self._product_reports
+
+  @property
+  def product_issues_confirmation_sagas(self) -> ProductIssueConfirmationSagaRepository:
+    if self._product_issues_confirmation_sagas is None:
+      self._product_issues_confirmation_sagas = SqlAlchemyProductIssueConfirmationSagaRepository(self.session)
+    return self._product_issues_confirmation_sagas
   
   @property
   def message_writer(self) -> MessageWriter:

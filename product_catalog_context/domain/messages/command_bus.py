@@ -12,5 +12,5 @@ class CommandBus(MessageBus):
     self.handlers[command_type] = handler
     
   async def dispatch(self, command: DomainCommand):
-    handler = self.handlers[command.command_type]
+    handler = self.handlers[type(command)]
     await handler.handle(command)

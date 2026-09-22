@@ -1,9 +1,11 @@
 from dataclasses import fields
 from re import L
 
+from product_catalog_context.domain.enums import reported_field
 from product_catalog_context.domain.enums.reported_field import ReportedField
 from product_catalog_context.domain.errors import ProductCategoryAssignmentConflict
-from product_catalog_context.domain.product.events import ProductCategoryChangedInHierarchy, ProductDataChanged
+from product_catalog_context.domain.issues.events import ResolvedValueAppliedToProduct
+from product_catalog_context.domain.product.events import ProductCategoryChangedInHierarchy, ProductDataChanged, ResolvedValueApplicationRejected
 from product_catalog_context.domain.product.nutrition_facts import Nutrients, NutritionFacts
 from product_catalog_context.domain.category_hierarchy.product_category import ProductCategory
 from product_catalog_context.domain.product.product_assignment import CategoryAssignment
@@ -23,7 +25,7 @@ class Product:
     self._product_id = product_id
     self.rename(name)
     self.change_brand_name(brand_name)
-    self.change_nutrients(nutrition_facts)
+    self.change_nutrition_facts(nutrition_facts)
     self.img_src = img_src
     self.ingredients = ingredients
     self.allergy_recommendations = allergy_recommendations
@@ -89,7 +91,7 @@ class Product:
     self.planned_category_id = category_id
   
 
-  def change_nutrients(self, nutrition_facts):
+  def change_nutrition_facts(self, nutrition_facts):
     self._nutrition_facts = nutrition_facts
 
   def generate_search_name(self):
@@ -114,7 +116,7 @@ class Product:
     if self.brand_name != details.brand_name:
       self.change_brand_name(details.brand_name)
     if self.nutrition_facts != details.nutrition_facts:
-      self.change_nutrients(details.nutrition_facts)
+      self.change_nutrition_facts(details.nutrition_facts)
     if self.img_src != details.img_src:
       self.img_src = details.img_src
     if self.ingredients != details.ingredients:
@@ -131,13 +133,26 @@ class Product:
     self._events = []
     return events
 
-  def resolve_issue(self, reported_field: ReportedField, new_value):#but str is given as reported field so without .value
+  def _get_current_value(self, reported_field):
+    if reported_field == ReportedField.NAME:
+      return self.name
+    elif reported_field == ReportedField.KCAL:
+      return self.nutrition_facts.kcal
+    else:
+      return getattr(self.nutrition_facts.nutrients, reported_field)
+
+  def resolve_issue(self, reported_field: ReportedField, old_value, new_value, saga_id):#but str is given as reported field so without .value
+    current_value = self._get_current_value(reported_field)
+    if current_value != old_value:
+      self._events.append(ResolvedValueApplicationRejected(product_id=self.product_id, field=reported_field, saga_id=saga_id))
+      return
     if reported_field == ReportedField.NAME:
       self.rename(new_value)
     elif reported_field == ReportedField.KCAL:
       self._nutrition_facts = self.nutrition_facts.with_updates(kcal=new_value)
     else:
       self._nutrition_facts = self.nutrition_facts.with_updates(nutrients={reported_field:new_value})
+    self._events.append(ResolvedValueAppliedToProduct(product_id=self.product_id, resolved_value=new_value, saga_id=saga_id))
 
 
 #normalized_name better

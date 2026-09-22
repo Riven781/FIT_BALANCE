@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 from product_catalog_context.application.ports.message_writer import MessageWriter
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy_repository import ProductCategoryHierarchyRepository
+from product_catalog_context.domain.issues.confirmation_saga.product_issue_confirmation_saga_repository import ProductIssueConfirmationSagaRepository
 from product_catalog_context.domain.issues.product_issue_repository import ProductIssueRepository
 from product_catalog_context.domain.product.product_repository import ProductRepository
 from product_catalog_context.domain.reports.product_report_repository import ProductReportRepository
@@ -44,6 +45,10 @@ class UnitOfWork(ABC):
 
   @property
   def product_reports(self) -> ProductReportRepository:
+    pass
+
+  @property
+  def product_issues_confirmation_sagas(self) -> ProductIssueConfirmationSagaRepository:
     pass
 
   @property

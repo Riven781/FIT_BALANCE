@@ -25,6 +25,13 @@ class OutboxDAO():
     result = await self.session.scalars(query)
     return result.all()
 
+  async def get_all_messages(self):
+    query = select(
+      OutboxMessage
+    )
+    result = await self.session.scalars(query)
+    return result.all()
+
   async def get_unprocessed_message_ids(self, limit):
     query = select(
       OutboxMessage.message_id

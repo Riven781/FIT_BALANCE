@@ -19,3 +19,11 @@ class ProductDataChanged(DomainEvent):
   fields: list[ReportedField]
   event_type: ClassVar[str] = 'product_data_changed'
 
+#class ResolvedValueRejectionReason():
+
+
+@dataclass
+class ResolvedValueApplicationRejected(DomainEvent):
+  product_id: int
+  field: ReportedField
+  event_type: ClassVar[str] = 'resolved_value_application_rejected'

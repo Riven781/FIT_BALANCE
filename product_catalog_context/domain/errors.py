@@ -58,6 +58,10 @@ class IssueCanNotBeConfirmed(DomainError):
 class IssueCanNotBeRejected(DomainError):
   pass
 
+class IssueCanNotBeReset(DomainError):
+  pass
+
+
 class IssueCanNotBeMarkedAsObsolete(DomainError):
   pass
 

@@ -20,7 +20,7 @@ class ProductIssueService:
       product_issue = await uow.product_issues.get_by_id(issue_id)
       if product_issue is None:
         raise IssueNotFoundError()
-      product_issue.confirm(resolved_value, moderator_id)
+      product_issue.start_confirmation(resolved_value, moderator_id)
       await uow.product_issues.save(product_issue)
 
       events = product_issue.pull_events()
