@@ -13,12 +13,12 @@ from product_catalog_context.application.unit_of_work import UnitOfWork
 from product_catalog_context.application.utils.shallow_asdict import shallow_asdict
 from product_catalog_context.domain.messages.domain_message_publisher import DomainMessagePublisher
 from product_catalog_context.domain.product.product import Product
+from product_catalog_context.domain.repository.errors import ConcurrentModification, UniqueViolationError
 from product_catalog_context.domain.services.text_converter import tokenize_for_search
 from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
 from product_catalog_context.infrastructure.aiosqlite_queries.product import ProductQueries
 from product_catalog_context.domain.enums import product_searching
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
-from product_catalog_context.infrastructure.aiosqlite_repository.errors.errors import CheckViolationError, ForeignKeyViolationError, NotNullViolationError, RepositoryError, UniqueViolationError
 from product_catalog_context.application.errors.errors import  AccessDenied, CategoryDoesNotBelongToActiveHierarchy, CategoryDoesNotBelongToPlannedHierarchy, CategoryHierarchyDoesNotExist, InvalidProductCategoryId, InvalidProductDataError, PlannedHierarchyDoesNotExist, ProductNotFoundError
 from product_catalog_context.infrastructure.aiosqlite_repository.product_category_hierarchy import ProductCategoryHierarchyRepository
 from product_catalog_context.domain.product.product_assignment import CategoryAssignment
@@ -42,7 +42,7 @@ class ProductManagementService():
         active_hierarchy = await uow.product_category_hierarchies.get_active()
         if not active_hierarchy.contains_product_category(product_command.current_category_id):
           raise CategoryDoesNotBelongToActiveHierarchy()
-        category_assignments[active_hierarchy] = (CategoryAssignment(category_id=product_command.current_category_id, assigned_by=product_editor_id))
+        category_assignments[active_hierarchy.hierarchy_id] = (CategoryAssignment(category_id=product_command.current_category_id, assigned_by=product_editor_id))
         #category_assignments[active_hierarchy] = product_command.current_category_id
       if product_command.planned_category_id is not None:
         planned_hierarchy = await uow.product_category_hierarchies.get_planned_for_publication()
@@ -50,7 +50,7 @@ class ProductManagementService():
           raise PlannedHierarchyDoesNotExist()
         if not planned_hierarchy.contains_product_category(product_command.planned_category_id):
           raise CategoryDoesNotBelongToPlannedHierarchy()
-        category_assignments[planned_hierarchy] = (CategoryAssignment(category_id=product_command.planned_category_id, assigned_by=product_editor_id))
+        category_assignments[planned_hierarchy.hierarchy_id] = (CategoryAssignment(category_id=product_command.planned_category_id, assigned_by=product_editor_id))
         #category_assignments[planned_hierarchy] = product_command.planned_category_id
 
       product = Product(
@@ -83,35 +83,36 @@ class ProductManagementService():
     product_editor = await self.access_adapter.get_product_editor_for(product_editor_id)
     if product_editor is None:
       raise AccessDenied()
+    try:
+      async with self.unit_of_work as uow:
+        product = await uow.products.get_by_id(product_id)
+        if product is None:
+          raise ProductNotFoundError()
+    
+        if product_command.current_category_id is not None:
+          active_hierarchy = await uow.product_category_hierarchies.get_active()
+          if not active_hierarchy.contains_product_category(product_command.current_category_id):
+            raise CategoryDoesNotBelongToActiveHierarchy()
+          product.assign_to_category(active_hierarchy.hierarchy_id, product_command.current_category_id, product_editor_id, product_command.expected_current_category_version)
 
-    async with self.unit_of_work as uow:
-      product = await uow.products.get_by_id(product_id)
-      if product is None:
-        raise ProductNotFoundError()
-  
-      if product_command.current_category_id is not None:
-        active_hierarchy = await uow.product_category_hierarchies.get_active()
-        if not active_hierarchy.contains_product_category(product_command.current_category_id):
-          raise CategoryDoesNotBelongToActiveHierarchy()
-        product.assign_to_category(active_hierarchy.hierarchy_id, product_command.current_category_id, product_editor_id)
+        if product_command.planned_category_id is not None:
+          planned_hierarchy = await uow.product_category_hierarchies.get_planned_for_publication()
+          if not planned_hierarchy:
+            raise PlannedHierarchyDoesNotExist()
+          if not planned_hierarchy.contains_product_category(product_command.planned_category_id):
+            raise CategoryDoesNotBelongToPlannedHierarchy()
+          product.assign_to_category(planned_hierarchy.hierarchy_id, product_command.planned_category_id, product_editor_id, product_command.expected_planned_category_version)
 
-      if product_command.planned_category_id is not None:
-        planned_hierarchy = await uow.product_category_hierarchies.get_planned_for_publication()
-        if not planned_hierarchy:
-          raise PlannedHierarchyDoesNotExist()
-        if not planned_hierarchy.contains_product_category(product_command.planned_category_id):
-          raise CategoryDoesNotBelongToPlannedHierarchy()
-        product.assign_to_category(planned_hierarchy.hierarchy_id, product_command.planned_category_id, product_editor_id)
-
-      product.update_details(product_command.to_details(), product_editor_id)
+        product.update_details(product_command.to_details(), product_editor_id)
 
 
-      await uow.products.save(product)
-      events = product.pull_events()
+        await uow.products.save(product)
+        events = product.pull_events()
 
-      if self.event_publisher:
-        await self.event_publisher.publish(events, uow_context=uow.context())
-
+        if self.event_publisher:
+          await self.event_publisher.publish(events, uow_context=uow.context())
+    except UniqueViolationError:
+      raise ConcurrentModification()
     return product
 
 

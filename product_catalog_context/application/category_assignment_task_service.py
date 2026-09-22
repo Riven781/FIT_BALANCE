@@ -46,7 +46,9 @@ class CategoryAssignmentTaskService:
 
       hierarchy.ensure_can_complete_task(category_id)
       task.complete(product_editor_id)  #it should generate event TaskAssignmentCompleted
-      product.assign_to_category(hierarchy.hierarchy_id, category_id, product_editor_id)
+      product_assignment = product.category_assignments.get(hierarchy.hierarchy_id, None)
+      product_assignment_version = product_assignment.version if product_assignment is not None else None
+      product.assign_to_category(hierarchy.hierarchy_id, category_id, product_editor_id, product_assignment_version)
 
       await uow.products.save(product)
       await uow.category_assignment_tasks.save(task)

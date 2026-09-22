@@ -69,7 +69,8 @@ class SqlAlchemyProductRepository(ProductRepository, BaseSqlAlchemyRepository):
     select_query = (
       select(
         product_category_assignment_table.c.product_id,
-        draft_node.c.id
+        draft_node.c.id,
+        draft_node.c.hierarchy_id
       )
       .select_from(product_category_assignment_table)
       .join(active_node, active_node.c.id == product_category_assignment_table.c.node_id)
@@ -81,7 +82,7 @@ class SqlAlchemyProductRepository(ProductRepository, BaseSqlAlchemyRepository):
     )
 
     query = insert(product_category_assignment_table).from_select(
-      ['product_id', 'node_id'],
+      ['product_id', 'node_id', 'hierarchy_id'],
       select_query
     )
 

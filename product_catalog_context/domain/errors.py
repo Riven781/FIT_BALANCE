@@ -60,3 +60,6 @@ class IssueCanNotBeRejected(DomainError):
 
 class IssueCanNotBeMarkedAsObsolete(DomainError):
   pass
+
+class ProductCategoryAssignmentConflict(DomainError):
+  pass

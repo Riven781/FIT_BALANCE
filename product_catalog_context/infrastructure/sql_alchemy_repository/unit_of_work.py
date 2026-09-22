@@ -42,6 +42,7 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
 
   async def __aexit__(self, exc_type, exc, tb):
     if exc is not None:
+      print(exc)
       await self.rollback()
       if isinstance(exc, sqlalchemy.exc.SQLAlchemyError):
         raise mapped_error(exc) from exc
@@ -52,7 +53,8 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
         await self.rollback()
         raise mapped_error(e) from e
       finally:
-        await self.session.close()
+        if self.session is not None:
+          await self.session.close()
         self.session = None
 
   async def commit(self):

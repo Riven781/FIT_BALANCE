@@ -2,11 +2,13 @@ from dataclasses import fields
 from re import L
 
 from product_catalog_context.domain.enums.reported_field import ReportedField
+from product_catalog_context.domain.errors import ProductCategoryAssignmentConflict
 from product_catalog_context.domain.product.events import ProductCategoryChangedInHierarchy, ProductDataChanged
 from product_catalog_context.domain.product.nutrition_facts import Nutrients, NutritionFacts
 from product_catalog_context.domain.category_hierarchy.product_category import ProductCategory
 from product_catalog_context.domain.product.product_assignment import CategoryAssignment
 from product_catalog_context.domain.product.product_details import ProductDetails
+from product_catalog_context.domain.repository.errors import ConcurrentModification
 from product_catalog_context.domain.services.text_converter import normalize_for_search
 
 class Product:
@@ -32,15 +34,19 @@ class Product:
 
 
 
-  def assign_to_category(self, hierarchy_id, new_category_id, product_editor_id):
+  def assign_to_category(self, hierarchy_id, new_category_id, product_editor_id, expected_version):
     previous_category_assignment = self.category_assignments.get(hierarchy_id)
+    if previous_category_assignment is not None:
+      print(f'category_id: {new_category_id} version: {previous_category_assignment.version} expected: {expected_version}')
+      if previous_category_assignment.version != expected_version:
+        raise ProductCategoryAssignmentConflict()
     previous_category_id = previous_category_assignment.category_id if previous_category_assignment else None
     if previous_category_id == new_category_id:
       return
     if new_category_id is None:
       del self.category_assignments[hierarchy_id]
     else:
-      self.category_assignments[hierarchy_id] = CategoryAssignment(category_id=new_category_id, assigned_by=product_editor_id) 
+      self.category_assignments[hierarchy_id] = CategoryAssignment(category_id=new_category_id, assigned_by=product_editor_id, version=previous_category_assignment.version if previous_category_assignment else None) 
       self._events.append(ProductCategoryChangedInHierarchy(hierarchy_id=hierarchy_id, product_id=self.product_id, old_category_id=previous_category_id, new_category_id=new_category_id, changed_by=product_editor_id))
 
   @property

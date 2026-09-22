@@ -13,7 +13,9 @@ class ProductCommand:
   nutrition_facts: NutritionFacts
   img_src: str | None
   current_category_id: int | None
+  expected_current_category_version: int = 0
   planned_category_id: int | None = None
+  expected_planned_category_version: int = 0
   ingredients: str | None = None
   allergy_recommendations: str | None = None
 

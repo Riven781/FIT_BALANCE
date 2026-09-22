@@ -28,5 +28,5 @@ class RepositoryProgrammingError(RepositoryError):
 class UnknownRepositoryError(RepositoryError):
   pass
 
-class ConcurrentModification(RepositoryError):
+class ConcurrentModification(RepositoryIntegrityError):
   pass

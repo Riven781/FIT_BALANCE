@@ -89,7 +89,7 @@ async def test_update_wrong_id(product_management_service: ProductManagementServ
 @pytest.mark.asyncio
 async def test_update_one_product(product_management_service: ProductManagementService):
   nutrition_facts = NutritionFacts(reference_quantity=ReferenceQuantity(amount=100, unit='g'), kcal=300, nutrients=Nutrients())
-  new_info_about_product = ProductCommand(name="Żywiec zdrój", brand_name="BB", current_category_id=5, nutrition_facts=nutrition_facts, img_src=None)
+  new_info_about_product = ProductCommand(name="Żywiec zdrój", brand_name="BB", current_category_id=5, expected_current_category_version=1, nutrition_facts=nutrition_facts, img_src=None)
   await product_management_service.update(8, new_info_about_product, 1)
   product = await product_management_service.get(8)
   assert product.product_id == 8
@@ -101,7 +101,7 @@ async def test_update_one_product(product_management_service: ProductManagementS
 @pytest.mark.asyncio
 async def test_update_current_category_id(product_management_service: ProductManagementService):
   nutrition_facts = NutritionFacts(reference_quantity=ReferenceQuantity(amount=100, unit='g'), kcal=300, nutrients=Nutrients())
-  new_info_about_product = ProductCommand(name="Raw Dzik", brand_name="BB", current_category_id=5, nutrition_facts=nutrition_facts, img_src=None)
+  new_info_about_product = ProductCommand(name="Raw Dzik", brand_name="BB", current_category_id=5, expected_current_category_version=1, nutrition_facts=nutrition_facts, img_src=None)
 
   await product_management_service.update(8, new_info_about_product, 1)
 
@@ -117,7 +117,7 @@ async def test_update_current_category_id(product_management_service: ProductMan
 @pytest.mark.asyncio
 async def test_update_one_product_with_null_field(product_management_service: ProductManagementService):
   new_nutrition_facts = NutritionFacts(reference_quantity=ReferenceQuantity(amount=100, unit='g'), kcal=300, nutrients=Nutrients())
-  new_info_about_product = ProductCommand(name="Raw Dzik", brand_name="BB", current_category_id=2, nutrition_facts=new_nutrition_facts, img_src=None)
+  new_info_about_product = ProductCommand(name="Raw Dzik", brand_name="BB", current_category_id=2, expected_current_category_version=1, nutrition_facts=new_nutrition_facts, img_src=None)
 
   await product_management_service.update(8, new_info_about_product, 1)
   product = await product_management_service.get(8)

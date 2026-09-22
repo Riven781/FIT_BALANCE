@@ -74,7 +74,7 @@ async def outbox_dispatcher(db_path):
 @pytest_asyncio.fixture
 async def engine(db_path):
 
-  engine = create_async_engine(f'sqlite+aiosqlite:///{db_path}', poolclass=StaticPool)
+  engine = create_async_engine(f'sqlite+aiosqlite:///{db_path}')
   return engine
 
 @pytest_asyncio.fixture

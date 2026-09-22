@@ -68,23 +68,25 @@ product_category_assignment_table = Table(
   mapper_registry.metadata,
   Column("product_id", Integer, ForeignKey("Product.id", ondelete="CASCADE"), nullable=False),
   Column("node_id", Integer, ForeignKey("ProductCategoryNode.id", ondelete="CASCADE"), nullable=False),
+  Column("hierarchy_id", Integer, ForeignKey("ProductCategoryHierarchy.id", ondelete="CASCADE"), nullable=False), #redundatn
   Column("assigned_by", Integer),
   Column("assigned_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
-  PrimaryKeyConstraint("product_id", "node_id")
+  Column("version", Integer, nullable=False, default=0),
+  PrimaryKeyConstraint("product_id", "hierarchy_id", name="pk_product_category_assignment")
 )
 
 class ProductCategoryAssignmentModel:
-  def __init__(self, product_id, node_id, assigned_by=None,  node=None):
+  def __init__(self, product_id, hierarchy_id, node_id, version, assigned_by=None,  node=None):
     self.assigned_by = assigned_by
     self.product_id = product_id
     self.node_id = node_id
     self.node = node
-  @property
-  def hierarchy_id(self):
-    return self.node.hierarchy_id
+    self.hierarchy_id = hierarchy_id
+    self.version = version
+
   @property
   def category_assignment(self):
-    return CategoryAssignment(category_id=self.node_id, assigned_by=self.assigned_by)
+    return CategoryAssignment(category_id=self.node_id, assigned_by=self.assigned_by, version=self.version)
 
   @category_assignment.setter
   def category_assignment(self, value:CategoryAssignment):
@@ -102,8 +104,8 @@ mapper_registry.map_imperatively(ProductCategoryHierarchy, product_category_hier
 })
 
 mapper_registry.map_imperatively(ProductCategoryAssignmentModel, product_category_assignment_table, properties={
-  "node" : relationship(ProductCategory, lazy='joined', viewonly=True)
-})
+  "node" : relationship(ProductCategory, lazy='joined', viewonly=True),
+}, version_id_col = product_category_assignment_table.c.version)
 
 def nutrition_facts_factory(kcal, reference_amount, reference_unit, fat, saturates, carbohydrates, sugars, protein, salt, fiber):
   return NutritionFacts(
@@ -164,6 +166,8 @@ def product_category_assignment_creator(hierarchy_id, category_assignment: Categ
   return ProductCategoryAssignmentModel(
     product_id=None, 
     node_id=category_assignment.category_id,
+    hierarchy_id=hierarchy_id,
+    version=category_assignment.version,
     assigned_by=category_assignment.assigned_by)
 
 Product.category_assignments = association_proxy("_category_assignments", "category_assignment", creator= product_category_assignment_creator)
