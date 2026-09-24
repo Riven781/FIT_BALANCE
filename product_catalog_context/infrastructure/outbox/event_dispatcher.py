@@ -16,7 +16,7 @@ from product_catalog_context.domain.product.events import ProductCategoryChanged
 from product_catalog_context.infrastructure.outbox.dispatcher import OutboxDispatcher
 from product_catalog_context.infrastructure.outbox.message_dispatcher import MessageOutboxDispatcher
 from product_catalog_context.infrastructure.outbox.repository import OutboxDAO
-from product_catalog_context.infrastructure.outbox.subscriber import OutboxSubscriber
+from product_catalog_context.infrastructure.outbox.subscriber import DoubleOutboxSubscriber, OutboxSubscriber
 from product_catalog_context.infrastructure.outbox.test_session_factory import get_session_factory
 from product_catalog_context.infrastructure.sql_alchemy_repository.unit_of_work import SqlAlchemyUnitOfWork, SqlAlchemyUnitOfWorkFactory
 #python -m product_catalog_context.infrastructure.outbox.event_dispatcher
@@ -38,7 +38,8 @@ class OutboxEventDispatcher(MessageOutboxDispatcher):
         outbox_repository = OutboxDAO(session=session)
         message = await outbox_repository.get_by_id(message_id)
       event = self.message_serializer.deserialize(message_name=message.message_name, payload=message.payload)
-      print(event)
+      #print(f'Handle event: {message_id}: {event}')
+
       await self.event_bus.publish(event)
     except Exception as e:
       await self._handle_errors(message_id=message_id, e=e)
@@ -48,11 +49,16 @@ class OutboxEventDispatcher(MessageOutboxDispatcher):
 def parse_args():
   parser = argparse.ArgumentParser()
   parser.add_argument('--database-url', required=True)
+  parser.add_argument('--double-message', action="store_true")
+
   return parser.parse_args()
 
 if __name__ == '__main__':
   args = parse_args()
-  subscriber = OutboxSubscriber()
+  if args.double_message:
+    subscriber = DoubleOutboxSubscriber()
+  else:
+    subscriber = OutboxSubscriber()
   publisher = DomainMessagePublisher()
   publisher.global_subscribe(subscriber)
 

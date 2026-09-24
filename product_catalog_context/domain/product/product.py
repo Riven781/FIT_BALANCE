@@ -3,7 +3,7 @@ from re import L
 
 from product_catalog_context.domain.enums import reported_field
 from product_catalog_context.domain.enums.reported_field import ReportedField
-from product_catalog_context.domain.errors import ProductCategoryAssignmentConflict
+from product_catalog_context.domain.errors import ProductCategoryAssignmentConflict, ProductVersionConflict
 from product_catalog_context.domain.issues.events import ResolvedValueAppliedToProduct
 from product_catalog_context.domain.product.events import ProductCategoryChangedInHierarchy, ProductDataChanged, ResolvedValueApplicationRejected
 from product_catalog_context.domain.product.nutrition_facts import Nutrients, NutritionFacts
@@ -21,7 +21,7 @@ class Product:
       name, 
       brand_name, 
       nutrition_facts:NutritionFacts, 
-      product_id=None, img_src: str=None, ingredients=None, allergy_recommendations=None, name_search_standard=None, created_by=None, category_assignments: dict[int, CategoryAssignment] = None):
+      product_id=None, img_src: str=None, ingredients=None, allergy_recommendations=None, name_search_standard=None, created_by=None, category_assignments: dict[int, CategoryAssignment] = None, version=0):
     self._product_id = product_id
     self.rename(name)
     self.change_brand_name(brand_name)
@@ -32,6 +32,7 @@ class Product:
     self.created_by = created_by
     self._events = []
     self.category_assignments = category_assignments if category_assignments is not None else {}
+    self.version = version
 
 
 
@@ -110,6 +111,8 @@ class Product:
     return changed_fields
 
   def update_details(self, details: ProductDetails, product_editor_id):
+    if self.version != details.expected_version:
+      raise ProductVersionConflict()
     changed_fields = self.get_changed_fields(details)
     if self.name != details.name:
       self.rename(details.name)

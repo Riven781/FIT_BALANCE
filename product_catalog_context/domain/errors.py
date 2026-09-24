@@ -67,3 +67,7 @@ class IssueCanNotBeMarkedAsObsolete(DomainError):
 
 class ProductCategoryAssignmentConflict(DomainError):
   pass
+
+
+class ProductVersionConflict(DomainError):
+  pass

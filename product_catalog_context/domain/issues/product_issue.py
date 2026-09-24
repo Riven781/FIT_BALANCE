@@ -35,6 +35,9 @@ class ProductIssue:
     #self._events.append(ProductIssueConfirmed(product_id=self.product_id, reported_field=self.reported_field, resolved_value=resolved_value))
 
   def confirm(self, saga_id):
+    if self.status == ProductIssueStatus.CONFIRMED:
+      return
+    
     if self.status != ProductIssueStatus.CONFIRMATION_PENDING:
       raise IssueCanNotBeConfirmed()
     self.status = ProductIssueStatus.CONFIRMED

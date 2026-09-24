@@ -24,7 +24,7 @@ from product_catalog_context.domain.reports.product_report_item import ProductRe
 from product_catalog_context.domain.users import CatalogManager, Moderator, ProductEditor
 from product_catalog_context.infrastructure.outbox.event_dispatcher import OutboxEventDispatcher
 from product_catalog_context.infrastructure.outbox.repository import OutboxDAO
-from product_catalog_context.infrastructure.outbox.subscriber import OutboxSubscriber
+from product_catalog_context.infrastructure.outbox.subscriber import DoubleOutboxSubscriber, OutboxSubscriber
 from product_catalog_context.infrastructure.sql_alchemy_repository.mapper import mapper_registry
 from product_catalog_context.infrastructure.outbox.mapper import outbox_mapper_registry
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy import ProductCategoryHierarchy
@@ -72,35 +72,68 @@ async def event_outbox_dispatcher(db_path):
     process.terminate()
     await process.wait()
 
-async def start_event_dispatcher_(db_path):
-  process = await asyncio.create_subprocess_exec(
-      sys.executable, 
-      '-m', 
-      'product_catalog_context.infrastructure.outbox.event_dispatcher', 
-      '--database-url', 
-      db_path,
-      creationflags=subprocess.CREATE_NEW_CONSOLE)
-  return process
 
 
 @pytest_asyncio.fixture
 async def start_event_dispatcher():
-  return start_event_dispatcher_
+  processes = []
 
-async def start_command_dispatcher_(db_path):
-  process = await asyncio.create_subprocess_exec(
-    sys.executable, 
-    '-m', 
-    'product_catalog_context.infrastructure.outbox.command_dispatcher', 
-    '--database-url', 
-    db_path,
-    creationflags=subprocess.CREATE_NEW_CONSOLE)
-  return process
+  async def start(db_path, double_messages=False):
+    args = [
+      sys.executable,
+      "-m",
+      "product_catalog_context.infrastructure.outbox.event_dispatcher",
+      "--database-url",
+      db_path,
+    ]
+    if double_messages:
+      args.append('--double-message')
+    process = await asyncio.create_subprocess_exec(
+       *args,
+        creationflags=subprocess.CREATE_NEW_CONSOLE,
+    )
 
+    processes.append(process)
+    return process
+
+  yield start
+
+  for process in processes:
+    if process.returncode is None:
+      process.terminate()
+      await process.wait()
 
 @pytest_asyncio.fixture
 async def start_command_dispatcher():
-  return start_command_dispatcher_
+  processes = []
+  
+
+  async def start(db_path, double_messages=False):
+    args = [
+      sys.executable,
+      "-m",
+      "product_catalog_context.infrastructure.outbox.command_dispatcher",
+      "--database-url",
+      db_path,
+    ]
+    if double_messages:
+      args.append('--double-message')
+    process = await asyncio.create_subprocess_exec(
+      *args,
+      creationflags=subprocess.CREATE_NEW_CONSOLE,
+    )
+   
+    processes.append(process)
+    return process
+
+  yield start
+
+  for process in processes:
+    if process.returncode is None:
+      process.terminate()
+      await process.wait()
+
+
 
 @pytest_asyncio.fixture
 async def command_outbox_dispatcher(db_path):
@@ -323,6 +356,12 @@ async def message_publisher():
   publisher.global_subscribe(subscriber)
   return publisher
 
+@pytest_asyncio.fixture
+async def double_message_publisher():
+  subscriber = DoubleOutboxSubscriber()
+  publisher = DomainMessagePublisher()
+  publisher.global_subscribe(subscriber)
+  return publisher
 
 @pytest_asyncio.fixture
 def unit_of_work(session_factory):

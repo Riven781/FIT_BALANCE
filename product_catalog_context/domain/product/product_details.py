@@ -4,6 +4,7 @@ from product_catalog_context.domain.product.nutrition_facts import NutritionFact
 
 @dataclass
 class ProductDetails:
+  expected_version: int
   name: str
   brand_name: str
   nutrition_facts: NutritionFacts

@@ -13,6 +13,7 @@ class ProductCommand:
   nutrition_facts: NutritionFacts
   img_src: str | None
   current_category_id: int | None
+  expected_version: int = 0
   expected_current_category_version: int = 0
   planned_category_id: int | None = None
   expected_planned_category_version: int = 0
@@ -21,6 +22,7 @@ class ProductCommand:
 
   def to_details(self) -> ProductDetails:
     return ProductDetails(
+      expected_version=self.expected_version,
       name=self.name,
       brand_name=self.brand_name,
       nutrition_facts=self.nutrition_facts,

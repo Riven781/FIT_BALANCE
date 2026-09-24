@@ -45,21 +45,22 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
     return self
 
   async def __aexit__(self, exc_type, exc, tb):
-    if exc is not None:
-      print(exc)
-      await self.rollback()
-      if isinstance(exc, sqlalchemy.exc.SQLAlchemyError):
-        raise mapped_error(exc) from exc
-    else:
-      try:
-        await self.commit()
-      except sqlalchemy.exc.SQLAlchemyError as e:
+    try:
+      if exc is not None:
+        print(exc)
         await self.rollback()
-        raise mapped_error(e) from e
-      finally:
-        if self.session is not None:
-          await self.session.close()
-        self.session = None
+        if isinstance(exc, sqlalchemy.exc.SQLAlchemyError):
+          raise mapped_error(exc) from exc
+      else:
+        try:
+          await self.commit()
+        except sqlalchemy.exc.SQLAlchemyError as e:
+          await self.rollback()
+          raise mapped_error(e) from e
+    finally:
+      if self.session is not None:
+        await self.session.close()
+      self.session = None
 
   async def commit(self):
     await self.session.commit()

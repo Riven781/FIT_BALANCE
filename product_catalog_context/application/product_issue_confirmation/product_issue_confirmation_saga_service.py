@@ -23,6 +23,7 @@ class ProductIssueConfirmationSagaService:
       saga = ProductIssueConfirmationSaga(saga_id=saga_id, issue_id=event.issue_id)
       saga.start(event.product_id, event.resolved_value, event.old_value, event.reported_field)
       events = saga.pull_commands()
+      print(event)
       await self.publisher.publish(messages=events, uow_context=uow.context())
       await uow.product_issues_confirmation_sagas.save(saga)
 

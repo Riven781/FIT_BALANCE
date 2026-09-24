@@ -13,7 +13,6 @@ class ProductIssueConfirmationSaga:
 
   def start(self, product_id, resolved_value, old_value, reported_field):
     if self.status == ProductIssueConfirmationSagaStatus.STARTED:
-      print(f'OLD VALUE{old_value}')
       self._commands.append(ApplyResolvedValueToProduct(product_id=product_id, reported_field=reported_field, resolved_value=resolved_value, old_value=old_value, saga_id=self.saga_id))
       self.status=ProductIssueConfirmationSagaStatus.PRODUCT_UPDATE_PENDING
 
@@ -43,6 +42,7 @@ class ProductIssueConfirmationSaga:
     if self.status == ProductIssueConfirmationSagaStatus.PRODUCT_UPDATE_PENDING:
       self._commands.append(ResetProductIssueToPending(issue_id=self.issue_id, saga_id=self.saga_id))
       self.status = ProductIssueConfirmationSagaStatus.ISSUE_RESET_PENDING
+      return
     self.status=ProductIssueConfirmationSagaStatus.FAILED
    
 

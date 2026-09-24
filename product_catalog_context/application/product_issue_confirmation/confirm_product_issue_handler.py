@@ -14,6 +14,8 @@ class ConfirmProductIssueHandler:
     async with self.unit_of_work_factory() as uow:
       issue = await uow.product_issues.get_by_id(command.issue_id)
       issue.confirm(command.saga_id)
-      events = issue.pull_events()
-      await self.event_publisher.publish(events, uow_context=uow.context())
       await uow.product_issues.save(issue)
+      await uow.context().session.flush()
+      events = issue.pull_events()
+
+      await self.event_publisher.publish(events, uow_context=uow.context())

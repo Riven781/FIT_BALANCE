@@ -13,14 +13,14 @@ from product_catalog_context.infrastructure.outbox.message_dispatcher import Mes
 from product_catalog_context.infrastructure.outbox.repository import OutboxDAO
 import asyncio
 
-from product_catalog_context.infrastructure.outbox.subscriber import OutboxSubscriber
+from product_catalog_context.infrastructure.outbox.subscriber import DoubleOutboxSubscriber, OutboxSubscriber
 from product_catalog_context.infrastructure.outbox.test_session_factory import get_session_factory
 from product_catalog_context.infrastructure.sql_alchemy_repository.unit_of_work import SqlAlchemyUnitOfWorkFactory
 
 
 class OutboxCommandDispatcher(MessageOutboxDispatcher):
   def __init__(self, session_factory, command_bus: CommandBus, message_serializer: MessageSerializer, test = False, sync=False):
-    super().__init__(session_factory, test)
+    super().__init__(session_factory, test, sync)
     self.command_bus = command_bus
     self.message_serializer = message_serializer
 
@@ -36,6 +36,7 @@ class OutboxCommandDispatcher(MessageOutboxDispatcher):
         outbox_repository = OutboxDAO(session=session)
         message = await outbox_repository.get_by_id(message_id)
       message = self.message_serializer.deserialize(message_name=message.message_name, payload=message.payload)
+      #print(f'Command Handle: {message_id}: {message}')
       await self.command_bus.dispatch(message)
     except Exception as e:
       await self._handle_errors(message_id=message_id, e=e)
@@ -46,11 +47,16 @@ class OutboxCommandDispatcher(MessageOutboxDispatcher):
 def parse_args():
   parser = argparse.ArgumentParser()
   parser.add_argument('--database-url', required=True)
+  parser.add_argument('--double-message', action="store_true")
+
   return parser.parse_args()
 
 if __name__ == '__main__':
   args = parse_args()
-  subscriber = OutboxSubscriber()
+  if args.double_message:
+    subscriber = DoubleOutboxSubscriber()
+  else:
+    subscriber = OutboxSubscriber()
   publisher = DomainMessagePublisher()
   publisher.global_subscribe(subscriber)
 

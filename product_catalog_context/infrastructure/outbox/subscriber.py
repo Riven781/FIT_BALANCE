@@ -17,4 +17,9 @@ class OutboxSubscriber(DomainMessageSubscriber):
   async def handle(self, message, uow_context: UnitOfWorkContext):
     await uow_context.message_writer.write(message)
     
-  
+
+
+class DoubleOutboxSubscriber(DomainMessageSubscriber):
+  async def handle(self, message, uow_context: UnitOfWorkContext):
+    await uow_context.message_writer.write(message)
+    await uow_context.message_writer.write(message)

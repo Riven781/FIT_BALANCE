@@ -18,7 +18,7 @@ class MessageOutboxDispatcher(ABC):
     pass
 
   async def _handle_errors(self, message_id, e):
-    print('ERROR')
+    print('ERROR OCCURRED')
     print(type(e))
     print(repr(e))
     print(e)

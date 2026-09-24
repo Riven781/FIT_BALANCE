@@ -39,7 +39,7 @@ product_table = Table(
   Column("name_search_standard", String),
   Column("created_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
   Column("created_by", String),
-  Column("version", Integer, default=0)
+  Column("version", Integer, nullable=False, default=0)
 )
 
 product_category_hierarchy_table = Table(
@@ -160,7 +160,7 @@ mapper_registry.map_imperatively(Product, product_table, properties={
   "_category_assignments": relationship(ProductCategoryAssignmentModel, collection_class=attribute_mapped_collection("hierarchy_id"), cascade="all, delete-orphan", lazy='selectin'),
   "_name" : product_table.c.name,
   "_brand_name" : product_table.c.brand_name,
-})
+}, version_id_col = product_table.c.version)
 
 def product_category_assignment_creator(hierarchy_id, category_assignment: CategoryAssignment):
   #print(f"hierarchy: {hierarchy_id}, node_id: {category_assignment}")
@@ -230,12 +230,14 @@ product_issue_confirmation_saga_table = Table(
   mapper_registry.metadata,
   Column("id", Integer, primary_key=True, nullable=False),
   Column("issue_id", Integer, ForeignKey("ProductIssue.id", ondelete="CASCADE"), nullable=False, unique=True),
-  Column("status", String)
+  Column("status", String),
+  Column("version", Integer, nullable=False, default=0),
+
 )
 
 mapper_registry.map_imperatively(ProductIssueConfirmationSaga, product_issue_confirmation_saga_table, properties={
   "saga_id" : product_issue_confirmation_saga_table.c.id
-})
+}, version_id_col = product_issue_confirmation_saga_table.c.version)
 
 
 product_report_item_table = Table(

@@ -9,7 +9,7 @@ pytestmark = pytest.mark.usefixtures('insert_data')
 @pytest.mark.asyncio
 async def test_confirm_issue(product_issue_service: ProductIssueService):
   product_issue = await product_issue_service.confirm_issue(1, 30, moderator_id=1)
-  assert product_issue.status == ProductIssueStatus.CONFIRMED
+  assert product_issue.status == ProductIssueStatus.CONFIRMATION_PENDING
 
 @pytest.mark.asyncio
 async def test_confirm_rejected_issue(product_issue_service: ProductIssueService):

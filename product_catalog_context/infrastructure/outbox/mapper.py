@@ -9,7 +9,7 @@ outbox_mapper_registry = registry()
 outbox_message_table = Table(
   "OutboxMessage",
   outbox_mapper_registry.metadata,
-  Column("id", Integer, primary_key=True, nullable=False, autoincrement=True),
+  Column("id", Integer, primary_key=True, nullable=False),
   Column("message_type", String, nullable=False),
   Column("message_name", String, nullable=False),
   Column("payload", String, nullable=False),

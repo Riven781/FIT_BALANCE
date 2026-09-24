@@ -13,6 +13,7 @@ class ApplyResolvedValueToProductHandler:
       if product is None:
         return
       product.resolve_issue(reported_field=command.reported_field, old_value=command.old_value, new_value=command.resolved_value, saga_id=command.saga_id)
+      await uow.products.save(product)
       events = product.pull_events()
       await self.event_publisher.publish(events, uow_context=uow.context())
-      await uow.products.save(product)
+      

@@ -1,3 +1,4 @@
+import asyncio
 from dataclasses import asdict
 from itertools import count
 from operator import ge
@@ -80,6 +81,7 @@ class ProductManagementService():
     
   
   async def update(self, product_id, product_command: ProductCommand, product_editor_id):  #planned category changed (for productassignemnttask), current category changed (for product issue)
+    #await asyncio.sleep(2)
     product_editor = await self.access_adapter.get_product_editor_for(product_editor_id)
     if product_editor is None:
       raise AccessDenied()
