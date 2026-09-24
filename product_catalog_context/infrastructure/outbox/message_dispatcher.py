@@ -17,6 +17,10 @@ class MessageOutboxDispatcher(ABC):
   async def handle(self, message_id):
     pass
 
+  @abstractmethod
+  async def _send_message_failed(self, e, retry_count, deserialized_message):
+    pass
+
   async def _handle_errors(self, message_id, e):
     print('ERROR OCCURRED')
     print(type(e))

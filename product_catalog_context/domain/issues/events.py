@@ -39,7 +39,9 @@ class ProductIssueFailed(DomainEvent):
 
 @dataclass
 class MessageExecutionFailed(DomainEvent):
-  command_name: int
+  message_name: str
+  message_type: str
+  error_type: str
   event_type: ClassVar[str] = 'message_execution_failed'
 
 @dataclass

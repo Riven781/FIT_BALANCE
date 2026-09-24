@@ -38,12 +38,11 @@ class ProductIssueConfirmationSaga:
     if self.status == ProductIssueConfirmationSagaStatus.ISSUE_RESET_PENDING:
       self.status = ProductIssueConfirmationSagaStatus.FAILED
 
-  def fail(self):
-    if self.status == ProductIssueConfirmationSagaStatus.PRODUCT_UPDATE_PENDING:
+  def handle_message_failure(self, message_name):
+    if message_name == ApplyResolvedValueToProduct.command_type and self.status == ProductIssueConfirmationSagaStatus.PRODUCT_UPDATE_PENDING:
       self._commands.append(ResetProductIssueToPending(issue_id=self.issue_id, saga_id=self.saga_id))
       self.status = ProductIssueConfirmationSagaStatus.ISSUE_RESET_PENDING
-      return
-    self.status=ProductIssueConfirmationSagaStatus.FAILED
+  
    
 
   def pull_commands(self):

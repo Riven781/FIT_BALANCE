@@ -62,9 +62,13 @@ class ProductIssueConfirmationSagaService:
 
   @handle.register
   async def _(self, event : MessageExecutionFailed):
+    if event.saga_id is None:
+      return
+    if event.error_type != 'concurrent_modification':
+      return
     async with self.unit_of_work_factory() as uow:
       saga = await uow.product_issues_confirmation_sagas.get_by_id(event.saga_id)
-      saga.fail()
+      saga.handle_message_failure(event.message_name)
       events = saga.pull_commands()
       await self.publisher.publish(messages=events, uow_context=uow.context())
       await uow.product_issues_confirmation_sagas.save(saga)

@@ -350,10 +350,74 @@ async def test_confirmation_saga_when_publisher_doubled_messages(
 
   assert issue_kcal.status == ProductIssueStatus.CONFIRMED
 
-  """    
+
+  """  
   messages = await outbox_dao.get_all_messages()
   for m in messages:
-      print(f'id: {m.message_id} type: {m.message_type} message_name: {m.message_name}')
-  assert 1 == 0"""
-
+      print(f'id: {m.message_id} type: {m.message_type} message_name: {m.message_name} retry_count: {m.retry_count}')
+  assert 1 == 0
+  """
   assert product.nutrition_facts.kcal == 120
+
+@pytest.mark.usefixtures("insert_data", 'event_outbox_dispatcher', 'command_outbox_dispatcher')
+@pytest.mark.asyncio
+async def test_6_confirmation_saga_at_the_same_time(
+  session_factory,
+  outbox_dao: OutboxDAO, fake_access_adapter, message_publisher
+):
+  product_issue_service_1 = ProductIssueService(SqlAlchemyUnitOfWork(session_factory), fake_access_adapter, message_publisher)
+  task1 = product_issue_service_1.confirm_issue(
+    issue_id=3,
+    resolved_value=120,
+    moderator_id=100,
+  )
+
+  product_issue_service_2 = ProductIssueService(SqlAlchemyUnitOfWork(session_factory), fake_access_adapter, message_publisher)
+  task2 = product_issue_service_2.confirm_issue(
+    issue_id=3,
+    resolved_value=10,
+    moderator_id=101,
+  )
+
+  product_issue_service_3 = ProductIssueService(SqlAlchemyUnitOfWork(session_factory), fake_access_adapter, message_publisher)
+  task3 = product_issue_service_3.confirm_issue(
+    issue_id=3,
+    resolved_value=10,
+    moderator_id=101,
+  )
+
+  product_issue_service_4 = ProductIssueService(SqlAlchemyUnitOfWork(session_factory), fake_access_adapter, message_publisher)
+  task4 = product_issue_service_4.confirm_issue(
+    issue_id=3,
+    resolved_value=12,
+    moderator_id=101,
+  )
+
+  product_issue_service_5 = ProductIssueService(SqlAlchemyUnitOfWork(session_factory), fake_access_adapter, message_publisher)
+  task5 = product_issue_service_5.confirm_issue(
+    issue_id=3,
+    resolved_value=12,
+    moderator_id=101,
+  )
+
+  product_issue_service_6 = ProductIssueService(SqlAlchemyUnitOfWork(session_factory), fake_access_adapter, message_publisher)
+  task6 = product_issue_service_6.confirm_issue(
+    issue_id=3,
+    resolved_value=12,
+    moderator_id=101,
+  )
+
+  results = await asyncio.gather(task1, task2, task3, task4, task5, task6,  return_exceptions=True)
+
+  assert sum(
+    isinstance(result, ConcurrentModification)
+    for result in results
+  ) == 5
+
+  await asyncio.sleep(11)
+
+  async with session_factory() as session:
+    issue_sugars = await SqlAlchemyProductIssueRepository(session).get_by_id(3)
+
+  assert issue_sugars.status == ProductIssueStatus.CONFIRMED
+

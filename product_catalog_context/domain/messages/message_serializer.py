@@ -1,3 +1,4 @@
+from dataclasses import asdict
 import json
 
 from product_catalog_context.domain.messages.message import DomainMessage
@@ -12,3 +13,6 @@ class MessageSerializer:
     cls = self.registry.get(message_name)
     payload = json.loads(payload)
     return cls(**payload)
+
+  def serialize(self, message):
+    return json.dumps(asdict(message))
