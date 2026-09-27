@@ -10,6 +10,7 @@ from product_catalog_context.application.category_hierarchy_management_service i
 from product_catalog_context.application.handlers.delete_category_assignment_tasks import DeleteCategoryAssignmentTasks
 from product_catalog_context.application.product_issue_service import ProductIssueService
 from product_catalog_context.application.product_management_service import ProductManagementService
+from product_catalog_context.application.product_report_service import ProductReportService
 from product_catalog_context.application.unit_of_work import UnitOfWork
 from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, ProductCategoryHierarchyRevertedToDraft
 from product_catalog_context.domain.enums.reported_field import ReportedField
@@ -45,7 +46,7 @@ from sqlalchemy.pool import StaticPool
 from product_catalog_context.infrastructure.sql_alchemy_repository.product import SqlAlchemyProductRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product_issue import SqlAlchemyProductIssueRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product_issue_confirmation_saga_repository import SqlAlchemyProductIssueConfirmationSagaRepository
-from product_catalog_context.infrastructure.sql_alchemy_repository.unit_of_work import SqlAlchemyUnitOfWork
+from product_catalog_context.infrastructure.sql_alchemy_repository.unit_of_work import SqlAlchemyUnitOfWork, SqlAlchemyUnitOfWorkFactory
 
 @pytest_asyncio.fixture
 def db_path(tmp_path):
@@ -288,7 +289,7 @@ async def insert_data(db_session: AsyncSession):
 
   await db_session.flush()
 
-  db_session.add(ProductIssue(issue_id=1, product_id=1, reported_field=ReportedField.KCAL, status=ProductIssueStatus.PENDING, old_value=300))
+  db_session.add(ProductIssue(issue_id=1, product_id=1, reported_field=ReportedField.KCAL, status=ProductIssueStatus.PENDING, old_value='300'))
   db_session.add(ProductIssue(issue_id=2, product_id=1, reported_field=ReportedField.FAT, status=ProductIssueStatus.CONFIRMED, resolved_value=120))
   db_session.add(ProductIssue(issue_id=3, product_id=1, reported_field=ReportedField.SUGARS, status=ProductIssueStatus.PENDING))
   db_session.add(ProductIssue(issue_id=4, product_id=2, reported_field=ReportedField.FAT, status=ProductIssueStatus.REJECTED))
@@ -297,13 +298,13 @@ async def insert_data(db_session: AsyncSession):
   db_session.add(ProductReport(report_id=1, product_id=1, reported_items=[
     ProductReportItem(reported_field=ReportedField.KCAL, proposed_value=120, issue_id=1),
     ProductReportItem(reported_field=ReportedField.FAT, issue_id=2)
-    ], user_id=20))
+    ], user_id=20, product_version=1))
   db_session.add(ProductReport(report_id=2, product_id=1, reported_items=[
     ProductReportItem(reported_field=ReportedField.KCAL, proposed_value=120, issue_id=1)
-    ], user_id=10))
+    ], user_id=10, product_version=1))
   db_session.add(ProductReport(report_id=3, product_id=1, reported_items=[
     ProductReportItem(reported_field=ReportedField.KCAL, proposed_value=121, issue_id=1)
-    ], user_id=30))
+    ], user_id=30, product_version=1))
   await db_session.commit()
   await db_session.close()
 
@@ -367,10 +368,17 @@ async def double_message_publisher():
 def unit_of_work(session_factory):
   return SqlAlchemyUnitOfWork(session_factory)
 
+@pytest_asyncio.fixture
+def unit_of_work_factory(session_factory):
+  return SqlAlchemyUnitOfWorkFactory(session_factory)
 
 @pytest_asyncio.fixture
 def product_issue_service(unit_of_work, fake_access_adapter, message_publisher):
   return ProductIssueService(unit_of_work, fake_access_adapter, message_publisher)
+
+@pytest_asyncio.fixture
+def product_report_service(unit_of_work, fake_access_adapter, message_publisher):
+  return ProductReportService(unit_of_work, fake_access_adapter, message_publisher)
 
 @pytest_asyncio.fixture
 def product_issue_repository(db_session):

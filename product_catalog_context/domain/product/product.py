@@ -75,7 +75,7 @@ class Product:
     self._brand_name = brand_name
 
   @property
-  def nutrition_facts(self):
+  def nutrition_facts(self) -> NutritionFacts:
     return self._nutrition_facts
 
   @nutrition_facts.setter

@@ -1,9 +1,12 @@
 import argparse
 import asyncio
 
+from product_catalog_context.application.handlers.assign_report_item_to_issue import AssignReportItemToIssue
 from product_catalog_context.application.handlers.delete_category_assignment_tasks import DeleteCategoryAssignmentTasks
 from product_catalog_context.application.handlers.mark_affected_product_issue_as_obsolete import MarkAffectedProductIssueAsObsolete
 from product_catalog_context.application.handlers.apply_resolved_value_to_product import ApplyResolvedValueToProduct
+from product_catalog_context.application.handlers.mark_report_item_outdated import MarkReportItemOutdated
+from product_catalog_context.application.handlers.match_report_item_to_product_issue import MatchReportItemToProductIssue
 from product_catalog_context.application.handlers.resolve_category_assignment_task import ResolveCategoryAssignmentTask
 from product_catalog_context.application.product_issue_confirmation.product_issue_confirmation_saga_service import ProductIssueConfirmationSagaService
 from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, ProductCategoryHierarchyRevertedToDraft
@@ -13,6 +16,7 @@ from product_catalog_context.domain.messages.event_bus import EventBus
 from product_catalog_context.domain.messages.message_registry import MessageRegistry
 from product_catalog_context.domain.messages.message_serializer import MessageSerializer
 from product_catalog_context.domain.product.events import ProductCategoryChangedInHierarchy, ProductDataChanged, ResolvedValueApplicationRejected
+from product_catalog_context.domain.reports.events import ProductReportItemAccepted, ReportItemMatchRejected, ReportItemMatchedToProductIssue
 from product_catalog_context.domain.repository.errors import ConcurrentModification
 from product_catalog_context.infrastructure.outbox.dispatcher import OutboxDispatcher
 from product_catalog_context.infrastructure.outbox.message_dispatcher import MessageOutboxDispatcher
@@ -104,7 +108,9 @@ if __name__ == '__main__':
   event_bus.subscribe(ProductIssueConfirmationCancelledAsObsolete, product_issue_confirmation_saga)
   event_bus.subscribe(MessageExecutionFailed, product_issue_confirmation_saga)  #router w przyszłości
   event_bus.subscribe(ProductIssueResetToPending, product_issue_confirmation_saga)
-  event_bus.subscribe(MessageExecutionFailed, product_issue_confirmation_saga)
+  event_bus.subscribe(ProductReportItemAccepted, MatchReportItemToProductIssue(unit_of_work_factory, publisher))
+  event_bus.subscribe(ReportItemMatchedToProductIssue, AssignReportItemToIssue(unit_of_work_factory))
+  event_bus.subscribe(ReportItemMatchRejected, MarkReportItemOutdated(unit_of_work_factory))
 
 
 
@@ -123,7 +129,9 @@ if __name__ == '__main__':
   registry.register(ProductIssueConfirmationCancelledAsObsolete.event_type, ProductIssueConfirmationCancelledAsObsolete)
   registry.register(MessageExecutionFailed.event_type, MessageExecutionFailed)
   registry.register(ProductIssueResetToPending.event_type, ProductIssueResetToPending)
-  registry.register(MessageExecutionFailed.event_type, MessageExecutionFailed)
+  registry.register(ProductReportItemAccepted.event_type, ProductReportItemAccepted)
+  registry.register(ReportItemMatchRejected.event_type, ReportItemMatchRejected)
+  registry.register(ReportItemMatchedToProductIssue.event_type, ReportItemMatchedToProductIssue)
 
 
   dispatcher = OutboxEventDispatcher(get_session_factory(args.database_url), event_bus, MessageSerializer(registry), sync=False)

@@ -71,3 +71,6 @@ class ProductCategoryAssignmentConflict(DomainError):
 
 class ProductVersionConflict(DomainError):
   pass
+
+class FieldDoesNotExistInReportItems(DomainError):
+  pass

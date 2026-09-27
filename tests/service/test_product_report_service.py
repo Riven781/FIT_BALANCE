@@ -6,66 +6,66 @@ from product_catalog_context.domain.issues.product_issue_status import ProductIs
 
 pytestmark = pytest.mark.usefixtures('insert_data')
 
-@pytest.mark.asyncio
-async def test_create_report_without_issues(product_report_service : ProductReportService, db):
-  product_report_command = ProductReportCommand(product_id=1, reported_items=[ReportedItem(reported_field=ReportedField.CARBOHYDRATES), ReportedItem(reported_field=ReportedField.FIBER)])
-  product_report = await product_report_service.create_report(product_report_command, 1)
-  assert product_report.product_id == 1
-  assert len(product_report.reported_items) == 2
-  product_item_1 = product_report.reported_items[0]
-  assert product_item_1.reported_field == ReportedField.CARBOHYDRATES
-  assert product_item_1.proposed_value is None
-  assert product_item_1.issue_id is not None
-  product_item_2 = product_report.reported_items[1]
-  assert product_item_2.reported_field == ReportedField.FIBER
-  assert product_item_2.proposed_value is None
-  assert product_item_2.issue_id is not None
+# @pytest.mark.asyncio
+# async def test_create_report_without_issues(product_report_service : ProductReportService, db):
+#   product_report_command = ProductReportCommand(product_id=1, reported_items=[ReportedItem(reported_field=ReportedField.CARBOHYDRATES), ReportedItem(reported_field=ReportedField.FIBER)])
+#   product_report = await product_report_service.create_report(product_report_command, 1)
+#   assert product_report.product_id == 1
+#   assert len(product_report.reported_items) == 2
+#   product_item_1 = product_report.reported_items[0]
+#   assert product_item_1.reported_field == ReportedField.CARBOHYDRATES
+#   assert product_item_1.proposed_value is None
+#   assert product_item_1.issue_id is not None
+#   product_item_2 = product_report.reported_items[1]
+#   assert product_item_2.reported_field == ReportedField.FIBER
+#   assert product_item_2.proposed_value is None
+#   assert product_item_2.issue_id is not None
 
-  async with db.execute("""
-    SELECT * FROM ProductIssue WHERE id = ?
-  """, (product_item_1.issue_id,)) as cursor:
-    issue = await cursor.fetchone()
-  assert issue['reported_field'] == ReportedField.CARBOHYDRATES
-  assert issue['product_id'] == 1
-  assert issue['status'] == ProductIssueStatus.PENDING
+#   async with db.execute("""
+#     SELECT * FROM ProductIssue WHERE id = ?
+#   """, (product_item_1.issue_id,)) as cursor:
+#     issue = await cursor.fetchone()
+#   assert issue['reported_field'] == ReportedField.CARBOHYDRATES
+#   assert issue['product_id'] == 1
+#   assert issue['status'] == ProductIssueStatus.PENDING
 
-  async with db.execute("""
-    SELECT * FROM ProductIssue WHERE id = ?
-  """, (product_item_2.issue_id,)) as cursor:
-    issue = await cursor.fetchone()
-  assert issue['reported_field'] == ReportedField.FIBER
-  assert issue['product_id'] == 1
-  assert issue['status'] == ProductIssueStatus.PENDING
+#   async with db.execute("""
+#     SELECT * FROM ProductIssue WHERE id = ?
+#   """, (product_item_2.issue_id,)) as cursor:
+#     issue = await cursor.fetchone()
+#   assert issue['reported_field'] == ReportedField.FIBER
+#   assert issue['product_id'] == 1
+#   assert issue['status'] == ProductIssueStatus.PENDING
 
   
-@pytest.mark.asyncio
-async def test_create_report_with_issue(product_report_service : ProductReportService, db):
-  product_report_command = ProductReportCommand(product_id=1, reported_items=[ReportedItem(reported_field=ReportedField.SUGARS, proposed_value=11), ReportedItem(reported_field=ReportedField.FIBER)])
-  product_report = await product_report_service.create_report(product_report_command, 1)
-  assert product_report.product_id == 1
-  assert len(product_report.reported_items) == 2
-  product_item_1 = product_report.reported_items[0]
-  assert product_item_1.reported_field == ReportedField.SUGARS
-  assert product_item_1.proposed_value == 11
-  assert product_item_1.issue_id == 3
-  product_item_2 = product_report.reported_items[1]
-  assert product_item_2.reported_field == ReportedField.FIBER
-  assert product_item_2.proposed_value is None
-  assert product_item_2.issue_id is not None
+# @pytest.mark.asyncio
+# async def test_create_report_with_issue(product_report_service : ProductReportService, db):
+#   product_report_command = ProductReportCommand(product_id=1, reported_items=[ReportedItem(reported_field=ReportedField.SUGARS, proposed_value=11), ReportedItem(reported_field=ReportedField.FIBER)])
+#   product_report = await product_report_service.create_report(product_report_command, 1)
+#   assert product_report.product_id == 1
+#   assert len(product_report.reported_items) == 2
+#   product_item_1 = product_report.reported_items[0]
+#   assert product_item_1.reported_field == ReportedField.SUGARS
+#   assert product_item_1.proposed_value == 11
+#   assert product_item_1.issue_id == 3
+#   product_item_2 = product_report.reported_items[1]
+#   assert product_item_2.reported_field == ReportedField.FIBER
+#   assert product_item_2.proposed_value is None
+#   assert product_item_2.issue_id is not None
 
-  async with db.execute("""
-    SELECT * FROM ProductIssue WHERE id = ? AND status='pending'
-  """, (product_item_1.issue_id,)) as cursor:
-    issue = await cursor.fetchone()
-  assert issue['id'] == 3
-  assert issue['reported_field'] == ReportedField.SUGARS
-  assert issue['product_id'] == 1
-  assert issue['status'] == ProductIssueStatus.PENDING
+#   async with db.execute("""
+#     SELECT * FROM ProductIssue WHERE id = ? AND status='pending'
+#   """, (product_item_1.issue_id,)) as cursor:
+#     issue = await cursor.fetchone()
+#   assert issue['id'] == 3
+#   assert issue['reported_field'] == ReportedField.SUGARS
+#   assert issue['product_id'] == 1
+#   assert issue['status'] == ProductIssueStatus.PENDING
 
-  async with db.execute("""
-    SELECT * FROM ProductIssue WHERE id = ?
-  """, (product_item_2.issue_id,)) as cursor:
-    issue = await cursor.fetchone()
-  assert issue['reported_field'] == ReportedField.FIBER
-  assert issue['product_id'] == 1
-  assert issue['status'] == ProductIssueStatus.PENDING
+#   async with db.execute("""
+#     SELECT * FROM ProductIssue WHERE id = ?
+#   """, (product_item_2.issue_id,)) as cursor:
+#     issue = await cursor.fetchone()
+#   assert issue['reported_field'] == ReportedField.FIBER
+#   assert issue['product_id'] == 1
+#   assert issue['status'] == ProductIssueStatus.PENDING

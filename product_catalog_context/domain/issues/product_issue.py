@@ -2,6 +2,7 @@ from product_catalog_context.domain.issues.events import ProductIssueConfirmatio
 from product_catalog_context.domain.issues.product_issue_status import ProductIssueStatus
 from product_catalog_context.domain.enums.reported_field import ReportedField
 from product_catalog_context.domain.errors import IssueCanNotBeConfirmed, IssueCanNotBeMarkedAsObsolete, IssueCanNotBeRejected, IssueCanNotBeReset
+from product_catalog_context.domain.reports.events import ReportItemMatchedToProductIssue
 
 
 class ProductIssue:
@@ -24,6 +25,7 @@ class ProductIssue:
     if self.reported_field == ReportedField.KCAL:
       return int(self._old_value)
     return float(self._old_value)
+  
   def start_confirmation(self, resolved_value, user_id):
     if self.status != ProductIssueStatus.PENDING:
       raise IssueCanNotBeConfirmed()
@@ -73,6 +75,15 @@ class ProductIssue:
       raise IssueCanNotBeReset()
     self.status = ProductIssueStatus.PENDING
     self._events.append(ProductIssueResetToPending(issue_id=self.issue_id, saga_id=saga_id))
+
+  def match_report_item(self, report_id, reported_field):
+    self._events.append(
+      ReportItemMatchedToProductIssue(
+        report_id=report_id,
+        issue_id=self.issue_id,
+        reported_field=reported_field,
+      )
+    ) 
 
 
   def pull_events(self):

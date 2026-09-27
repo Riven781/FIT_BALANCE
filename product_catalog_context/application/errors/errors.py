@@ -60,3 +60,9 @@ class CategoryAssignmentBelongsToAnotherUser(ServiceError):
 
 class CategoryAssignmentRequiresProductEditor(ServiceError):
   pass
+
+class ProductReportExistsForThisVersion(ServiceError):
+  pass
+
+class ProductReportDoesNotExist(ServiceError):
+  pass

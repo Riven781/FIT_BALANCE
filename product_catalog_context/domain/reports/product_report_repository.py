@@ -13,5 +13,13 @@ class ProductReportRepository(ABC):
     pass
 
   @abstractmethod
+  async def exists_by_user_and_product_version(self, user_id, product_version, product_id) -> bool:
+    pass
+
+  @abstractmethod
   async def delete(self, product_report: ProductReport):
+    pass
+
+  @abstractmethod
+  async def next_id(self):
     pass

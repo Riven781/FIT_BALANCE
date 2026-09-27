@@ -11,3 +11,4 @@ class ProductReportCommand:
 class ReportedItem:
   reported_field : ReportedField
   proposed_value: None | str = None
+  old_value: None | str = None

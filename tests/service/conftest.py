@@ -17,6 +17,7 @@ from product_catalog_context.application.product_report_service import ProductRe
 from product_catalog_context.domain.category_hierarchy.product_category import ProductCategory
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy import ProductCategoryHierarchy
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy_status import ProductCategoryHierarchyStatus
+from product_catalog_context.domain.messages.domain_message_publisher import DomainMessagePublisher
 from product_catalog_context.domain.users import CatalogManager, Moderator, ProductEditor
 from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
 from product_catalog_context.infrastructure.aiosqlite_repository.category_assignment_task_repository import CategoryAssignmentTaskRepository
@@ -24,8 +25,10 @@ from product_catalog_context.infrastructure.aiosqlite_repository.product import 
 from product_catalog_context.infrastructure.aiosqlite_repository.product_category_hierarchy import ProductCategoryHierarchyRepository
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from product_catalog_context.infrastructure.outbox.subscriber import OutboxSubscriber
 from product_catalog_context.infrastructure.sql_alchemy_repository.mapper import mapper_registry
 from sqlalchemy.event import listens_for
+from product_catalog_context.infrastructure.outbox.mapper import outbox_mapper_registry
 
 from product_catalog_context.domain.product.product import Product
 from product_catalog_context.infrastructure.aiosqlite_repository.mapper import ProductMapper
@@ -188,6 +191,8 @@ async def db_engine():
   engine = create_async_engine(f'sqlite+aiosqlite:///:memory:')
   async with engine.begin() as conn:
     await conn.run_sync(mapper_registry.metadata.create_all)
+    await conn.run_sync(outbox_mapper_registry.metadata.create_all)
+
   yield engine
   await engine.dispose()
 
@@ -405,11 +410,17 @@ async def product_management_service( unit_of_work, fake_access_adapter) -> Prod
 async def product_repository(db) -> CategoryAssignmentTaskService:
   return ProductRepository(db)
 
+@pytest_asyncio.fixture
+async def message_publisher():
+  subscriber = OutboxSubscriber()
+  publisher = DomainMessagePublisher()
+  publisher.global_subscribe(subscriber)
+  return publisher
 
 
 @pytest_asyncio.fixture
-async def product_report_service( unit_of_work, fake_access_adapter) -> ProductReportService:
-  return ProductReportService(unit_of_work, fake_access_adapter)
+async def product_report_service( unit_of_work, fake_access_adapter, message_publisher) -> ProductReportService:
+  return ProductReportService(unit_of_work, fake_access_adapter, message_publisher)
 
 @pytest_asyncio.fixture
 async def product_issue_service(unit_of_work, fake_access_adapter) -> ProductReportService:

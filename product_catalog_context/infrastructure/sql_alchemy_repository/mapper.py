@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, Double, ForeignKey, Integer, PrimaryKeyConstraint, String, Table, insert, join, text
+from sqlalchemy import Column, DateTime, Double, ForeignKey, Index, Integer, PrimaryKeyConstraint, String, Table, UniqueConstraint, insert, join, text
 from sqlalchemy.orm import attribute_mapped_collection, composite, registry, relationship
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy import event
@@ -7,6 +7,7 @@ from product_catalog_context.domain.category_hierarchy.product_category import P
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy import ProductCategoryHierarchy
 from product_catalog_context.domain.issues.confirmation_saga.product_issue_confirmation_saga import ProductIssueConfirmationSaga
 from product_catalog_context.domain.issues.product_issue import ProductIssue
+from product_catalog_context.domain.issues.product_issue_status import ProductIssueStatus
 from product_catalog_context.domain.product.nutrition_facts import Nutrients, NutritionFacts, ReferenceQuantity
 from product_catalog_context.domain.product.product import Product
 from product_catalog_context.domain.product.product_assignment import CategoryAssignment
@@ -23,7 +24,7 @@ product_table = Table(
   Column("id", Integer, primary_key=True, autoincrement=True),
   Column("name", String, nullable=False),
   Column("brand_name", String),
-  Column("kcal", Double, nullable=False),
+  Column("kcal", Integer, nullable=False),
   Column("fat", Double),
   Column("saturates", Double),
   Column("carbohydrates", Double),
@@ -210,7 +211,10 @@ product_report_table = Table(
   Column("id", Integer, primary_key=True, nullable=False),
   Column("product_id", Integer, ForeignKey("Product.id", ondelete="CASCADE"), nullable=False),
   Column("user_id", Integer),
+  Column("product_version", Integer),
+  UniqueConstraint('product_id', 'user_id', 'product_version')
 )
+
 
 product_issue_table = Table(
   "ProductIssue",
@@ -223,6 +227,15 @@ product_issue_table = Table(
   Column("resolved_value", String),
   Column("resolved_by", Integer),
   Column("version", Integer, nullable=False, default=0),
+)
+
+Index(
+  "uq_pending_product_issue",
+  product_issue_table.c.product_id,
+  product_issue_table.c.reported_field,
+  product_issue_table.c.old_value,
+  unique=True,
+  sqlite_where=product_issue_table.c.status == ProductIssueStatus.PENDING,
 )
 
 product_issue_confirmation_saga_table = Table(
@@ -245,8 +258,13 @@ product_report_item_table = Table(
   mapper_registry.metadata,
   Column("id", Integer, primary_key=True, nullable=False),
   Column("report_id", Integer, ForeignKey("ProductReport.id", ondelete="CASCADE"), nullable=False),
-  Column("issue_id", Integer, ForeignKey("ProductIssue.id", ondelete="CASCADE"), nullable=False),
+  Column("issue_id", Integer, ForeignKey("ProductIssue.id", ondelete="SET NULL")),
   Column("proposed_value", String),
+  Column("old_value", String),
+  Column("status", String),
+  Column("reported_field", String, nullable=False),
+
+  
 )
 
 mapper_registry.map_imperatively(ProductIssue, product_issue_table, properties={
@@ -259,7 +277,6 @@ mapper_registry.map_imperatively(ProductIssue, product_issue_table, properties={
 mapper_registry.map_imperatively(ProductReportItem, product_report_item_table, properties={
   "_issue" : relationship(ProductIssue, lazy='joined', viewonly=True)
 })
-ProductReportItem.reported_field = association_proxy("_issue", "reported_field", creator=lambda reported_field: ProductIssue(product_id=None, reported_field=reported_field ))
 
 
 
@@ -278,3 +295,8 @@ def receive_load(issue, context):
 def receive_load(saga, context):
   saga._commands = []
 
+
+
+@event.listens_for(ProductReport, "load")
+def receive_load(product_report, context):
+  product_report._events = []
