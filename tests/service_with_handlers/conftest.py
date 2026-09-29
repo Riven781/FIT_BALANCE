@@ -11,7 +11,7 @@ from product_catalog_context.application.handlers.delete_category_assignment_tas
 from product_catalog_context.application.product_issue_service import ProductIssueService
 from product_catalog_context.application.product_management_service import ProductManagementService
 from product_catalog_context.application.unit_of_work import UnitOfWork
-from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, ProductCategoryHierarchyRevertedToDraft
+from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, HierarchyRevertedToDraft
 from product_catalog_context.domain.enums.reported_field import ReportedField
 from product_catalog_context.domain.issues.product_issue import ProductIssue
 from product_catalog_context.domain.issues.product_issue_status import ProductIssueStatus
@@ -62,6 +62,21 @@ async def outbox_dispatcher(db_path):
     sys.executable, 
     '-m', 
     'product_catalog_context.infrastructure.outbox.event_dispatcher', 
+    '--database-url', 
+    db_path,
+    creationflags=subprocess.CREATE_NEW_CONSOLE)
+  yield process
+  #await asyncio.sleep(10)
+  if process.returncode is None:
+    process.terminate()
+    await process.wait()
+
+@pytest_asyncio.fixture
+async def command_dispatcher(db_path):
+  process = await asyncio.create_subprocess_exec(
+    sys.executable, 
+    '-m', 
+    'product_catalog_context.infrastructure.outbox.command_dispatcher', 
     '--database-url', 
     db_path,
     creationflags=subprocess.CREATE_NEW_CONSOLE)
@@ -209,11 +224,11 @@ async def insert_data(db_session: AsyncSession):
 
   await db_session.flush()
 
-  db_session.add(ProductIssue(issue_id=1, product_id=1, reported_field=ReportedField.KCAL, status=ProductIssueStatus.PENDING))
+  db_session.add(ProductIssue(issue_id=1, product_id=1, reported_field=ReportedField.KCAL, status=ProductIssueStatus.PENDING, old_value=300))
   db_session.add(ProductIssue(issue_id=2, product_id=1, reported_field=ReportedField.FAT, status=ProductIssueStatus.CONFIRMED, resolved_value=120))
   db_session.add(ProductIssue(issue_id=3, product_id=1, reported_field=ReportedField.SUGARS, status=ProductIssueStatus.PENDING))
   db_session.add(ProductIssue(issue_id=4, product_id=2, reported_field=ReportedField.FAT, status=ProductIssueStatus.REJECTED))
-  db_session.add(ProductIssue(issue_id=5, product_id=2, reported_field=ReportedField.NAME, status=ProductIssueStatus.PENDING))
+  db_session.add(ProductIssue(issue_id=5, product_id=2, reported_field=ReportedField.NAME, status=ProductIssueStatus.PENDING, old_value='Schab Tani'))
 
   db_session.add(ProductReport(report_id=1, product_id=1, reported_items=[
     ProductReportItem(reported_field=ReportedField.KCAL, proposed_value=120, issue_id=1),
@@ -310,7 +325,7 @@ def product_repository(db_session):
 @pytest_asyncio.fixture
 def message_registry():
   registry = MessageRegistry()
-  registry.register('product_category_hierarchy_reverted_to_draft', ProductCategoryHierarchyRevertedToDraft)
+  registry.register(HierarchyRevertedToDraft.event_type, HierarchyRevertedToDraft)
   registry.register('product_category_hierarchy_published', ProductCategoryHierarchyPublished)
   return registry
 
@@ -322,7 +337,7 @@ def message_serializer(message_registry):
 @pytest_asyncio.fixture
 def event_bus(session_factory):
   bus = EventBus()
-  bus.subscribe(ProductCategoryHierarchyRevertedToDraft, CategoryHierarchyPublishedOrRevertedHandler(unit_of_work=SqlAlchemyUnitOfWork(session_factory)))
+  bus.subscribe(HierarchyRevertedToDraft, HierarchyRevertedToDraft(unit_of_work=SqlAlchemyUnitOfWork(session_factory)))
   return bus
 
 @pytest_asyncio.fixture

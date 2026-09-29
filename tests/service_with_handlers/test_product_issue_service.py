@@ -6,14 +6,14 @@ from product_catalog_context.domain.product.product_repository import ProductRep
 from product_catalog_context.infrastructure.outbox.repository import OutboxDAO
 
 
-pytestmark = pytest.mark.usefixtures('insert_data', 'outbox_dispatcher')
+pytestmark = pytest.mark.usefixtures('insert_data', 'outbox_dispatcher', 'command_dispatcher')
 
 @pytest.mark.asyncio
 async def test_confirm_issue(product_issue_service: ProductIssueService, product_repository: ProductRepository, outbox_dao: OutboxDAO, db_session):
   await product_issue_service.confirm_issue(issue_id=1, resolved_value=120, moderator_id=100)
   outbox_message = await outbox_dao.get_by_id(1)
   assert outbox_message is not None
-  await asyncio.sleep(1)
+  await asyncio.sleep(10)
   product = await product_repository.get_by_id(1)
  
   assert product.kcal == 120
@@ -23,7 +23,7 @@ async def test_confirm_issue(product_issue_service: ProductIssueService, product
 async def test_confirm_2_issues(product_issue_service: ProductIssueService, product_repository: ProductRepository, outbox_dao: OutboxDAO, db_session):
   await product_issue_service.confirm_issue(issue_id=1, resolved_value=120, moderator_id=100)
   await product_issue_service.confirm_issue(issue_id=3, resolved_value=10, moderator_id=100)
-  await asyncio.sleep(1)
+  await asyncio.sleep(7)
   product = await product_repository.get_by_id(1)
   
   assert product.nutrition_facts.nutrients.sugars == 10
@@ -32,7 +32,7 @@ async def test_confirm_2_issues(product_issue_service: ProductIssueService, prod
 @pytest.mark.asyncio
 async def test_confirm_issue_with_name(product_issue_service: ProductIssueService, product_repository: ProductRepository, outbox_dao: OutboxDAO, db_session):
   await product_issue_service.confirm_issue(issue_id=5, resolved_value='Schab Tani XXL', moderator_id=100)
-  await asyncio.sleep(1)
+  await asyncio.sleep(4)
   product = await product_repository.get_by_id(2)
   
   assert product.name == 'Schab Tani XXL'

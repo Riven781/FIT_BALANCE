@@ -56,7 +56,7 @@ async def test_revert_to_draft_and_change_planned_category_id_category(
   total_tasks = await category_assignment_task_repository.get_total_in_hierarchy(2)
   assert total_tasks == 2
   nutrition_facts = NutritionFacts(reference_quantity=ReferenceQuantity(amount=100, unit='g'), kcal=250, nutrients=Nutrients(fat=120))
-  new_info_about_product = ProductCommand(name="Schab Tani", brand_name="Rambert", current_category_id=4, expected_current_category_version=1, planned_category_id=9, nutrition_facts=nutrition_facts, img_src=None)
+  new_info_about_product = ProductCommand(name="Schab Tani", brand_name="Rambert", current_category_id=4, expected_current_category_version=1, planned_category_id=9, nutrition_facts=nutrition_facts, img_src=None, expected_version=1)
   await product_management_service.update(2, new_info_about_product, product_editor_id=10)
   await product_hierarchy_management_service.revert_to_draft(2, catalog_manager_id=10)
 
