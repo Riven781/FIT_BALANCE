@@ -1,9 +1,13 @@
 import argparse
 
+from product_catalog_context.application.plan_category_hierarchy_for_publication.copy_product_assignments import CopyProductAssignmentsHandler
+from product_catalog_context.application.plan_category_hierarchy_for_publication.mark_as_planned_for_publication import MarkAsPlannedForPublicationHandler
+from product_catalog_context.application.plan_category_hierarchy_for_publication.revert_to_draft import RollbackToDraftHandler
 from product_catalog_context.application.product_issue_confirmation.apply_resolved_value_to_product_handler import ApplyResolvedValueToProductHandler
 from product_catalog_context.application.product_issue_confirmation.cancel_product_issue_confirmation import CancelProductIssueConfirmationHandler
 from product_catalog_context.application.product_issue_confirmation.confirm_product_issue_handler import ConfirmProductIssueHandler
 from product_catalog_context.application.product_issue_confirmation.reset_product_issue_to_pending_handler import ResetProductIssueToPendingHandler
+from product_catalog_context.domain.category_hierarchy.plan_hiearachy_for_publication_saga.commands import CopyProductAssignments, MarkAsPlannedForPublication, RollbackToDraft
 from product_catalog_context.domain.issues.confirmation_saga.commands import ApplyResolvedValueToProduct, CancelProductIssueConfirmation, ConfirmProductIssue, ResetProductIssueToPending
 from product_catalog_context.domain.issues.events import MessageExecutionFailed
 from product_catalog_context.domain.messages.command_bus import CommandBus
@@ -40,7 +44,7 @@ class OutboxCommandDispatcher(MessageOutboxDispatcher):
       return
     message = None
     if isinstance(e, ConcurrentModification):#saga type soon
-      message = MessageExecutionFailed(message_type='command', message_name=deserialized_message.command_type, saga_id=deserialized_message.saga_id, error_type='concurrent_modification')
+      message = MessageExecutionFailed(saga_type = getattr(deserialized_message, 'saga_type', None), message_type='command', message_name=deserialized_message.command_type, saga_id=deserialized_message.saga_id, error_type='concurrent_modification')
       #outbox_message = OutboxMessage(message_type='event', message_name=MessageExecutionFailed.event_type, payload=self.message_serializer.serialize(message), occurred_at=datetime.now(timezone.utc))
 
     if message is None:
@@ -90,6 +94,9 @@ if __name__ == '__main__':
   command_bus.register(CancelProductIssueConfirmation, CancelProductIssueConfirmationHandler(unit_of_work_factory, publisher))
   command_bus.register(ConfirmProductIssue, ConfirmProductIssueHandler(unit_of_work_factory, publisher))
   command_bus.register(ResetProductIssueToPending, ResetProductIssueToPendingHandler(unit_of_work_factory, publisher))
+  command_bus.register(CopyProductAssignments, CopyProductAssignmentsHandler(unit_of_work_factory, publisher))
+  command_bus.register(MarkAsPlannedForPublication, MarkAsPlannedForPublicationHandler(unit_of_work_factory, publisher))
+  command_bus.register(RollbackToDraft, RollbackToDraftHandler(unit_of_work_factory, publisher))
 
 
 
@@ -98,7 +105,12 @@ if __name__ == '__main__':
   registry.register(CancelProductIssueConfirmation.command_type, CancelProductIssueConfirmation)
   registry.register(ConfirmProductIssue.command_type, ConfirmProductIssue)
   registry.register(ResetProductIssueToPending.command_type, ResetProductIssueToPending)
+
   registry.register(MessageExecutionFailed.event_type, MessageExecutionFailed)
+
+  registry.register(CopyProductAssignments.command_type, CopyProductAssignments)
+  registry.register(MarkAsPlannedForPublication.command_type, MarkAsPlannedForPublication)
+  registry.register(RollbackToDraft.command_type, RollbackToDraft)
 
 
 

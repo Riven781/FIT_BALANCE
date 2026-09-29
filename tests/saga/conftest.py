@@ -12,7 +12,7 @@ from product_catalog_context.application.product_issue_service import ProductIss
 from product_catalog_context.application.product_management_service import ProductManagementService
 from product_catalog_context.application.product_report_service import ProductReportService
 from product_catalog_context.application.unit_of_work import UnitOfWork
-from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, ProductCategoryHierarchyRevertedToDraft
+from product_catalog_context.domain.category_hierarchy.events import  HierarchyRevertedToDraft
 from product_catalog_context.domain.enums.reported_field import ReportedField
 from product_catalog_context.domain.issues.product_issue import ProductIssue
 from product_catalog_context.domain.issues.product_issue_status import ProductIssueStatus
@@ -43,6 +43,7 @@ from sqlalchemy import event
 import pytest_asyncio
 from sqlalchemy.pool import StaticPool
 
+from product_catalog_context.infrastructure.sql_alchemy_repository.plan_hierarchy_for_publication_saga_repository import SqlAlchemyPlanHierarchyForPublicationSagaRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product import SqlAlchemyProductRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product_issue import SqlAlchemyProductIssueRepository
 from product_catalog_context.infrastructure.sql_alchemy_repository.product_issue_confirmation_saga_repository import SqlAlchemyProductIssueConfirmationSagaRepository
@@ -344,6 +345,10 @@ def outbox_dao(db_session):
 @pytest_asyncio.fixture
 def product_issue_confirmation_saga_repository(db_session):
   return SqlAlchemyProductIssueConfirmationSagaRepository(db_session)
+
+@pytest_asyncio.fixture
+def plan_hierarchy_for_publication_saga_repository(db_session):
+  return SqlAlchemyPlanHierarchyForPublicationSagaRepository(db_session)
 
 @pytest_asyncio.fixture
 async def outbox_handler(db_session, outbox_dao):

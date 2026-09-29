@@ -39,6 +39,7 @@ class ProductIssueFailed(DomainEvent):
 
 @dataclass
 class MessageExecutionFailed(DomainEvent):
+  saga_type: str | None
   message_name: str
   message_type: str
   error_type: str

@@ -62,9 +62,11 @@ class SqlAlchemyProductRepository(ProductRepository, BaseSqlAlchemyRepository):
 
     return list(result.scalars().all())
 
-  async def copy_category_assignments(self, active_hierarchy_id, draft_hierarchy_id):
+  async def copy_category_assignments(self, active_hierarchy_id, draft_hierarchy_id): #only leave category can have products
     active_node = product_category_node_table.alias("active_node")
     draft_node = product_category_node_table.alias("draft_node")
+    draft_child = product_category_node_table.alias("draft_child")
+
 
     select_query = (
       select(
@@ -77,7 +79,12 @@ class SqlAlchemyProductRepository(ProductRepository, BaseSqlAlchemyRepository):
       .join(draft_node, active_node.c.id == draft_node.c.source_node_id)
       .where(
         active_node.c.hierarchy_id == active_hierarchy_id,
-        draft_node.c.hierarchy_id == draft_hierarchy_id
+        draft_node.c.hierarchy_id == draft_hierarchy_id,
+        ~exists(
+          select(1).where(
+            draft_child.c.parent_id == draft_node.c.id
+          )
+        )
       )
     )
 

@@ -1,0 +1,25 @@
+import asyncio
+
+import pytest
+
+from product_catalog_context.application.category_hierarchy_management_service import CategoryHierarchyManagementService
+from product_catalog_context.domain.category_hierarchy.plan_hiearachy_for_publication_saga.plan_hierarchy_for_publication_saga import PlanHierarchyForPublicationSaga
+from product_catalog_context.domain.category_hierarchy.product_category_hierarchy_status import ProductCategoryHierarchyStatus
+from product_catalog_context.domain.product.product_assignment import CategoryAssignment
+from product_catalog_context.infrastructure.sql_alchemy_repository.plan_hierarchy_for_publication_saga_repository import SqlAlchemyPlanHierarchyForPublicationSagaRepository
+from product_catalog_context.infrastructure.sql_alchemy_repository.product import SqlAlchemyProductRepository
+from product_catalog_context.infrastructure.sql_alchemy_repository.product_category_hierarchy import SqlAlchemyProductCategoryHierarchyRepository
+from product_catalog_context.domain.category_hierarchy.plan_hiearachy_for_publication_saga.saga_status import PlanHierarchyForPublicationSagaStatus
+
+@pytest.mark.usefixtures('insert_data', 'event_outbox_dispatcher', 'command_outbox_dispatcher')
+@pytest.mark.asyncio
+async def test_plan_hierarchy_for_publication(product_hierarchy_management_service: CategoryHierarchyManagementService, session_factory):
+  await product_hierarchy_management_service.plan_for_publication(hierarchy_id=3, catalog_manager_id=10)
+  await asyncio.sleep(3)
+  async with session_factory() as session:
+    hierarchy = await SqlAlchemyProductCategoryHierarchyRepository(session).get_by_id(3)
+    saga = await SqlAlchemyPlanHierarchyForPublicationSagaRepository(session).get_by_id(99)
+    product = await SqlAlchemyProductRepository(session).get_by_id(1)
+  assert hierarchy.status == ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION
+  assert saga.status == PlanHierarchyForPublicationSagaStatus.COMPLETED
+  assert product.category_assignments.get(3) == CategoryAssignment(category_id=14)

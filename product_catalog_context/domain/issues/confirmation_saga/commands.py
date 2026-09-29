@@ -5,7 +5,11 @@ from product_catalog_context.domain.enums.reported_field import ReportedField
 from product_catalog_context.domain.messages.message import DomainCommand
 
 @dataclass
-class ApplyResolvedValueToProduct(DomainCommand):
+class ProductIssueConfirmationCommand(DomainCommand):
+  saga_type: ClassVar[str] = 'product_issue_confirmation_saga'
+
+@dataclass
+class ApplyResolvedValueToProduct(ProductIssueConfirmationCommand):
   product_id: int
   resolved_value: int
   reported_field: ReportedField
@@ -14,18 +18,18 @@ class ApplyResolvedValueToProduct(DomainCommand):
 
 
 @dataclass
-class ConfirmProductIssue(DomainCommand):
+class ConfirmProductIssue(ProductIssueConfirmationCommand):
   issue_id: int
   command_type: ClassVar[str] = 'confirm_product_issue'
 
 
 @dataclass
-class CancelProductIssueConfirmation(DomainCommand):
+class CancelProductIssueConfirmation(ProductIssueConfirmationCommand):
   issue_id: int
   command_type: ClassVar[str] = 'cancel_product_issue_confirmation'
 
 @dataclass
-class ResetProductIssueToPending(DomainCommand):
+class ResetProductIssueToPending(ProductIssueConfirmationCommand):
   issue_id: int
   command_type: ClassVar[str] = 'reset_product_issue_to_pending'
 

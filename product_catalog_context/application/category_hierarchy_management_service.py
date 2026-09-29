@@ -119,9 +119,12 @@ class CategoryHierarchyManagementService():
       hierarchy = await  uow.product_category_hierarchies.get_by_id(hierarchy_id)
       if hierarchy is None:
         raise CategoryHierarchyDoesNotExist()
-      hierarchy.plan_for_publication()  #generate event HierarchyPlannedForPublication
+      hierarchy.start_planning_for_publication()  #generate event HierarchyPlannedForPublication
       await uow.product_category_hierarchies.save(hierarchy)
-      category_ids = hierarchy.get_non_leaf_category_ids()  #in handler
-      await uow.products.delete_category_assignments_by_category_id(category_ids)
+      events = hierarchy.pull_events()
+      if self.event_publisher:
+        await self.event_publisher.publish(events, uow_context=uow.context())
+      #category_ids = hierarchy.get_non_leaf_category_ids()  #in handler
+      #await uow.products.delete_category_assignments_by_category_id(category_ids)
     return hierarchy
 

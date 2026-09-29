@@ -3,6 +3,7 @@ from sqlalchemy.orm import attribute_mapped_collection, composite, registry, rel
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy import event
 
+from product_catalog_context.domain.category_hierarchy.plan_hiearachy_for_publication_saga.plan_hierarchy_for_publication_saga import PlanHierarchyForPublicationSaga
 from product_catalog_context.domain.category_hierarchy.product_category import ProductCategory
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy import ProductCategoryHierarchy
 from product_catalog_context.domain.issues.confirmation_saga.product_issue_confirmation_saga import ProductIssueConfirmationSaga
@@ -245,12 +246,26 @@ product_issue_confirmation_saga_table = Table(
   Column("issue_id", Integer, ForeignKey("ProductIssue.id", ondelete="CASCADE"), nullable=False, unique=True),
   Column("status", String),
   Column("version", Integer, nullable=False, default=0),
-
 )
+
+
 
 mapper_registry.map_imperatively(ProductIssueConfirmationSaga, product_issue_confirmation_saga_table, properties={
   "saga_id" : product_issue_confirmation_saga_table.c.id
 }, version_id_col = product_issue_confirmation_saga_table.c.version)
+
+plan_hierarchy_for_publication_saga_table = Table(
+  "PlanHierarchyForPublicationSaga",
+  mapper_registry.metadata,
+  Column("id", Integer, primary_key=True, nullable=False),
+  Column("hierarchy_id", Integer, ForeignKey("ProductIssue.id", ondelete="CASCADE"), nullable=False, unique=True),
+  Column("status", String),
+  Column("version", Integer, nullable=False, default=0),
+)
+
+mapper_registry.map_imperatively(PlanHierarchyForPublicationSaga, plan_hierarchy_for_publication_saga_table, properties={
+  "saga_id" : plan_hierarchy_for_publication_saga_table.c.id
+}, version_id_col = plan_hierarchy_for_publication_saga_table.c.version)
 
 
 product_report_item_table = Table(
@@ -295,6 +310,9 @@ def receive_load(issue, context):
 def receive_load(saga, context):
   saga._commands = []
 
+@event.listens_for(PlanHierarchyForPublicationSaga, "load")
+def receive_load(saga, context):
+  saga._commands = []
 
 
 @event.listens_for(ProductReport, "load")

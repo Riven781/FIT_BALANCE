@@ -40,7 +40,7 @@ async def test_create_draft(category_hierarchy_management_service: CategoryHiera
 async def test_plan_for_publication(category_hierarchy_management_service: CategoryHierarchyManagementService):
   hierarchy = await category_hierarchy_management_service.create_draft(1, 1)
   hierarchy_draft = await category_hierarchy_management_service.plan_for_publication(hierarchy.hierarchy_id, 1)
-  assert hierarchy_draft.status == ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION
+  assert hierarchy_draft.status == ProductCategoryHierarchyStatus.PLANNING_FOR_PUBLICATION
 
 
 @pytest.mark.asyncio

@@ -27,3 +27,9 @@ class ResolvedValueApplicationRejected(DomainEvent):
   product_id: int
   field: ReportedField
   event_type: ClassVar[str] = 'resolved_value_application_rejected'
+
+@dataclass
+class ProductAssignmentCopied(DomainEvent):
+  hierarchy_id: int
+  event_type: ClassVar[str] = 'product_assignment_copied'
+

@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 
 from product_catalog_context.application.ports.message_writer import MessageWriter
+from product_catalog_context.domain.category_hierarchy.plan_hiearachy_for_publication_saga.plan_hierarchy_for_publication_saga import PlanHierarchyForPublicationSaga
+from product_catalog_context.domain.category_hierarchy.plan_hiearachy_for_publication_saga.plan_hierarchy_for_publication_saga_repository import PlanHierarchyForPublicationSagaRepository
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy_repository import ProductCategoryHierarchyRepository
 from product_catalog_context.domain.issues.confirmation_saga.product_issue_confirmation_saga_repository import ProductIssueConfirmationSagaRepository
 from product_catalog_context.domain.issues.product_issue_repository import ProductIssueRepository
@@ -49,6 +51,10 @@ class UnitOfWork(ABC):
 
   @property
   def product_issues_confirmation_sagas(self) -> ProductIssueConfirmationSagaRepository:
+    pass
+
+  @property
+  def plan_hierarchy_for_publication_sagas(self) -> PlanHierarchyForPublicationSagaRepository:
     pass
 
   @property

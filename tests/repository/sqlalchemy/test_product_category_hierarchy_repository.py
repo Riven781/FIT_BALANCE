@@ -58,10 +58,10 @@ async def test_save_existing_hierarchy(product_category_hierarchy_repository: Pr
     ProductCategory(name='Słodycze', parent_id=100, category_id=101)
   ]
   hierarchy.update_categories(product_categories)
-  hierarchy.plan_for_publication()
+  hierarchy.start_planning_for_publication()
   await product_category_hierarchy_repository.save(hierarchy)
   loaded_hierarchy = await product_category_hierarchy_repository.get_by_id(3)
-  assert loaded_hierarchy.status == ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION
+  assert loaded_hierarchy.status == ProductCategoryHierarchyStatus.PLANNING_FOR_PUBLICATION
   assert loaded_hierarchy.hierarchy_id == 3
   assert len(loaded_hierarchy.product_categories) ==  2
   assert 'Wszystko' in [category.name for category in loaded_hierarchy.product_categories]

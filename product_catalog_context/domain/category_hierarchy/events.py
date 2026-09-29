@@ -10,6 +10,21 @@ class ProductCategoryHierarchyPublished(DomainEvent):
   event_type: ClassVar[str] = 'product_category_hierarchy_published'
 
 @dataclass
-class ProductCategoryHierarchyRevertedToDraft(DomainEvent):
+class HierarchyRevertedToDraft(DomainEvent):
   hierarchy_id: int  
-  event_type: ClassVar[str] = 'product_category_hierarchy_reverted_to_draft'
+  event_type: ClassVar[str] = 'hierarchy_reverted_to_draft'
+
+@dataclass
+class HierarchyPlannedForPublication(DomainEvent):
+  hierarchy_id: int  
+  event_type: ClassVar[str] = 'hierarchy_planned_for_publication'
+
+@dataclass
+class PlanningForPublicationStarted(DomainEvent):
+  hierarchy_id: int  
+  event_type: ClassVar[str] = 'planning_for_publication_started'
+
+@dataclass
+class HierarchyRolledBackToDraft(DomainEvent):
+  hierarchy_id: int  
+  event_type: ClassVar[str] = 'hierarchy_rolled_back_to_draft'

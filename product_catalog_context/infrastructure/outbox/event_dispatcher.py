@@ -4,18 +4,18 @@ import asyncio
 from product_catalog_context.application.handlers.assign_report_item_to_issue import AssignReportItemToIssue
 from product_catalog_context.application.handlers.delete_category_assignment_tasks import DeleteCategoryAssignmentTasks
 from product_catalog_context.application.handlers.mark_affected_product_issue_as_obsolete import MarkAffectedProductIssueAsObsolete
-from product_catalog_context.application.handlers.apply_resolved_value_to_product import ApplyResolvedValueToProduct
 from product_catalog_context.application.handlers.mark_report_item_outdated import MarkReportItemOutdated
 from product_catalog_context.application.handlers.match_report_item_to_product_issue import MatchReportItemToProductIssue
 from product_catalog_context.application.handlers.resolve_category_assignment_task import ResolveCategoryAssignmentTask
+from product_catalog_context.application.plan_category_hierarchy_for_publication.plan_hierarchy_for_publication_saga_service import PlanHierarchyForPublicationSagaService
 from product_catalog_context.application.product_issue_confirmation.product_issue_confirmation_saga_service import ProductIssueConfirmationSagaService
-from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, ProductCategoryHierarchyRevertedToDraft
+from product_catalog_context.domain.category_hierarchy.events import HierarchyPlannedForPublication, HierarchyRolledBackToDraft, PlanningForPublicationStarted, ProductCategoryHierarchyPublished, HierarchyRevertedToDraft
 from product_catalog_context.domain.issues.events import MessageExecutionFailed, ProductIssueConfirmationCancelledAsObsolete, ProductIssueConfirmationStarted, ProductIssueConfirmed, ProductIssueResetToPending, ResolvedValueAppliedToProduct
 from product_catalog_context.domain.messages.domain_message_publisher import DomainMessagePublisher
 from product_catalog_context.domain.messages.event_bus import EventBus
 from product_catalog_context.domain.messages.message_registry import MessageRegistry
 from product_catalog_context.domain.messages.message_serializer import MessageSerializer
-from product_catalog_context.domain.product.events import ProductCategoryChangedInHierarchy, ProductDataChanged, ResolvedValueApplicationRejected
+from product_catalog_context.domain.product.events import ProductAssignmentCopied, ProductCategoryChangedInHierarchy, ProductDataChanged, ResolvedValueApplicationRejected
 from product_catalog_context.domain.reports.events import ProductReportItemAccepted, ReportItemMatchRejected, ReportItemMatchedToProductIssue
 from product_catalog_context.domain.repository.errors import ConcurrentModification
 from product_catalog_context.infrastructure.outbox.dispatcher import OutboxDispatcher
@@ -23,6 +23,7 @@ from product_catalog_context.infrastructure.outbox.message_dispatcher import Mes
 from product_catalog_context.infrastructure.outbox.message_writer import SqlAlchemyOutboxMessageWriter
 from product_catalog_context.infrastructure.outbox.model import OutboxMessage
 from product_catalog_context.infrastructure.outbox.repository import OutboxDAO
+from product_catalog_context.infrastructure.outbox.saga_event_router import SagaEventRouter
 from product_catalog_context.infrastructure.outbox.subscriber import DoubleOutboxSubscriber, OutboxSubscriber
 from product_catalog_context.infrastructure.outbox.test_session_factory import get_session_factory
 from product_catalog_context.infrastructure.sql_alchemy_repository.unit_of_work import SqlAlchemyUnitOfWork, SqlAlchemyUnitOfWorkFactory
@@ -46,7 +47,7 @@ class OutboxEventDispatcher(MessageOutboxDispatcher):
       return
     message = None
     if isinstance(e, ConcurrentModification):#saga type soon
-      message = MessageExecutionFailed(message_type='event', message_name=deserialized_message.event_type, saga_id=deserialized_message.saga_id, error_type='concurrent_modification')
+      message = MessageExecutionFailed(saga_type = getattr(deserialized_message, 'saga_type', None), message_type='event', message_name=deserialized_message.event_type, saga_id=deserialized_message.saga_id, error_type='concurrent_modification')
       #outbox_message = OutboxMessage(message_type='event', message_name=MessageExecutionFailed.event_type, payload=self.message_serializer.serialize(message), occurred_at=datetime.now(timezone.utc))
 
     if message is None:
@@ -95,7 +96,7 @@ if __name__ == '__main__':
   #event_bus.subscribe(ProductIssueConfirmed, ApplyResolvedValueToProduct(SqlAlchemyUnitOfWorkFactory(get_session_factory(args.database_url))))
   event_bus.subscribe(ProductDataChanged, MarkAffectedProductIssueAsObsolete(SqlAlchemyUnitOfWorkFactory(get_session_factory(args.database_url))))
   event_bus.subscribe(ProductCategoryHierarchyPublished, DeleteCategoryAssignmentTasks(SqlAlchemyUnitOfWorkFactory(get_session_factory(args.database_url))))
-  event_bus.subscribe(ProductCategoryHierarchyRevertedToDraft, DeleteCategoryAssignmentTasks(SqlAlchemyUnitOfWorkFactory(get_session_factory(args.database_url))))
+  event_bus.subscribe(HierarchyRevertedToDraft, DeleteCategoryAssignmentTasks(SqlAlchemyUnitOfWorkFactory(get_session_factory(args.database_url))))
   event_bus.subscribe(ProductCategoryChangedInHierarchy, ResolveCategoryAssignmentTask(SqlAlchemyUnitOfWorkFactory(get_session_factory(args.database_url))))
 
   session_factory = get_session_factory(args.database_url)
@@ -106,19 +107,33 @@ if __name__ == '__main__':
   event_bus.subscribe(ResolvedValueApplicationRejected, product_issue_confirmation_saga)
   event_bus.subscribe(ProductIssueConfirmed, product_issue_confirmation_saga)
   event_bus.subscribe(ProductIssueConfirmationCancelledAsObsolete, product_issue_confirmation_saga)
-  event_bus.subscribe(MessageExecutionFailed, product_issue_confirmation_saga)  #router w przyszłości
+  #event_bus.subscribe(MessageExecutionFailed, product_issue_confirmation_saga)  #router w przyszłości
   event_bus.subscribe(ProductIssueResetToPending, product_issue_confirmation_saga)
   event_bus.subscribe(ProductReportItemAccepted, MatchReportItemToProductIssue(unit_of_work_factory, publisher))
   event_bus.subscribe(ReportItemMatchedToProductIssue, AssignReportItemToIssue(unit_of_work_factory))
   event_bus.subscribe(ReportItemMatchRejected, MarkReportItemOutdated(unit_of_work_factory))
+    
+  plan_hierarchy_for_publication_saga = PlanHierarchyForPublicationSagaService(publisher, unit_of_work_factory)
 
+  event_bus.subscribe(PlanningForPublicationStarted, plan_hierarchy_for_publication_saga)
+  event_bus.subscribe(ProductAssignmentCopied, plan_hierarchy_for_publication_saga)
+  event_bus.subscribe(HierarchyPlannedForPublication, plan_hierarchy_for_publication_saga)
+  event_bus.subscribe(HierarchyRolledBackToDraft, plan_hierarchy_for_publication_saga)
+  #event_bus.subscribe(MessageExecutionFailed, plan_hierarchy_for_publication_saga) #router because it will be doubled
+
+  router = SagaEventRouter({
+    'plan_hierarchy_for_publication_saga' : plan_hierarchy_for_publication_saga,
+    'product_issue_confirmation_saga' : product_issue_confirmation_saga
+  })
+
+  event_bus.subscribe(MessageExecutionFailed, router) #router because it will be doubled
 
 
   registry = MessageRegistry()
   #registry.register('product_issue_confirmed', ProductIssueConfirmed)
   registry.register(ProductDataChanged.event_type, ProductDataChanged)
   registry.register(ProductCategoryHierarchyPublished.event_type, ProductCategoryHierarchyPublished)
-  registry.register(ProductCategoryHierarchyRevertedToDraft.event_type, ProductCategoryHierarchyRevertedToDraft)
+  registry.register(HierarchyRevertedToDraft.event_type, HierarchyRevertedToDraft)
   registry.register(ProductCategoryChangedInHierarchy.event_type, ProductCategoryChangedInHierarchy)
 
 
@@ -132,6 +147,11 @@ if __name__ == '__main__':
   registry.register(ProductReportItemAccepted.event_type, ProductReportItemAccepted)
   registry.register(ReportItemMatchRejected.event_type, ReportItemMatchRejected)
   registry.register(ReportItemMatchedToProductIssue.event_type, ReportItemMatchedToProductIssue)
+
+  registry.register(PlanningForPublicationStarted.event_type, PlanningForPublicationStarted)
+  registry.register(ProductAssignmentCopied.event_type, ProductAssignmentCopied)
+  registry.register(HierarchyPlannedForPublication.event_type, HierarchyPlannedForPublication)
+  registry.register(HierarchyRolledBackToDraft.event_type, HierarchyRolledBackToDraft)
 
 
   dispatcher = OutboxEventDispatcher(get_session_factory(args.database_url), event_bus, MessageSerializer(registry), sync=False)

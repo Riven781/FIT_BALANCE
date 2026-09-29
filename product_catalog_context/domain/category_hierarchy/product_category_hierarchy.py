@@ -1,7 +1,7 @@
 from product_catalog_context.domain.errors import CategoryAssignmentTaskNotAllowed, CategoryDoesNotBelongToHierarchy, CategoryHierarchyCannotBeEdited, DraftCategoryHierarchyCannotBeDeleted, CategoryHierarchyCannotBeRevertedToDraft,ParentCategoryNotInHierarchy, CategoryHierarchyIsNotDraft,CategoryHierarchyCannotBePublished, OnlyDraftHierarchyCanBeUpdated, DraftCategoryHierarchyCannotBeCreated, DraftCategoryIdCountMismatch
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy_status import ProductCategoryHierarchyStatus
 from product_catalog_context.domain.category_hierarchy.product_category import ProductCategory, ProductCategoryDraft, ProductCategoryNode
-from product_catalog_context.domain.category_hierarchy.events import ProductCategoryHierarchyPublished, ProductCategoryHierarchyRevertedToDraft
+from product_catalog_context.domain.category_hierarchy.events import HierarchyPlannedForPublication, HierarchyRolledBackToDraft, PlanningForPublicationStarted, ProductCategoryHierarchyPublished, HierarchyRevertedToDraft
 
 
 class ProductCategoryHierarchy:
@@ -90,17 +90,37 @@ class ProductCategoryHierarchy:
     self.published_by = user_id
 
   def revert_to_draft(self):
+    if self.status == ProductCategoryHierarchyStatus.DRAFT:
+      return
     if self.status != ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION:
       raise CategoryHierarchyCannotBeRevertedToDraft()
     self.status = ProductCategoryHierarchyStatus.DRAFT
-    self._events.append(ProductCategoryHierarchyRevertedToDraft(self.hierarchy_id))
+    self._events.append(HierarchyRevertedToDraft(self.hierarchy_id))
+
+  def rollback_to_draft(self, saga_id):
+    if self.status == ProductCategoryHierarchyStatus.DRAFT:
+      return
+    if self.status != ProductCategoryHierarchyStatus.PLANNING_FOR_PUBLICATION:
+      raise CategoryHierarchyCannotBeRevertedToDraft()
+    self.status = ProductCategoryHierarchyStatus.DRAFT
+    self._events.append(HierarchyRolledBackToDraft(self.hierarchy_id, saga_id=saga_id))
 
   def pull_events(self):
     events = self._events
     self._events = []
     return events
-  
-  def plan_for_publication(self):
+
+  def start_planning_for_publication(self):
     if self.status != ProductCategoryHierarchyStatus.DRAFT:
       raise CategoryHierarchyIsNotDraft()
+    self.status = ProductCategoryHierarchyStatus.PLANNING_FOR_PUBLICATION
+    self._events.append(PlanningForPublicationStarted(hierarchy_id=self.hierarchy_id))
+  
+  def plan_for_publication(self, saga_id=None):
+    if self.status == ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION:
+      return
+    
+    if self.status != ProductCategoryHierarchyStatus.PLANNING_FOR_PUBLICATION:
+      raise CategoryHierarchyIsNotDraft()
     self.status = ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION
+    self._events.append(HierarchyPlannedForPublication(hierarchy_id=self.hierarchy_id, saga_id=saga_id))
