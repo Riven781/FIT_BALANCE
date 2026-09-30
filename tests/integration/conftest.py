@@ -28,7 +28,7 @@ def restart_docker():
   subprocess.run(['docker', 'compose', 'up', '-d', 'api-test'], check=True)
   wait_for_api()
   yield
-  subprocess.run(["docker", "compose", "down", "-v"],check=True)
+  #subprocess.run(["docker", "compose", "down", "-v"],check=True)
 
 
 

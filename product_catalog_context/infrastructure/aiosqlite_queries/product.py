@@ -50,7 +50,7 @@ class ProductQueries:
   
     total_query = f"""
       SELECT COUNT(*) AS total
-      FROM Product AS prod
+      FROM Product AS product
       {inner_query}
       {where_query if where_query is not None else " "}
     """

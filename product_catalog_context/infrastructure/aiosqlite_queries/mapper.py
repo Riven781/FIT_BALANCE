@@ -20,5 +20,5 @@ def to_product_detail(row, categories):
     row['kcal'],
     nutrients=nutrients
   )
-  return PublicProductDetail(product_id=row['id'], name=row['name'], brand_name=row['brand_name'], nutrition_facts=nutrition_facts, img_src=row['img_src'], category_path=categories)
+  return PublicProductDetail(product_id=row['id'], name=row['name'], brand_name=row['brand_name'], nutrition_facts=nutrition_facts, img_src=row['img_src'], category_path=categories, version=row['version'])
 

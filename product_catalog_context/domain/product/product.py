@@ -31,6 +31,7 @@ class Product:
     self.allergy_recommendations = allergy_recommendations
     self.created_by = created_by
     self._events = []
+    self._category_assignments = {}
     self.category_assignments = category_assignments if category_assignments is not None else {}
     self.version = version
 
@@ -77,6 +78,8 @@ class Product:
   @property
   def nutrition_facts(self) -> NutritionFacts:
     return self._nutrition_facts
+
+
 
   @nutrition_facts.setter
   def nutrition_facts(self, nutrition_facts):

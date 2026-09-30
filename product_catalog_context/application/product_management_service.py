@@ -7,6 +7,7 @@ import re
 
 from click import command
 from fastapi import Depends, HTTPException
+from sqlalchemy import inspect
 
 from product_catalog_context.application.command.product import PaginationFiltersCommand, ProductCommand, ProductsFiltersCommand
 from product_catalog_context.application.query.product_detail import PublicProductDetail
@@ -65,6 +66,8 @@ class ProductManagementService():
       )
 
       await uow.products.save(product)
+      print(inspect(product).unloaded)
+      print(product.category_assignments)
     return product
     
 

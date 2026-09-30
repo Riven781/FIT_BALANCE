@@ -7,7 +7,7 @@ from config import MODE
 from product_catalog_context.infrastructure.api.rest.schemas.product import ProductPostRequest, ProductPutRequest, ProductResponse, PublicProductListResponse, PublicProductResponse
 from product_catalog_context.infrastructure.api.rest.schemas.product_category import ProductCategory, ProductCategoryHierarchy
 import math
-from product_catalog_context.infrastructure.api.rest.dependencies.database import get_current_user_id, get_product_category_service, get_product_management_service, get_product_query_service, get_product_repository
+from product_catalog_context.infrastructure.api.rest.dependencies.database import get_current_user_id, get_product_management_service, get_product_query_service, get_product_repository
 from product_catalog_context.application.product_query_service import ProductQueryService
 from product_catalog_context.infrastructure.api.rest.dependencies.filters import SortBy, NameMode, ProductsFilters, PaginationFilters
 from product_catalog_context.application.category_hierarchy_management_service import CategoryHierarchyManagementService

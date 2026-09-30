@@ -78,6 +78,13 @@ class NutritionFacts(BaseModel):
   kcal : int = Field(ge=0)
   nutrients : Nutrients
 
+class CategoryAssignment(BaseModel):
+  category_id: int
+  version: int
+  assigned_by: int
+
+
+
 class ProductResponse(BaseModel):
   model_config = ConfigDict(frozen=True, from_attributes=True)
   product_id: int
@@ -85,8 +92,9 @@ class ProductResponse(BaseModel):
   brand_name: str
   nutrition_facts: NutritionFacts
   img_src: str | None
-  current_category_id: int | None
-  planned_category_id: int | None
+  version: int
+  category_assignments: dict[int, CategoryAssignment]
+
 
 class ProductPutRequest(BaseModel):
   model_config = ConfigDict(frozen=True, extra='forbid')
@@ -98,6 +106,11 @@ class ProductPutRequest(BaseModel):
   allergy_recommendations : str | None
   current_category_id: int | None
   planned_category_id: int | None
+  expected_version: int
+  expected_current_category_version: int = 0
+  expected_planned_category_version: int = 0
+  
+
 
   def to_command(self):
     reference_quantity = domain_ReferenceQuantity(
@@ -115,7 +128,10 @@ class ProductPutRequest(BaseModel):
       current_category_id=self.current_category_id,
       planned_category_id=self.planned_category_id,
       ingredients=self.ingredients,
-      allergy_recommendations=self.allergy_recommendations
+      allergy_recommendations=self.allergy_recommendations,
+      expected_version=self.expected_version,
+      expected_current_category_version=self.expected_current_category_version,
+      expected_planned_category_version=self.expected_planned_category_version
     )  
 
 class PublicProductResponse(BaseModel):
@@ -126,6 +142,7 @@ class PublicProductResponse(BaseModel):
   nutrition_facts: NutritionFacts
   img_src: str | None
   category_path: list[ProductCategoryItem]
+  version: int
 
 class PaginationMeta(BaseModel):
   page: int = Field(ge=1)

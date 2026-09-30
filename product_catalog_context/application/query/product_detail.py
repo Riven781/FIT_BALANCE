@@ -11,5 +11,6 @@ class PublicProductDetail:
   nutrition_facts: NutritionFacts
   img_src: str
   category_path: list[CategoryPathItem]
+  version: int
 
 

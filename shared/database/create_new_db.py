@@ -75,10 +75,13 @@ product_category_assignment = """
     product_id INTEGER NOT NULL,
     node_id INTEGER NOT NULL,
     assigned_by INTEGER,
+    hierarchy_id INTEGER NOT NULL,
     assigned_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES Product(id)
       ON DELETE CASCADE,
     FOREIGN KEY (node_id) REFERENCES ProductCategoryNode(id)
+      ON DELETE CASCADE,
+    FOREIGN KEY (hierarchy_id) REFERENCES ProductCategoryHierarchy(id)
       ON DELETE CASCADE,
     FOREIGN KEY (assigned_by) REFERENCES User(id)
       ON DELETE SET NULL,
