@@ -23,7 +23,7 @@ import math
 
 from config import MODE
 import aiosqlite
-from product_catalog_context.infrastructure.api.rest.routes import product_catalog_router
+from product_catalog_context.infrastructure.api.rest.routes.router import product_catalog_router
 #python api\endpoints.py
 
 @asynccontextmanager

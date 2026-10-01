@@ -6,4 +6,4 @@ python-dotenv
 aiofiles
 redis
 PyJWT
-sqlalchemy
+sqlalchemy[asyncio]

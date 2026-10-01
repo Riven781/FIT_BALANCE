@@ -55,6 +55,3 @@ def login_jwt():
   return r.json()
 
 method = 'SESSION'
-
-
-

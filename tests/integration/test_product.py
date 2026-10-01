@@ -4,7 +4,7 @@ import config
 import requests
 
 #docker compose up api-test
-"""
+
 @pytest.mark.usefixtures('restart_docker')
 def test_created_product_returns_201_and_product_detail(cookies):
   url = config.get_api_url()
@@ -82,7 +82,7 @@ def test_created_product_returns_422_with_id(cookies):
   r = requests.post(f'{url}/api/v1/products', json=data, cookies=cookies)
   assert r.status_code == 422
   assert r.json() == {'detail': [{'type': 'extra_forbidden', 'loc': ['body', 'id'], 'msg': 'Extra inputs are not permitted', 'input': 4}]}
-"""
+
 def insert_product(name = 'szarlotka', brand='auchan', kcal='200', reference_unit='g', current_category_id=None, cookies=None):
   url = config.get_api_url()
   data = {'name' : name, 'brand_name' : brand, 'nutrition_facts' : {
@@ -90,6 +90,7 @@ def insert_product(name = 'szarlotka', brand='auchan', kcal='200', reference_uni
     'reference_quantity' : {'unit' : reference_unit}
   }, 'img_src': None, 'current_category_id': current_category_id}
   r = requests.post(f'{url}/api/v1/products', json=data, cookies=cookies)
+  print(r.json())
   return r.json()['product_id']
 
 @pytest.mark.usefixtures('restart_docker')

@@ -12,9 +12,9 @@ from product_catalog_context.application.product_query_service import ProductQue
 from product_catalog_context.infrastructure.api.rest.dependencies.filters import SortBy, NameMode, ProductsFilters, PaginationFilters
 from product_catalog_context.application.category_hierarchy_management_service import CategoryHierarchyManagementService
 
-product_catalog_router = APIRouter()
+product_router = APIRouter()
 
-@product_catalog_router.get("/api/v1/products/{product_id}")
+@product_router.get("/api/v1/products/{product_id}")
 async def read_product_detail(
     product_id : int, 
     product_query_service: Annotated[ProductQueryService, Depends(get_product_query_service)]
@@ -22,7 +22,7 @@ async def read_product_detail(
   result = await product_query_service.get(product_id)
   return result
 
-@product_catalog_router.get("/api/v1/products", response_model=PublicProductListResponse)
+@product_router.get("/api/v1/products", response_model=PublicProductListResponse)
 async def read_products(
   pagination_filters : Annotated[PaginationFilters, Depends()],
   products_filters: Annotated[ProductsFilters, Depends()],
@@ -39,7 +39,7 @@ async def read_products(
     "data" : data
   }
 
-@product_catalog_router.post('/api/v1/products', response_model=ProductResponse, status_code=201)
+@product_router.post('/api/v1/products', response_model=ProductResponse, status_code=201)
 async def create_product(
   product : ProductPostRequest, 
   product_management_service : Annotated[ProductManagementService, Depends(get_product_management_service)],
@@ -49,7 +49,7 @@ async def create_product(
   return product_created
 
 
-@product_catalog_router.delete('/api/v1/products/{product_id}', status_code=204)
+@product_router.delete('/api/v1/products/{product_id}', status_code=204)
 async def delete_product(
   product_id : int, 
   product_management_service : Annotated[ProductManagementService, Depends(get_product_management_service)],
@@ -57,7 +57,7 @@ async def delete_product(
 ):
   await product_management_service.delete(product_id, product_editor_id=user_id)
 
-@product_catalog_router.put('/api/v1/products/{product_id}', response_model=ProductResponse)
+@product_router.put('/api/v1/products/{product_id}', response_model=ProductResponse)
 async def update_product(
   product_id: int, product: ProductPutRequest, 
   product_management_service: Annotated[ProductManagementService, Depends(get_product_management_service)],
@@ -65,23 +65,3 @@ async def update_product(
 ):
   product_updated = await product_management_service.update(product_id, product.to_command(), product_editor_id=user_id)
   return product_updated
-
-"""
-@product_catalog_router.get('api/v1/product-categories/hierarchy', response_model=list[ProductCategoryHierarchy])
-async def read_category_hierarchy(
-  product_category_service: Annotated[CategoryHierarchyManagementService, Depends(get_product_category_service)]
-):
-  return await product_category_service.get_hierarchy()
-
-@product_catalog_router.put('api/v1/product-categories/hierarchy', response_model=list[ProductCategoryHierarchy])
-async def update_category_hierarchy(
-  product_categories: list[ProductCategory], 
-  product_category_service: Annotated[CategoryHierarchyManagementService, Depends(get_product_category_service)],
-  user_id : Annotated[int, Depends(get_current_user_id)]
-):
-  return await product_category_service.update_hierarchy(product_categories)
-
-@product_catalog_router.get('api/v1/product-categories', response_model=list[ProductCategory])
-async def read_categories(product_category_service: Annotated[CategoryHierarchyManagementService, Depends(get_product_category_service)]):
-  return await product_category_service.get_all()
-"""
