@@ -1,7 +1,7 @@
 import pytest
 from product_catalog_context.application.errors.errors import TaskNotFoundError, CategoryDoesNotBelongToHierarchy, CategoryHierarchyDoesNotExist, ProductNotFoundError, TaskDoesNotExist, TaskNotFoundError, TasksBelongToDifferentHierarchies, UserIdRequired
 from product_catalog_context.domain.tasks.category_assignment_task_status import CategoryAssignmentTaskStatus
-from product_catalog_context.domain.errors import CategoryAssignmentTaskNotAllowed, DraftCategoryHierarchyCannotBeDeleted, CategoryHierarchyCannotBeRevertedToDraft,ParentCategoryNotInHierarchy, CategoryHierarchyIsNotDraft,CategoryHierarchyCannotBePublished, OnlyDraftHierarchyCanBeUpdated, DraftCategoryHierarchyCannotBeCreated, DraftCategoryIdCountMismatch
+from product_catalog_context.domain.errors import CategoryAssignmentTaskNotAllowed, CategoryAssignmentTasksRequirePlannedHierarchy, DraftCategoryHierarchyCannotBeDeleted, CategoryHierarchyCannotBeRevertedToDraft,ParentCategoryNotInHierarchy, CategoryHierarchyIsNotDraft,CategoryHierarchyCannotBePublished, OnlyDraftHierarchyCanBeUpdated, DraftCategoryHierarchyCannotBeCreated, DraftCategoryIdCountMismatch
 from product_catalog_context.application.category_assignment_task_service import CategoryAssignmentTaskService
 
 pytestmark = pytest.mark.usefixtures('insert_data')
@@ -32,7 +32,7 @@ async def test_complete_category_assignment(category_assignment_service : Catego
 
 @pytest.mark.asyncio
 async def test_complete_category_assignment_in_active_hierarchy(category_assignment_service, db):
-  with pytest.raises(CategoryAssignmentTaskNotAllowed):
+  with pytest.raises(CategoryAssignmentTasksRequirePlannedHierarchy):
     await category_assignment_service.complete_category_assignment(task_id=2, category_id=1, product_editor_id=3)
 
 @pytest.mark.asyncio

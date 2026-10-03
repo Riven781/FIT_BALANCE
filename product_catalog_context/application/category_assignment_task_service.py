@@ -19,7 +19,7 @@ class CategoryAssignmentTaskService:
     self.unit_of_work = unit_of_work
     self.access_adapter = access_adapter
 
-  async def get_task(self, task_id):
+  async def get_task(self, task_id) -> CategoryAssignmentTask:
     async with self.unit_of_work as uow:
       task = await uow.category_assignment_tasks.get_by_id(task_id)
       if task is None:
@@ -73,7 +73,8 @@ class CategoryAssignmentTaskService:
       tasks = []
       for product in products:
         tasks.append(CategoryAssignmentTask(product_id=product.product_id, hierarchy_id=hierarchy_id, user_id=product_editor_id, status=CategoryAssignmentTaskStatus.PENDING))
-      await uow.category_assignment_tasks.insert_all(tasks)
+      if tasks:
+        await uow.category_assignment_tasks.insert_all(tasks)
 
   async def allocate_tasks_for_users(self, catalog_manager_id, product_editor_ids, hierarchy_id): #automaticcly
     catalog_manager = await self.access_adapter.get_catalog_manager_for(catalog_manager_id)
@@ -107,7 +108,6 @@ class CategoryAssignmentTaskService:
       if task is None:
         raise TaskNotFoundError()
       await uow.category_assignment_tasks.delete(task)
-
 
   async def delete_tasks_by_user(self, catalog_manager_id, user_id):
     catalog_manager = await self.access_adapter.get_catalog_manager_for(catalog_manager_id)

@@ -21,6 +21,15 @@ async def read_product_detail(
   result = await product_query_service.get(product_id)
   return result
 
+@product_router.get("/api/v1/products/{product_id}/test", response_model=ProductResponse)
+async def read_product(
+    product_id : int, 
+    product_management_service : Annotated[ProductManagementService, Depends(get_product_management_service)],
+):
+  result = await product_management_service.get(product_id)
+  return result
+
+
 @product_router.get("/api/v1/products", response_model=PublicProductListResponse)
 async def read_products(
   pagination_filters : Annotated[PaginationFilters, Depends()],

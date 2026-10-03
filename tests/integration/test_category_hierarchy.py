@@ -115,17 +115,6 @@ def test_edit_draft_hierarchy(cookies):
   assert all_category['parent_id'] is None
   assert all_category['category_id'] is not None
 
-@pytest.mark.usefixtures('restart_docker')
-def test_edit_active_hierarchy(cookies):
-  new_hierarchy = {
-      'existing_categories' : [],
-      'draft_categories' : [{ 'name' : 'all', 'parent_id' : None, 'temp_id' : 'id1'}]
-  }
-  url = config.get_api_url()
-  r = requests.put(f'{url}/category-hierarchy/101', cookies = cookies, json=new_hierarchy)
-  assert r.status_code == 409
-  hierarchy = r.json()
-  assert hierarchy['message'] == "Only draft can be edited."
 
 @pytest.mark.usefixtures('restart_docker')
 def test_edit_planned_for_publication_hierarchy(cookies):

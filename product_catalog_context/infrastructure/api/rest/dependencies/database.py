@@ -7,6 +7,7 @@ from identity_and_access_context.public.adapters.fastapi.dependencies.get_identi
 from identity_and_access_context.public.api.access_api import AccessApi
 from identity_and_access_context.public.adapters.fastapi.dependencies.get_access_api import get_access_api
 from identity_and_access_context.public.api.identity_api import IdentityApi
+from product_catalog_context.application.category_assignment_task_service import CategoryAssignmentTaskService
 from product_catalog_context.application.product_management_service import ProductManagementService
 from product_catalog_context.application.product_query_service import ProductQueryService
 from product_catalog_context.application.unit_of_work import UnitOfWork
@@ -74,3 +75,8 @@ async def get_product_hierarchy_category_service(
     access_adapter: Annotated[AccessAdapter, Depends(get_access_adapter)],
     publisher: Annotated[DomainMessagePublisher, Depends(get_message_publisher)]):
   return CategoryHierarchyManagementService(unit_of_work, access_adapter, publisher)
+
+async def get_category_assignment_task_service(
+    unit_of_work: Annotated[UnitOfWork, Depends(get_unit_of_work)], 
+    access_adapter: Annotated[AccessAdapter, Depends(get_access_adapter)]):
+  return CategoryAssignmentTaskService(unit_of_work, access_adapter)

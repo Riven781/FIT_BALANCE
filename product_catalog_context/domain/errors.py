@@ -10,6 +10,9 @@ class CategoryAssignmentTaskBelongsToAnotherUser(DomainError): #tasks
 class CategoryAssignmentTaskNotAllowed(DomainError): #tasks
   pass
 
+class CategoryAssignmentTasksRequirePlannedHierarchy(DomainError):
+  pass
+
 class UserIdRequired(DomainError): #task
   pass
 

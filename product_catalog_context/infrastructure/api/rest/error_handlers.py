@@ -1,9 +1,9 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from product_catalog_context.domain.errors import CategoryHierarchyCannotBeEdited, CategoryHierarchyCannotBePublished, CategoryHierarchyCannotBeRevertedToDraft, CategoryHierarchyIsNotDraft, DraftCategoryHierarchyCannotBeCreated, DraftCategoryHierarchyCannotBeDeleted
+from product_catalog_context.domain.errors import CategoryAssignmentTasksRequirePlannedHierarchy, CategoryDoesNotBelongToHierarchy, CategoryHierarchyCannotBeEdited, CategoryHierarchyCannotBePublished, CategoryHierarchyCannotBeRevertedToDraft, CategoryHierarchyIsNotDraft, DraftCategoryHierarchyCannotBeCreated, DraftCategoryHierarchyCannotBeDeleted
 from product_catalog_context.infrastructure.aiosqlite_repository.errors.errors import RepositoryError
-from product_catalog_context.application.errors.errors import CategoryDoesNotBelongToActiveHierarchy, CategoryHierarchyDoesNotExist, DraftCategoryHierarchyExists, InvalidProductCategoryId, InvalidProductDataError, ProductAlreadyExistsError, ProductNotFoundError
+from product_catalog_context.application.errors.errors import CategoryAssignmentRequiresProductEditor, CategoryDoesNotBelongToActiveHierarchy, CategoryHierarchyDoesNotExist, DraftCategoryHierarchyExists, InvalidProductCategoryId, InvalidProductDataError, ProductAlreadyExistsError, ProductNotFoundError, TaskDoesNotExist, TaskNotFoundError
 
 def register_exception_handlers(app):
   app.add_exception_handler(RepositoryError, repository_error_handler)
@@ -20,6 +20,11 @@ def register_exception_handlers(app):
   app.add_exception_handler(DraftCategoryHierarchyExists, draft_hierarchy_exists)
   app.add_exception_handler(DraftCategoryHierarchyCannotBeDeleted, category_hierarchy_cannot_be_deleted_handler)
   app.add_exception_handler(CategoryHierarchyCannotBeRevertedToDraft, category_hierarchy_cannot_be_reverted_to_draft_handler)
+  app.add_exception_handler(TaskDoesNotExist, task_does_not_exists)
+  app.add_exception_handler(TaskNotFoundError, task_does_not_exists)
+  app.add_exception_handler(CategoryAssignmentTasksRequirePlannedHierarchy, category_assignment_task_not_allowed_handler)
+  app.add_exception_handler(CategoryDoesNotBelongToHierarchy, category_does_not_belong_to_hierarchy_handler)
+  app.add_exception_handler(CategoryAssignmentRequiresProductEditor, category_assignment_requires_product_editor_handler)
 
 
 async def repository_error_handler(request: Request, exc: RepositoryError):
@@ -141,5 +146,37 @@ async def category_hierarchy_cannot_be_reverted_to_draft_handler(req, exc):
     status_code=409,
     content={
       "message": "Only planned for publication hierarchy can be reverted to draft."
+    }
+  )
+
+async def task_does_not_exists(req, exc):
+  return JSONResponse(
+    status_code=404,
+    content={
+      "message": "Task does not exist."
+    }
+  )
+
+def category_assignment_task_not_allowed_handler(req, exc):
+  return JSONResponse(
+    status_code=409,
+    content={
+      "message": 'Hierarchy must be planned for publication.'
+    }
+  )
+
+def category_does_not_belong_to_hierarchy_handler(req, exc):
+  return JSONResponse(
+    status_code=422,
+    content={
+      "message": 'Category does not belong to hierarchy.'
+    }
+  )
+
+def category_assignment_requires_product_editor_handler(req, exc):
+  return JSONResponse(
+    status_code=422,
+    content={
+      "message": 'Category assignment requires product editor.'
     }
   )

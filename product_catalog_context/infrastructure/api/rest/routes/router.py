@@ -1,8 +1,10 @@
 from fastapi import APIRouter
 from product_catalog_context.infrastructure.api.rest.routes.product import product_router
 from product_catalog_context.infrastructure.api.rest.routes.category_hierarchy import category_hierarchy_router
+from product_catalog_context.infrastructure.api.rest.routes.category_assignment_tasks import category_assignment_tasks_router
 
 product_catalog_router = APIRouter()
 
 product_catalog_router.include_router(product_router)
 product_catalog_router.include_router(category_hierarchy_router)
+product_catalog_router.include_router(category_assignment_tasks_router)

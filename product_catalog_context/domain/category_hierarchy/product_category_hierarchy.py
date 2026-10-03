@@ -1,4 +1,4 @@
-from product_catalog_context.domain.errors import CategoryAssignmentTaskNotAllowed, CategoryDoesNotBelongToHierarchy, CategoryHierarchyCannotBeEdited, DraftCategoryHierarchyCannotBeDeleted, CategoryHierarchyCannotBeRevertedToDraft,ParentCategoryNotInHierarchy, CategoryHierarchyIsNotDraft,CategoryHierarchyCannotBePublished, OnlyDraftHierarchyCanBeUpdated, DraftCategoryHierarchyCannotBeCreated, DraftCategoryIdCountMismatch
+from product_catalog_context.domain.errors import CategoryAssignmentTaskNotAllowed, CategoryAssignmentTasksRequirePlannedHierarchy, CategoryDoesNotBelongToHierarchy, CategoryHierarchyCannotBeEdited, DraftCategoryHierarchyCannotBeDeleted, CategoryHierarchyCannotBeRevertedToDraft,ParentCategoryNotInHierarchy, CategoryHierarchyIsNotDraft,CategoryHierarchyCannotBePublished, OnlyDraftHierarchyCanBeUpdated, DraftCategoryHierarchyCannotBeCreated, DraftCategoryIdCountMismatch
 from product_catalog_context.domain.category_hierarchy.product_category_hierarchy_status import ProductCategoryHierarchyStatus
 from product_catalog_context.domain.category_hierarchy.product_category import ProductCategory, ProductCategoryDraft, ProductCategoryNode
 from product_catalog_context.domain.category_hierarchy.events import HierarchyPlannedForPublication, HierarchyRolledBackToDraft, PlanningForPublicationStarted, ProductCategoryHierarchyPublished, HierarchyRevertedToDraft
@@ -53,13 +53,13 @@ class ProductCategoryHierarchy:
 
   def ensure_can_complete_task(self, category_id): #planned_assignment
     if self.status != ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION:
-      raise CategoryAssignmentTaskNotAllowed()
+      raise CategoryAssignmentTasksRequirePlannedHierarchy()
     if not self.contains_product_category(category_id):
       raise CategoryDoesNotBelongToHierarchy()
 
   def ensure_can_assign_tasks(self): #planned_assignment
     if self.status != ProductCategoryHierarchyStatus.PLANNED_FOR_PUBLICATION:
-      raise CategoryAssignmentTaskNotAllowed()
+      raise CategoryAssignmentTasksRequirePlannedHierarchy()
 
     
   def create_draft_based_on_hierarchy(self, ids, user_id):
