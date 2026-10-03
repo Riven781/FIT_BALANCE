@@ -27,7 +27,7 @@ class CategoryHierarchyManagementService():
 
   async def get_hierarchy(self, hierarchy_id) -> ProductCategoryHierarchy:
     async with self.unit_of_work as uow:
-      hierarchy = await self.unit_of_work.product_category_hierarchies.get_by_id(hierarchy_id)
+      hierarchy = await uow.product_category_hierarchies.get_by_id(hierarchy_id)
       if hierarchy is None:
         raise CategoryHierarchyDoesNotExist()
       return hierarchy

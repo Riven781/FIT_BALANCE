@@ -4,7 +4,13 @@ services:
     working_dir: /app
     volumes:
       - .:/app
-    command: fastapi dev main.py --host 0.0.0.0 --port 8000
+    command: >
+      sh -c "
+        python -m shared.database.db &&
+        python -m product_catalog_context.infrastructure.outbox.event_dispatcher --database-url /tmp/test.db &
+        python -m product_catalog_context.infrastructure.outbox.command_dispatcher --database-url /tmp/test.db &
+        fastapi dev main.py --host 0.0.0.0 --port 8000
+      "
     ports:
       - "8000:8000"
     environment:

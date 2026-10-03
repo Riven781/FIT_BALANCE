@@ -70,7 +70,7 @@ async def get_product_management_service(
   return ProductManagementService(unit_of_work, access_adapter, publisher)
 
 async def get_product_hierarchy_category_service(
-    product_repository: Annotated[ProductRepository, Depends(get_product_category_hierarchy_repository)],
-    product_category_hierarchy_repository: Annotated[ProductCategoryHierarchyRepository, Depends(get_product_category_hierarchy_repository)],
-    access_adapter: Annotated[AccessAdapter, Depends(get_access_adapter)]):
-  return CategoryHierarchyManagementService(product_repository=product_repository,product_category_hierarchy_repository=product_category_hierarchy_repository, access_adapter=access_adapter)
+    unit_of_work: Annotated[UnitOfWork, Depends(get_unit_of_work)], 
+    access_adapter: Annotated[AccessAdapter, Depends(get_access_adapter)],
+    publisher: Annotated[DomainMessagePublisher, Depends(get_message_publisher)]):
+  return CategoryHierarchyManagementService(unit_of_work, access_adapter, publisher)

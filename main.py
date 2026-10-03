@@ -29,7 +29,8 @@ from product_catalog_context.infrastructure.api.rest.routes.router import produc
 @asynccontextmanager
 async def lifespan(app: FastAPI):
   if MODE == 'TEST':
-    await reset_db()
+    print('test')
+    #await reset_db()
   else:
     await init_db()
   yield

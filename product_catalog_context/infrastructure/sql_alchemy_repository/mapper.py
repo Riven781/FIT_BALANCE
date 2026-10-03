@@ -103,7 +103,7 @@ mapper_registry.map_imperatively(ProductCategory, product_category_node_table, p
 
 mapper_registry.map_imperatively(ProductCategoryHierarchy, product_category_hierarchy_table, properties={
   "hierarchy_id" : product_category_hierarchy_table.c.id,
-  "product_categories" : relationship(ProductCategory, cascade="all, delete-orphan", lazy='selectin')
+  "product_categories" : relationship(ProductCategory, cascade="all, delete-orphan", lazy='selectin', foreign_keys=[product_category_node_table.c.hierarchy_id])
 })
 
 mapper_registry.map_imperatively(ProductCategoryAssignmentModel, product_category_assignment_table, properties={

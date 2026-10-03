@@ -1,8 +1,9 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
+from product_catalog_context.domain.errors import CategoryHierarchyCannotBeEdited, CategoryHierarchyCannotBePublished, CategoryHierarchyCannotBeRevertedToDraft, CategoryHierarchyIsNotDraft, DraftCategoryHierarchyCannotBeCreated, DraftCategoryHierarchyCannotBeDeleted
 from product_catalog_context.infrastructure.aiosqlite_repository.errors.errors import RepositoryError
-from product_catalog_context.application.errors.errors import CategoryDoesNotBelongToActiveHierarchy, InvalidProductCategoryId, InvalidProductDataError, ProductAlreadyExistsError, ProductNotFoundError
+from product_catalog_context.application.errors.errors import CategoryDoesNotBelongToActiveHierarchy, CategoryHierarchyDoesNotExist, DraftCategoryHierarchyExists, InvalidProductCategoryId, InvalidProductDataError, ProductAlreadyExistsError, ProductNotFoundError
 
 def register_exception_handlers(app):
   app.add_exception_handler(RepositoryError, repository_error_handler)
@@ -11,7 +12,14 @@ def register_exception_handlers(app):
   app.add_exception_handler(InvalidProductCategoryId, invalid_product_category_id_handler)
   app.add_exception_handler(ProductAlreadyExistsError, product_already_exists_handler)
   app.add_exception_handler(CategoryDoesNotBelongToActiveHierarchy, category_does_not_belong_to_active_hierarchy_handler)
-
+  app.add_exception_handler(CategoryHierarchyDoesNotExist, category_hierarchy_not_found_handler)
+  app.add_exception_handler(CategoryHierarchyCannotBeEdited, category_hierarchy_cannot_be_edited_handler)
+  app.add_exception_handler(CategoryHierarchyCannotBePublished, category_hierarchy_cannot_be_published)
+  app.add_exception_handler(CategoryHierarchyIsNotDraft, category_hierarchy_cannot_be_planned_for_publication)
+  app.add_exception_handler(DraftCategoryHierarchyCannotBeCreated, draft_category_cannot_be_created)
+  app.add_exception_handler(DraftCategoryHierarchyExists, draft_hierarchy_exists)
+  app.add_exception_handler(DraftCategoryHierarchyCannotBeDeleted, category_hierarchy_cannot_be_deleted_handler)
+  app.add_exception_handler(CategoryHierarchyCannotBeRevertedToDraft, category_hierarchy_cannot_be_reverted_to_draft_handler)
 
 
 async def repository_error_handler(request: Request, exc: RepositoryError):
@@ -51,8 +59,7 @@ async def invalid_product_category_id_handler(req, exc):
   return JSONResponse(
     status_code=404,
     content={
-      "message": "Not Found",
-      "detail" : "Product category doesn't exist."
+      "message": "Product category doesn't exist."
     }
   )
 
@@ -61,5 +68,78 @@ async def product_already_exists_handler(req, exc):
     status_code=409,
     content={
       "message": "Conflict"
+    }
+  )
+
+
+async def category_hierarchy_not_found_handler(req, exc):
+  return JSONResponse(
+    status_code=404,
+    content={
+      "message": "Category hierarchy category doesn't exist.",
+    }
+  )
+
+
+async def category_hierarchy_cannot_be_edited_handler(req, exc):
+  return JSONResponse(
+    status_code=409,
+    content={
+      "message": "Only draft can be edited."
+    }
+  )
+
+
+async def category_hierarchy_cannot_be_published(req, exc):
+  return JSONResponse(
+    status_code=409,
+    content={
+      "message": "Only planned for publication can be published.",
+    }
+  )
+
+
+
+
+
+async def category_hierarchy_cannot_be_planned_for_publication(req, exc):
+  return JSONResponse(
+    status_code=409,
+    content={
+      "message": "Only draft can be planned for publication."
+    }
+  )
+
+async def draft_category_cannot_be_created(req, exc):
+  return JSONResponse(
+    status_code=409,
+    content={
+      "message": "Draft only can be created based on active category."
+    }
+  )
+
+async def draft_hierarchy_exists(req, exc):
+  return JSONResponse(
+    status_code=409,
+    content={
+      "message": "Draft hierarchy already exists."
+    }
+  )
+
+
+
+async def category_hierarchy_cannot_be_deleted_handler(req, exc):
+  return JSONResponse(
+    status_code=409,
+    content={
+      "message": "Only draft category can be deleted."
+    }
+  )
+
+async def category_hierarchy_cannot_be_reverted_to_draft_handler(req, exc):
+  return JSONResponse(
+    status_code=409,
+    content={
+      "message": "Only planned for publication hierarchy can be reverted to draft."
     }
   )

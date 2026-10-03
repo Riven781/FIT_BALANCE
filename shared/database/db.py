@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 
 import aiosqlite
@@ -125,3 +126,7 @@ async def reset_db():
     await db.execute(product_category_closure_query)
 
   await insert_data()
+
+
+if __name__ == '__main__':
+  asyncio.run(reset_db())
