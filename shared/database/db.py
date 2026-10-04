@@ -74,6 +74,7 @@ async def insert_data():
       INSERT INTO UserRole(user_id, role) VALUES 
         (1000, 'product_editor'),
         (1000, 'catalog_manager'),
+        (1000, 'moderator'),
         (2000, 'product_editor'),
         (3000, 'product_editor');
 

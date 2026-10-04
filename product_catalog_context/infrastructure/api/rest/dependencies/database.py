@@ -8,6 +8,7 @@ from identity_and_access_context.public.api.access_api import AccessApi
 from identity_and_access_context.public.adapters.fastapi.dependencies.get_access_api import get_access_api
 from identity_and_access_context.public.api.identity_api import IdentityApi
 from product_catalog_context.application.category_assignment_task_service import CategoryAssignmentTaskService
+from product_catalog_context.application.product_issue_service import ProductIssueService
 from product_catalog_context.application.product_management_service import ProductManagementService
 from product_catalog_context.application.product_query_service import ProductQueryService
 from product_catalog_context.application.product_report_service import ProductReportService
@@ -88,3 +89,10 @@ def get_product_report_service(
   publisher: Annotated[DomainMessagePublisher, Depends(get_message_publisher)]
 ):
   return ProductReportService(unit_of_work, access_adapter, publisher)
+
+def get_product_issue(
+  unit_of_work: Annotated[UnitOfWork, Depends(get_unit_of_work)], 
+  access_adapter: Annotated[AccessAdapter, Depends(get_access_adapter)],
+  publisher: Annotated[DomainMessagePublisher, Depends(get_message_publisher)]
+):
+  return ProductIssueService(unit_of_work, access_adapter, publisher)

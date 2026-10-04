@@ -7,7 +7,7 @@ from product_catalog_context.infrastructure.api.rest.schemas.product_report impo
 
 product_report_router = APIRouter()
 
-@product_report_router.post('/product-reports', response_model=ProductReportResponse)
+@product_report_router.post('/product-reports', response_model=ProductReportResponse, status_code=201)
 async def create_report(
   request : ProductReportRequest,
   product_report_service: Annotated[ProductReportService, Depends(get_product_report_service)],

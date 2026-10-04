@@ -1,7 +1,8 @@
 import pytest
 import requests
-
 import config
+
+#pytest tests/integration/test_product_report.py
 
 def insert_product(name = 'szarlotka', brand='auchan', kcal='200', reference_unit='g', current_category_id=None, cookies=None):
   url = config.get_api_url()
@@ -33,7 +34,7 @@ def test_create_report(cookies):
     ]
   }
   r = requests.post(f'{url}/product-reports', json=data, cookies=cookies)
-  assert r.status_code == 200
+  assert r.status_code == 201
   report = r.json()
   assert report['reported_items'][0]['reported_field'] == 'kcal'
   assert report['reported_items'][0]['status'] == 'accepted'
@@ -54,7 +55,7 @@ def test_create_report_with_outdated_old_value(cookies):
     ]
   }
   r = requests.post(f'{url}/product-reports', json=data, cookies=cookies)
-  assert r.status_code == 200
+  assert r.status_code == 201
   report = r.json()
   assert report['reported_items'][0]['reported_field'] == 'kcal'
   assert report['reported_items'][0]['status'] == 'outdated'
