@@ -25,7 +25,7 @@ class ProductReport:
 
   def evaluate_status(self,  reported_field: ReportedField, product_value):
     item = next((item for item in self.reported_items if item.reported_field == reported_field), None)
-    print(f'REPORTED_FIELD: {reported_field }{type(item.old_value)} - {item.old_value} vs {type(product_value)} - {product_value} : str - {str(product_value)}')
+    #print(f'REPORTED_FIELD: {reported_field }{type(item.old_value)} - {item.old_value} vs {type(product_value)} - {product_value} : str - {str(product_value)}')
     if str(item.old_value) == str(product_value):
       item.accept()
       self._events.append(ProductReportItemAccepted(self.report_id, reported_field, item.old_value))

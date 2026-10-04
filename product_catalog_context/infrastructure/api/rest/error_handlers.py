@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 
 from product_catalog_context.domain.errors import CategoryAssignmentTasksRequirePlannedHierarchy, CategoryDoesNotBelongToHierarchy, CategoryHierarchyCannotBeEdited, CategoryHierarchyCannotBePublished, CategoryHierarchyCannotBeRevertedToDraft, CategoryHierarchyIsNotDraft, DraftCategoryHierarchyCannotBeCreated, DraftCategoryHierarchyCannotBeDeleted
 from product_catalog_context.infrastructure.aiosqlite_repository.errors.errors import RepositoryError
-from product_catalog_context.application.errors.errors import CategoryAssignmentRequiresProductEditor, CategoryDoesNotBelongToActiveHierarchy, CategoryHierarchyDoesNotExist, DraftCategoryHierarchyExists, InvalidProductCategoryId, InvalidProductDataError, ProductAlreadyExistsError, ProductNotFoundError, TaskDoesNotExist, TaskNotFoundError
+from product_catalog_context.application.errors.errors import CategoryAssignmentRequiresProductEditor, CategoryDoesNotBelongToActiveHierarchy, CategoryHierarchyDoesNotExist, DraftCategoryHierarchyExists, InvalidProductCategoryId, InvalidProductDataError, ProductAlreadyExistsError, ProductNotFoundError, ProductReportExistsForThisVersion, TaskDoesNotExist, TaskNotFoundError
 
 def register_exception_handlers(app):
   app.add_exception_handler(RepositoryError, repository_error_handler)
@@ -25,6 +25,9 @@ def register_exception_handlers(app):
   app.add_exception_handler(CategoryAssignmentTasksRequirePlannedHierarchy, category_assignment_task_not_allowed_handler)
   app.add_exception_handler(CategoryDoesNotBelongToHierarchy, category_does_not_belong_to_hierarchy_handler)
   app.add_exception_handler(CategoryAssignmentRequiresProductEditor, category_assignment_requires_product_editor_handler)
+  app.add_exception_handler(ProductReportExistsForThisVersion, product_report_exists_for_this_product_version)
+
+
 
 
 async def repository_error_handler(request: Request, exc: RepositoryError):
@@ -178,5 +181,13 @@ def category_assignment_requires_product_editor_handler(req, exc):
     status_code=422,
     content={
       "message": 'Category assignment requires product editor.'
+    }
+  )
+
+def product_report_exists_for_this_product_version(req, exc):
+  return JSONResponse(
+    status_code=409,
+    content={
+      "message": 'You have already created a report for this product version.'
     }
   )

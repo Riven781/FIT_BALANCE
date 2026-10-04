@@ -10,6 +10,7 @@ from identity_and_access_context.public.api.identity_api import IdentityApi
 from product_catalog_context.application.category_assignment_task_service import CategoryAssignmentTaskService
 from product_catalog_context.application.product_management_service import ProductManagementService
 from product_catalog_context.application.product_query_service import ProductQueryService
+from product_catalog_context.application.product_report_service import ProductReportService
 from product_catalog_context.application.unit_of_work import UnitOfWork
 from product_catalog_context.domain.messages.domain_message_publisher import DomainMessagePublisher
 from product_catalog_context.infrastructure.adapters.access_adapter import AccessAdapter
@@ -80,3 +81,10 @@ async def get_category_assignment_task_service(
     unit_of_work: Annotated[UnitOfWork, Depends(get_unit_of_work)], 
     access_adapter: Annotated[AccessAdapter, Depends(get_access_adapter)]):
   return CategoryAssignmentTaskService(unit_of_work, access_adapter)
+
+def get_product_report_service(
+  unit_of_work: Annotated[UnitOfWork, Depends(get_unit_of_work)], 
+  access_adapter: Annotated[AccessAdapter, Depends(get_access_adapter)],
+  publisher: Annotated[DomainMessagePublisher, Depends(get_message_publisher)]
+):
+  return ProductReportService(unit_of_work, access_adapter, publisher)
