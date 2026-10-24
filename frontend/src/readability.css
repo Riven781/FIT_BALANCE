@@ -1,0 +1,221 @@
+/* Keep essential product information readable at every screen size. */
+.product-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+.product-brand {
+  font-size: 12px;
+  color: #627158;
+  letter-spacing: 0.7px;
+}
+.category-tag {
+  font-size: 12px;
+  color: #50623e;
+  background: #fffdf3;
+  padding: 6px 9px;
+}
+.card-body {
+  padding: 18px 18px 0;
+}
+.card-body h3 {
+  font-size: 18px;
+  line-height: 1.5;
+  height: 54px;
+  margin-bottom: 16px;
+}
+.calories {
+  font-size: 14px;
+  color: #5c6c50;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.calories > span {
+  color: #526b40;
+}
+.calories strong {
+  font-size: 26px;
+}
+.calories small {
+  font-size: 13px;
+}
+.macros {
+  padding: 16px 0;
+}
+.macros > div {
+  padding-left: 10px;
+  gap: 8px;
+  min-width: 0;
+}
+.macros span {
+  font-size: 14px;
+  color: #526147;
+  gap: 6px;
+  line-height: 1.5;
+}
+.macros strong {
+  font-size: 18px;
+  color: #354a2c;
+  font-weight: 600;
+}
+.macros small {
+  font-size: 14px;
+  color: #5b6c50;
+}
+.macros i {
+  width: 6px;
+  height: 6px;
+}
+.details-link {
+  font-size: 14px;
+  color: #416331;
+  min-height: 48px;
+}
+.favorite-button {
+  height: 40px;
+  width: 40px;
+  color: #637652;
+}
+.favorite-button svg {
+  width: 20px;
+  height: 20px;
+}
+.search-input input {
+  font-size: 16px;
+  color: #354633;
+}
+.search-input input::placeholder {
+  color: #69765f;
+}
+.sort-control select {
+  font-size: 14px;
+  color: #4b603e;
+  max-width: 190px;
+}
+.results-bar {
+  font-size: 14px;
+  color: #617052;
+  gap: 12px;
+  line-height: 1.6;
+}
+.results-bar {
+  scroll-margin-top: 16px;
+}
+.results-bar:focus {
+  outline: none;
+}
+.results-bar > span {
+  font-size: 12px;
+  color: #617052;
+}
+.section-note {
+  font-size: 13px;
+  color: #617052;
+}
+.nav-item {
+  font-size: 14px;
+}
+.hero p {
+  font-size: 15px;
+  color: #56664d;
+}
+.hero-badges {
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.muted {
+  font-size: 14px;
+  color: #617052;
+}
+.small {
+  font-size: 12px;
+}
+.save-button {
+  font-size: 14px;
+  color: #4b663a;
+}
+th,
+td {
+  font-size: 15px;
+}
+tr:nth-child(2) th,
+tr:nth-child(4) th {
+  font-size: 14px;
+  color: #667457;
+}
+.pagination {
+  font-size: 14px;
+  color: #526645;
+}
+@media (max-width: 650px) {
+  .product-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+    gap: 12px;
+  }
+  .product-card {
+    min-width: 0;
+  }
+  .card-body {
+    padding: 12px 10px 0;
+  }
+  .card-body h3 {
+    font-size: 15px;
+    line-height: 1.45;
+    height: auto;
+    min-height: 66px;
+    margin-bottom: 12px;
+    overflow-wrap: anywhere;
+  }
+  .card-body h3 button {
+    display: block;
+    -webkit-line-clamp: unset;
+  }
+  .product-card .macros,
+  .product-card .category-tag,
+  .product-card .product-brand {
+    display: none;
+  }
+  .product-card .product-image {
+    height: 150px;
+    padding: 20px 10px;
+  }
+  .product-card .product-image img {
+    height: 110px;
+  }
+  .calories {
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+  .calories strong {
+    font-size: 23px;
+  }
+  .calories small {
+    font-size: 12px;
+  }
+  .details-link {
+    font-size: 13px;
+    gap: 4px;
+    border-top: 1px solid #eef0e9;
+  }
+  .skeleton-card {
+    height: 310px;
+  }
+  .search-input {
+    height: auto;
+    min-height: 54px;
+  }
+  .search-input input {
+    min-width: 0;
+    padding: 15px 8px;
+  }
+  .sort-control {
+    height: auto;
+    min-height: 44px;
+  }
+  .energy {
+    font-size: 13px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .hero-badges {
+    gap: 12px;
+  }
+}
