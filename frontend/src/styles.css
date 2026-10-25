@@ -557,21 +557,7 @@ kbd {
   color: #537b42;
   background: #f3f7ed;
 }
-.category-tag {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  background: #fffdf3de;
-  color: #83906f;
-  padding: 5px 8px;
-  border-radius: 5px;
-  font-size: 8px;
-  max-width: 90%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  pointer-events: none;
-}
+
 .card-body {
   padding: 17px 17px 0;
 }
@@ -1185,11 +1171,7 @@ tr:nth-child(4) th {
     font-size: 9px;
     padding: 11px 0;
   }
-  .category-tag {
-    font-size: 7px;
-    bottom: 8px;
-    left: 8px;
-  }
+
   .favorite-button {
     width: 28px;
     height: 28px;

@@ -27,9 +27,7 @@ export default function ProductCard({
         >
           <Heart size={18} fill={saved ? "currentColor" : "none"} />
         </button>
-        <span className="category-tag">
-          {product.category_path.at(-1)?.name || "Produkt spożywczy"}
-        </span>
+
       </div>
       <div className="card-body">
         <p className="product-brand">
