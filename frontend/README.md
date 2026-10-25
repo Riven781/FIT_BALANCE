@@ -31,7 +31,9 @@ Kategorie wyświetlane są z `category_path`. Endpoint hierarchii oznaczony w ba
 
 Kod jest podzielony na `src/App.jsx` (widok i obsługa katalogu), `src/components/` (karty, zdjęcia i szczegóły produktów), `src/api.js` (REST) oraz `src/utils/` (formatowanie danych). `src/main.jsx` uruchamia aplikację. Style są sformatowane w blokach; `readability.css` zawiera poprawki czytelności i uproszczone karty mobilne.
 
-Na telefonie karty tworzą dwie kolumny, gdy dostępna szerokość pozwala pomieścić dwie karty po 150 px z odstępem. Zdjęcia, pełne nazwy i kcal pozostają widoczne; pozostałe wartości są dostępne w szczegółach. Zmiana strony wyników ustawia widok na początku listy po jej załadowaniu.
+Na telefonie karty tworzą dwie kolumny, gdy dostępna szerokość pozwala pomieścić dwie karty po 150 px z odstępem. Zdjęcia, pełne nazwy i kcal pozostają widoczne; pozostałe wartości są dostępne w szczegółach.
+
+Hook `src/hooks/usePagination.js` obsługuje numer strony i przewijanie. Przejście strzałką w prawo ustawia widok na początku nowych wyników dopiero po ich załadowaniu. Strzałka w lewo nie uruchamia przewijania. Dotychczasowe karty pozostają widoczne podczas pobierania, a przyciski paginacji są wtedy zablokowane.
 
 Formatowanie kodu: `npm run format`. Sprawdzenie formatowania: `npm run format:check`.
 

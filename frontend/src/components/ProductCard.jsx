@@ -27,7 +27,6 @@ export default function ProductCard({
         >
           <Heart size={18} fill={saved ? "currentColor" : "none"} />
         </button>
-
       </div>
       <div className="card-body">
         <p className="product-brand">

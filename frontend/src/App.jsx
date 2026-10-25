@@ -17,6 +17,7 @@ import {
 import { getProduct, getProducts } from "./api";
 import ProductCard from "./components/ProductCard";
 import ProductDetail from "./components/ProductDetail";
+import usePagination from "./hooks/usePagination";
 import { format } from "./utils/format";
 
 function readSaved() {
@@ -34,7 +35,6 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("name:asc");
-  const [page, setPage] = useState(1);
   const [favorites, setFavorites] = useState(readSaved);
   const [selected, setSelected] = useState(null);
   const [data, setData] = useState([]);
@@ -42,9 +42,12 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
+  const { page, changePage, resetPage, resultsRef } = usePagination({
+    loading,
+    data,
+    error,
+  });
   const searchRef = useRef(null);
-  const resultsRef = useRef(null);
-  const scrollAfterPageChange = useRef(false);
   const favoriteProducts = useRef(new Map());
   // Saving a heart in the catalog must not invalidate the product search.
   const favoriteIds = view === "favorites" ? favorites : null;
@@ -67,10 +70,10 @@ export default function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(query.trim());
-      setPage(1);
+      resetPage();
     }, 350);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, resetPage]);
   useEffect(() => {
     const controller = new AbortController();
     if (
@@ -114,7 +117,7 @@ export default function App() {
         );
         const totalPages = Math.ceil(items.length / 12);
         const currentPage = Math.min(page, Math.max(1, totalPages));
-        setPage(currentPage);
+        if (currentPage !== page) resetPage(currentPage);
         setData(items.slice((currentPage - 1) * 12, currentPage * 12));
         setMeta({ total: items.length, total_pages: totalPages });
       } else {
@@ -145,20 +148,7 @@ export default function App() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [search, sort, page, view, favoriteIds, retry]);
-  useEffect(() => {
-    // Wait for the new cards to render; changing favorites must not scroll.
-    if (loading || !scrollAfterPageChange.current) return;
-    scrollAfterPageChange.current = false;
-    resultsRef.current?.focus({ preventScroll: true });
-    resultsRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
-  }, [loading, data, error]);
-
-  function changePage(nextPage) {
-    if (nextPage === page || loading) return;
-    scrollAfterPageChange.current = true;
-    setPage(nextPage);
-  }
+  }, [search, sort, page, view, favoriteIds, retry, resetPage]);
   function toggle(id) {
     setFavorites((old) => {
       const next = old.includes(id)
@@ -174,7 +164,7 @@ export default function App() {
   }
   function navigate(next) {
     setView(next);
-    setPage(1);
+    resetPage();
     setQuery("");
     setSearch("");
   }
@@ -344,7 +334,7 @@ export default function App() {
                   value={sort}
                   onChange={(e) => {
                     setSort(e.target.value);
-                    setPage(1);
+                    resetPage();
                   }}
                 >
                   <option value="name:asc">Nazwa: A–Z</option>
@@ -390,7 +380,7 @@ export default function App() {
                   Spróbuj ponownie <ArrowRight size={16} />
                 </button>
               </div>
-            ) : loading ? (
+            ) : loading && !data.length ? (
               <div
                 className="product-grid"
                 aria-label="Ładowanie produktów"
@@ -428,7 +418,7 @@ export default function App() {
                 </button>
               </div>
             ) : (
-              <div className="product-grid">
+              <div className="product-grid" aria-busy={loading}>
                 {data.map((product) => (
                   <ProductCard
                     key={product.product_id}
@@ -440,10 +430,10 @@ export default function App() {
                 ))}
               </div>
             )}
-            {!loading && !error && meta?.total_pages > 1 && (
+            {!error && meta?.total_pages > 1 && (
               <nav className="pagination" aria-label="Strony wyników">
                 <button
-                  disabled={page <= 1}
+                  disabled={loading || page <= 1}
                   onClick={() => changePage(page - 1)}
                   aria-label="Poprzednia strona"
                 >
@@ -453,7 +443,7 @@ export default function App() {
                   Strona <strong>{page}</strong> z {meta.total_pages}
                 </span>
                 <button
-                  disabled={page >= meta.total_pages}
+                  disabled={loading || page >= meta.total_pages}
                   onClick={() => changePage(page + 1)}
                   aria-label="Następna strona"
                 >
