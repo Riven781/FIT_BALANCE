@@ -32,6 +32,7 @@ class ProductQueries:
       """
       #conditions.append('closure_2.supercategory_id = ?') 
       arguments.append(category_id)
+    
     if names is not None:
       name_query = f"({' AND '.join(['(product.name_search_standard LIKE ? OR product.name_search_standard LIKE ?)' for _ in range(len(names))])})"
       conditions.append(name_query)
@@ -43,10 +44,24 @@ class ProductQueries:
     where_query = None
     if conditions:
       where_query = 'WHERE ' + " AND ".join(conditions)
-    return inner_query, where_query, arguments
+
+    order_by = None
+    order_arguments = []
+    if names is not None:
+      order_by = """
+        CASE 
+          WHEN product.name_search_standard LIKE ? THEN 2
+          ELSE 1
+        END DESC,
+      """
+      order_arguments.append(f'{names[0]}%')
+
+    
+
+    return inner_query, where_query, arguments, order_by, order_arguments
 
   async def get_total(self, category_id = None, names = None):
-    inner_query, where_query, arguments = self._translate_filters_to_query(category_id=category_id, names=names)
+    inner_query, where_query, arguments, _, _ = self._translate_filters_to_query(category_id=category_id, names=names)
   
     total_query = f"""
       SELECT COUNT(*) AS total
@@ -66,25 +81,28 @@ class ProductQueries:
 
   async def get_detail_by_filters(self, category_id=None, names=None, sort_by=SortBy.KCAL, order="ASC", page=1, limit=20):
     offset = (page - 1) * limit
-    inner_query, where_query, arguments = self._translate_filters_to_query(category_id, names)
-
+    inner_query, where_query, arguments, order_by, order_arguments = self._translate_filters_to_query(category_id, names)
+    order_by_query = order_by if order_by is not None else ''
+    if sort_by is not SortBy.NAME:
+      order_by_query = ''
+      order_arguments = []
     get_by_filters_query = f"""
       SELECT product.*, node.id as category_id, node.name as category_name FROM (
         SELECT product.* FROM Product as product
         {inner_query}
         {where_query if where_query is not None else " "}
-        ORDER BY product.{sort_by.value} {order}, product.id ASC
+        ORDER BY {order_by_query} product.{sort_by.value} {order}, product.id ASC
         LIMIT ?
         OFFSET ?
       ) as product
       LEFT JOIN ProductCategoryAssignment as assignment ON assignment.product_id = product.id
       LEFT JOIN ProductCategoryClosure as closure ON closure.subcategory_id = assignment.node_id
       LEFT JOIN ProductCategoryNode as node ON closure.supercategory_id = node.id
-      ORDER BY product.{sort_by.value} {order}, product.id ASC, closure.depth DESC;
+      ORDER BY  {order_by_query} product.{sort_by.value} {order}, product.id ASC, closure.depth DESC;
 
     """
     try:
-      async with self.db.execute(get_by_filters_query, (*arguments, limit, offset)) as cursor:
+      async with self.db.execute(get_by_filters_query, (*arguments,*order_arguments, limit, offset, *order_arguments)) as cursor:
         results = await cursor.fetchall()
     except Exception as e:
       print(e)
