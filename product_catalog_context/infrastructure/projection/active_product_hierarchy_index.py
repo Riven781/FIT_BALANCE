@@ -1,17 +1,21 @@
 
+import asyncio
+
+from shared.database.db import get_db
+
 class ActiveProductHierarchyIndex:
   def __init__(self, db,):
     self.db = db
 
   async def rebuild_hierarchy(self,  hierarchy_id):
     delete_query = """
-      DELETE FROM ProducCategoryClosure;
+      DELETE FROM ProductCategoryClosure;
     """
     rebuild_query = """
     WITH RECURSIVE closure AS (
-      SELECT id AS supercategory_id, id AS subcategory_id, 0 AS depth
+      SELECT node.id AS supercategory_id, node.id AS subcategory_id, 0 AS depth
       FROM ProductCategoryNode node
-      JOIN ProductHierarchy hierarchy ON node.hierarchy_id = hierarchy.id
+      JOIN ProductCategoryHierarchy hierarchy ON node.hierarchy_id = hierarchy.id
       WHERE hierarchy.id = ?
 
       UNION ALL
@@ -20,9 +24,22 @@ class ActiveProductHierarchyIndex:
       FROM closure
       JOIN ProductCategoryNode AS child
         ON child.parent_id = closure.subcategory_id
+      
     )
     INSERT INTO ProductCategoryClosure (supercategory_id, subcategory_id, depth)
     SELECT supercategory_id, subcategory_id, depth FROM closure
     """
     await self.db.execute(delete_query)
     await self.db.execute(rebuild_query, (hierarchy_id,))
+
+async def main():
+    async for db in get_db():
+        active_product_hierarchy_index = ActiveProductHierarchyIndex(db)
+        await active_product_hierarchy_index.rebuild_hierarchy(1)
+        await db.commit()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+
+  

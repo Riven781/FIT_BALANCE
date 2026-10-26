@@ -17,8 +17,11 @@ import {
 import { getProduct, getProducts } from "./api";
 import ProductCard from "./components/ProductCard";
 import ProductDetail from "./components/ProductDetail";
+import CategoryFilter from "./components/CategoryFilter";
+import useCategories from "./hooks/useCategories";
 import usePagination from "./hooks/usePagination";
 import { format } from "./utils/format";
+import { isProductInCategory } from "./utils/categories";
 
 function readSaved() {
   try {
@@ -35,6 +38,11 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("name:asc");
+  const [categoryId, setCategoryId] = useState(null);
+  const categories = useCategories();
+  const selectedCategory = categories.options.find(
+    (category) => category.category_id === categoryId,
+  );
   const [favorites, setFavorites] = useState(readSaved);
   const [selected, setSelected] = useState(null);
   const [data, setData] = useState([]);
@@ -107,7 +115,8 @@ export default function App() {
             p.name
               .toLocaleLowerCase("pl")
               .includes(search.toLocaleLowerCase("pl")),
-          );
+          )
+          .filter((product) => isProductInCategory(product, categoryId));
         items.sort(
           (a, b) =>
             (sort_by === "kcal"
@@ -128,6 +137,7 @@ export default function App() {
             sort_by,
             order,
             ...(search ? { name: search } : {}),
+            ...(categoryId !== null ? { category_id: categoryId } : {}),
           },
           controller.signal,
         );
@@ -148,7 +158,12 @@ export default function App() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [search, sort, page, view, favoriteIds, retry, resetPage]);
+  }, [search, sort, page, view, favoriteIds, retry, resetPage, categoryId]);
+
+  function selectCategory(id) {
+    setCategoryId(id);
+    resetPage();
+  }
   function toggle(id) {
     setFavorites((old) => {
       const next = old.includes(id)
@@ -167,6 +182,7 @@ export default function App() {
     resetPage();
     setQuery("");
     setSearch("");
+    setCategoryId(null);
   }
   return (
     <div className="app">
@@ -312,7 +328,11 @@ export default function App() {
                 <input
                   ref={searchRef}
                   aria-label="Szukaj produktu"
-                  placeholder="Czego szukasz? Wpisz nazwę produktu…"
+                  placeholder={
+                    selectedCategory
+                      ? `Szukaj w: ${selectedCategory.name}…`
+                      : "Czego szukasz? Wpisz nazwę produktu…"
+                  }
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
@@ -344,6 +364,14 @@ export default function App() {
                 </select>
               </label>
             </div>
+            <CategoryFilter
+              options={categories.options}
+              loading={categories.loading}
+              error={categories.error}
+              retry={categories.retry}
+              value={categoryId}
+              onChange={selectCategory}
+            />
             <div
               className="results-bar"
               ref={resultsRef}
@@ -359,6 +387,12 @@ export default function App() {
                   <>
                     <strong>{format(meta?.total || 0)}</strong> produktów{" "}
                     {search ? <>dla „{search}”</> : "do odkrycia"}
+                    {selectedCategory && (
+                      <>
+                        {" "}
+                        w kategorii <strong>{selectedCategory.name}</strong>
+                      </>
+                    )}
                   </>
                 )}
               </p>
@@ -405,8 +439,16 @@ export default function App() {
                 <p>
                   {view === "favorites" && !favorites.length
                     ? "Kliknij serce na karcie produktu, aby zapisać go na później."
-                    : "Spróbuj innej nazwy lub skróć wyszukiwane hasło."}
+                    : "Spróbuj innej nazwy, wybierz szerszą kategorię lub wyczyść filtry."}
                 </p>
+                {categoryId !== null && (
+                  <button
+                    className="save-button"
+                    onClick={() => selectCategory(null)}
+                  >
+                    Szukaj we wszystkich kategoriach <X size={16} />
+                  </button>
+                )}
                 <button
                   className="primary-button"
                   onClick={() => {
