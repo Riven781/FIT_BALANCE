@@ -14,8 +14,8 @@ Architektura aplikacji opiera się na podziale na domeny biznesowe, z wyraźnym 
 
 - **Python** – język programowania backendu
 - **FastAPI** – framework do budowania REST API
-- **SQLAlchemy (Async)** – asynchroniczna obsługa warstwy persystencji
-- **SQLite** – relacyjna baza danych (w przyszłści zamierzam stworzyć migracje do PostgreSQL)
+- **SQLAlchemy (Async)** – asynchroniczna komunikacja z bazą danych i mapowanie obiektowo-relacyjne (ORM)
+- **SQLite** – relacyjna baza danych (planowana migracja do PostgreSQL)
 - **Redis** – infrastruktura komunikacji między komponentami
 - **Docker i Docker Compose** – konteneryzacja i zarządzanie usługami
 - **JWT, Sesja** – uwierzytelnianie i autoryzacja
