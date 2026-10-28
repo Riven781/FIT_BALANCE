@@ -4,7 +4,7 @@ import pytest
 from product_catalog_context.domain.enums.product_searching import SortBy
 from product_catalog_context.infrastructure.aiosqlite_repository.product import ProductRepository
 from product_catalog_context.domain.repository.errors import CheckViolationError, ForeignKeyViolationError, NotNullViolationError, RepositoryError, RepositoryIntegrityError, RepositoryProgrammingError, RepositoryUnavailableError, TypeViolationError, UniqueViolationError, UnknownRepositoryError
-from tests.schema import ProductTest, ProductTestStrKcal
+from product_catalog_context.tests.schema import ProductTest, ProductTestStrKcal
 from product_catalog_context.domain.product.product import Product
 from product_catalog_context.domain.product.nutrition_facts import NutritionFacts, Nutrients, ReferenceQuantity
 from product_catalog_context.domain.product.product_assignment import CategoryAssignment
